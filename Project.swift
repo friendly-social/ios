@@ -4,7 +4,7 @@ let project = Project(
     name: "Friendly",
     targets: [
         .target(
-            name: "Friendly",
+            name: "App",
             destinations: .iOS,
             product: .app,
             bundleId: "me.y9san9.Friendly",
@@ -17,8 +17,8 @@ let project = Project(
                 ]
             ),
             buildableFolders: [
-                "Friendly/Sources",
-                "Friendly/Resources",
+                "App/Sources",
+                "App/Resources",
             ],
             dependencies: []
         ),
