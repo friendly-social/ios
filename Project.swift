@@ -2,9 +2,15 @@ import ProjectDescription
 
 let project = Project(
     name: "Friendly",
+    packages: [
+        .remote(
+            url: "https://github.com/tevelee/SwiftUI-Flow",
+            requirement: .exact("3.1.0"),
+        ),
+    ],
     targets: [
         .target(
-            name: "App",
+            name: "Friendly",
             destinations: .iOS,
             product: .app,
             bundleId: "me.y9san9.Friendly",
@@ -17,10 +23,12 @@ let project = Project(
                 ]
             ),
             buildableFolders: [
-                "App/Sources",
-                "App/Resources",
+                "Friendly/Sources",
+                "Friendly/Resources",
             ],
-            dependencies: []
+            dependencies: [
+                .package(product: "Flow"),
+            ]
         ),
     ]
 )

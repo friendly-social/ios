@@ -1,0 +1,127 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "app_name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friendly"
+          }
+        }
+      }
+    },
+    "sign_up_sign_up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign Up"
+          }
+        }
+      }
+    },
+    "sign_up_description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description"
+          }
+        }
+      }
+    },
+    "sign_up_nickname" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nickname"
+          }
+        }
+      }
+    },
+    "sign_up_upload" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upload"
+          }
+        }
+      }
+    },
+    "sign_up_error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't do that right now"
+          }
+        }
+      }
+    },
+    "sign_up_error_ok" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "sign_up_required_fields" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nickname and description fields are required"
+          }
+        }
+      }
+    },
+    "sign_up_nickname_max_length" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nickname can't be longer than 256 symbols"
+          }
+        }
+      }
+    },
+    "sign_up_description_max_length" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description can't be longer than 1024 symbols"
+          }
+        }
+      }
+    },
+    "sign_up_io_error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We are having a trouble reaching our servers"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.1"
+}
