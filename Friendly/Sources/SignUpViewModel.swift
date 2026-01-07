@@ -3,7 +3,9 @@ import SwiftUI
 
 @Observable
 class SignUpViewModel {
+    private let onComplete: () -> Void
     private let networkClient: NetworkClient = .meetacy
+    private let storage: Storage = .shared
 
     var nickname: String = "" {
         didSet { validate(reason: .nickname) }
@@ -35,6 +37,10 @@ class SignUpViewModel {
 
     var signUpButtonDisabled: Bool {
         get { return uploading }
+    }
+
+    init(onComplete: @escaping () -> Void) {
+        self.onComplete = onComplete
     }
 
     func upload(_ data: Data) {
@@ -71,17 +77,22 @@ class SignUpViewModel {
 
     func clickSignUp() {
         if !validate(reason: .signUp) { return }
+        let nickname = try! Nickname(nickname)
+        let description = try! UserDescription(description)
+        let interests = Array(pickedInterests)
         Task {
             loading = true
             defer { loading = false }
             let authorization = try? await networkClient.authGenerate(
-                nickname: try! Nickname(nickname),
-                description: try! UserDescription(description),
-                interests: Array(pickedInterests),
+                nickname: nickname,
+                description: description,
+                interests: interests,
                 avatar: avatarDescriptor,
             )
-            if let authorization = authorization {
+            if let authorization = authorization,
+               let _ = try? storage.saveAuthorization(authorization) {
                 print("\(authorization)")
+                onComplete()
             } else {
                 error = .ioError
             }

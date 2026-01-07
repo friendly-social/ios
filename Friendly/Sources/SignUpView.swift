@@ -4,9 +4,14 @@ import WidgetKit
 import Flow
 
 struct SignUpView: View {
-    @State private var viewModel = SignUpViewModel()
+    private let viewModel: SignUpViewModel
+
+    init(onComplete: @escaping () -> Void) {
+        self.viewModel = SignUpViewModel(onComplete: onComplete)
+    }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         NavigationStack {
             ScrollView {
                 AvatarPicker(viewModel: viewModel)
