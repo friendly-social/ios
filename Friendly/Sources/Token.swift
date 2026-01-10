@@ -10,7 +10,7 @@ struct Token: Equatable, Hashable {
 
     static let length: Int = 256
 
-    enum Error : Swift.Error {
+    enum Error: Swift.Error {
         case length
     }
 }

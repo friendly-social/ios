@@ -1,5 +1,5 @@
 @propertyWrapper
-struct EncodeNil<T> : Encodable where T: Encodable {
+struct EncodeNil<T>: Encodable where T: Encodable {
     var wrappedValue: T?
 
     init(wrappedValue: T?) {

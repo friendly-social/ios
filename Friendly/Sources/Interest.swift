@@ -10,7 +10,7 @@ struct Interest: Equatable, Hashable {
 
     static let maxLength: Int = 64
 
-    enum Error : Swift.Error {
+    enum Error: Swift.Error {
         case maxLength
     }
 }

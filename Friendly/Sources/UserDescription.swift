@@ -10,7 +10,7 @@ struct UserDescription: Equatable, Hashable {
 
     static let maxLength: Int = 1024
 
-    enum Error : Swift.Error {
+    enum Error: Swift.Error {
         case maxLength
     }
 }

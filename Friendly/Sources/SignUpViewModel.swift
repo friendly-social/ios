@@ -31,6 +31,7 @@ class SignUpViewModel {
     var pickedInterests: Set<Interest> = []
 
     var uploading: Bool = false
+    var clearImage: Bool = false
     var avatarDescriptor: FileDescriptor? = nil
     var loading: Bool = false
     var error: Error? = nil
@@ -54,9 +55,11 @@ class SignUpViewModel {
                     )
                 } else {
                     self.error = .ioError
+                    clearImage = true
                 }
             } catch {
                 self.error = .ioError
+                clearImage = true
             }
         }
     }
@@ -91,7 +94,6 @@ class SignUpViewModel {
             )
             if let authorization = authorization,
                let _ = try? storage.saveAuthorization(authorization) {
-                print("\(authorization)")
                 onComplete()
             } else {
                 error = .ioError

@@ -15,7 +15,7 @@ struct Transport {
         self.session = session
     }
 
-    enum UnauthorizedError : Error {
+    enum UnauthorizedError: Error {
         case ioError(Error)
         case serverError
     }
@@ -25,7 +25,7 @@ struct Transport {
         method: Method,
         body: Encodable?,
         type: T.Type,
-    ) async throws(UnauthorizedError) -> T where T : Decodable {
+    ) async throws(UnauthorizedError) -> T where T: Decodable {
         let url = baseUrl.appending(path: path)
         var request = URLRequest(url: url)
         let httpMethod = switch method {
@@ -56,9 +56,9 @@ struct Transport {
         }
     }
 
-    enum AuthorizedError : Error {
+    enum AuthorizedError: Error {
         case ioError(Error)
-        case serverError
+        case serverError(String)
         case unauthorized
     }
 
@@ -68,7 +68,7 @@ struct Transport {
         body: Encodable?,
         type: T.Type,
         authorization: Authorization,
-    ) async throws(AuthorizedError) -> T where T : Decodable {
+    ) async throws(AuthorizedError) -> T where T: Decodable {
         let url = baseUrl.appending(path: path)
         var request = URLRequest(url: url)
         let httpMethod = switch method {
@@ -85,7 +85,7 @@ struct Transport {
             forHTTPHeaderField: "X-Token",
         )
         request.setValue(
-            "\(authorization.id)",
+            "\(authorization.id.int64)",
             forHTTPHeaderField: "X-User-Id",
         )
         do {
@@ -93,11 +93,12 @@ struct Transport {
                 request.httpBody = try encoder.encode(body)
             }
             let (data, response) = try await session.data(for: request)
+            let string = String(decoding: data, as: UTF8.self)
             guard let response = response as? HTTPURLResponse else {
-                throw AuthorizedError.serverError
+                throw AuthorizedError.serverError("\(response): \(string)")
             }
             guard response.statusCode == 200 else {
-                throw AuthorizedError.serverError
+                throw AuthorizedError.serverError("\(response): \(string)")
             }
             return try decoder.decode(type, from: data)
         } catch let error as AuthorizedError {
@@ -116,7 +117,7 @@ struct Transport {
         path: String,
         data: Data,
         type: T.Type,
-    ) async throws(UploadError) -> T where T : Decodable {
+    ) async throws(UploadError) -> T where T: Decodable {
         let url = baseUrl.appending(path: path)
         let boundary = "Boundary-\(UUID().uuidString)"
         var request = URLRequest(url: url)

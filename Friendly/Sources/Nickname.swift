@@ -10,7 +10,7 @@ struct Nickname: Equatable, Hashable {
 
     static let maxLength: Int = 256
 
-    enum Error : Swift.Error {
+    enum Error: Swift.Error {
         case maxLength
     }
 }

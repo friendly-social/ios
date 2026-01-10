@@ -106,6 +106,13 @@ private struct AvatarPicker: View {
             .buttonStyle(.glass)
             .padding(.vertical, 12)
             .onChange(of: selectedItem) { _, item in loadImage(item) }
+            .onChange(of: viewModel.clearImage) { _, clearImage in
+                if clearImage {
+                    selectedItem = nil
+                    selectedImageData = nil
+                    viewModel.clearImage = false
+                }
+            }
         }
     }
 

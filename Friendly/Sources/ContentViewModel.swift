@@ -13,7 +13,7 @@ class ContentViewModel {
                 destination = .signUp
             }
         } catch {
-            try? storage.clearAuthorization()
+            storage.clearAuthorization()
             destination = .signUp
         }
     }
@@ -22,7 +22,11 @@ class ContentViewModel {
         destination = .main
     }
 
-    enum Destination : Hashable {
+    func routeToSignUp() {
+        appear()
+    }
+
+    enum Destination: Hashable {
         case empty
         case signUp
         case main

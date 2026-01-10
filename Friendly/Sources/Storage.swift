@@ -8,7 +8,7 @@ class Storage {
             try saveId(authorization.id)
             try saveAccessHash(authorization.accessHash)
         } catch {
-            try clearAuthorization()
+            clearAuthorization()
             throw error
         }
     }
@@ -56,10 +56,10 @@ class Storage {
         }
     }
 
-    func clearAuthorization() throws(Error) {
-        try clearToken()
-        try clearId()
-        try clearAccessHash()
+    func clearAuthorization() {
+        try? clearToken()
+        try? clearId()
+        try? clearAccessHash()
     }
 
     private func clearToken() throws(Error) {
@@ -106,11 +106,74 @@ class Storage {
         throw .ioError
     }
 
-    func loadAuthorization() -> Authorization? {
-        fatalError("test")
+    func loadAuthorization() throws(Error) -> Authorization {
+        let token = try loadToken()
+        let id = try loadId()
+        let accessHash = try loadAccessHash()
+        return Authorization(
+            token: token,
+            id: id,
+            accessHash: accessHash,
+        )
     }
 
-    enum Error : Swift.Error {
+    private func loadToken() throws(Error) -> Token {
+        var data: AnyObject?
+        let query = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrAccount: "authorization.token",
+            kSecReturnData: true,
+        ] as CFDictionary
+        let status = SecItemCopyMatching(query, &data)
+        guard status == errSecSuccess else {
+            throw .ioError
+        }
+        guard let data = data as? Data else {
+            throw .ioError
+        }
+        let string = String(decoding: data, as: UTF8.self)
+        return try! Token(string)
+    }
+
+    private func loadId() throws(Error) -> UserId {
+        var data: AnyObject?
+        let query = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrAccount: "authorization.id",
+            kSecReturnData: true,
+        ] as CFDictionary
+        let status = SecItemCopyMatching(query, &data)
+        guard status == errSecSuccess else {
+            throw .ioError
+        }
+        guard let data = data as? Data else {
+            throw .ioError
+        }
+        let int64 = data.withUnsafeBytes { bytes in
+            bytes.load(as: Int64.self)
+        }
+        return UserId(int64)
+    }
+
+    private func loadAccessHash() throws(Error) -> UserAccessHash {
+        var data: AnyObject?
+        let query = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrAccount: "authorization.accessHash",
+            kSecReturnData: true,
+        ] as CFDictionary
+        let status = SecItemCopyMatching(query, &data)
+        guard status == errSecSuccess else {
+            throw .ioError
+        }
+        guard let data = data as? Data else {
+            throw .ioError
+        }
+        let string = String(decoding: data, as: UTF8.self)
+        return try! UserAccessHash(string)
+    }
+
+    enum Error: Swift.Error {
         case ioError
     }
 

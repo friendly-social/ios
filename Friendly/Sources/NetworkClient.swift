@@ -4,8 +4,10 @@ import SwiftUI
 // todo: move to a separate swift module
 class NetworkClient {
     private let transport: Transport
+    private let baseUrl: URL
 
     init(baseUrl: URL, session: URLSession = .shared) {
+        self.baseUrl = baseUrl
         self.transport = Transport(baseUrl: baseUrl, session: session)
     }
 
@@ -61,6 +63,67 @@ class NetworkClient {
         let accessHash: String
     }
 
+    enum UserDetailsError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func usersDetails(
+        authorization: Authorization,
+        id: UserId,
+        accessHash: UserAccessHash,
+    ) async throws(UserDetailsError) -> UserDetails {
+        let path = "users/details/\(id.int64)/\(accessHash.string)"
+        do {
+            let response = try await transport.authorized(
+                path: path,
+                method: .get,
+                body: nil,
+                type: UserDetailsSerializable.self,
+                authorization: authorization,
+            )
+            return try response.typed()
+        } catch let error as Transport.AuthorizedError {
+            switch error {
+                case .ioError(let error): throw .ioError(error)
+                case .serverError: throw .serverError
+                case .unauthorized: throw .unauthorized
+            }
+        } catch {
+            throw .serverError
+        }
+    }
+
+    enum NetworkDetailsError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func networkDetails(
+        authorization: Authorization,
+    ) async throws(NetworkDetailsError) -> NetworkDetails {
+        do {
+            let response = try await transport.authorized(
+                path: "network/details",
+                method: .get,
+                body: nil,
+                type: NetworkDetailsSerializable.self,
+                authorization: authorization,
+            )
+            return try response.typed()
+        } catch let error as Transport.AuthorizedError {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError: throw .serverError
+            case .unauthorized: throw .unauthorized
+            }
+        } catch {
+            throw .serverError
+        }
+    }
+
     enum FilesUploadError: Error {
         case ioError(Error)
         case serverError
@@ -87,6 +150,14 @@ class NetworkClient {
         } catch {
             throw .serverError
         }
+    }
+
+    func filesDownloadUrl(for descriptor: FileDescriptor) -> URL {
+        let id = descriptor.id.int64
+        let accessHash = descriptor.accessHash.string
+        return baseUrl.appending(
+            path: "files/download/\(id)/\(accessHash)",
+        )
     }
 
     static let meetacy = NetworkClient(
