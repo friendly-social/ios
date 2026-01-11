@@ -232,6 +232,50 @@
         }
       }
     },
+    "network_qrcode_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add people"
+          }
+        }
+      }
+    },
+    "network_qrcode_description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a single-time QR Code that may be used to add you as a friend"
+          }
+        }
+      }
+    },
+    "network_qrcode_link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Or share a link"
+          }
+        }
+      }
+    },
+    "network_qrcode_ok" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
   },
   "version" : "1.1"
 }

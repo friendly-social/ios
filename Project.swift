@@ -2,12 +2,6 @@ import ProjectDescription
 
 let project = Project(
     name: "Friendly",
-    packages: [
-        .remote(
-            url: "https://github.com/tevelee/SwiftUI-Flow",
-            requirement: .exact("3.1.0"),
-        ),
-    ],
     targets: [
         .target(
             name: "Friendly",
@@ -27,8 +21,14 @@ let project = Project(
                 "Friendly/Resources",
             ],
             dependencies: [
-                .package(product: "Flow"),
-            ]
+                .external(name: "Flow"),
+                .external(name: "QRCode"),
+            ],
+            settings: .settings(
+                base: [
+                    "OTHER_LDFLAGS": "-ObjC"
+                ],
+            )
         ),
-    ]
+    ],
 )

@@ -124,6 +124,39 @@ class NetworkClient {
         }
     }
 
+    enum FriendsGenerateError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func friendsGenerate(
+        authorization: Authorization,
+    ) async throws(FriendsGenerateError) -> FriendToken {
+        do {
+            let response = try await transport.authorized(
+                path: "friends/generate",
+                method: .post,
+                body: nil,
+                type: FriendsGenerateResponseBody.self,
+                authorization: authorization,
+            )
+            return try FriendToken(response.token)
+        } catch let error as Transport.AuthorizedError {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError: throw .serverError
+            case .unauthorized: throw .unauthorized
+            }
+        } catch {
+            throw .serverError
+        }
+    }
+
+    private struct FriendsGenerateResponseBody : Decodable {
+        let token: String
+    }
+
     enum FilesUploadError: Error {
         case ioError(Error)
         case serverError

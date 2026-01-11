@@ -17,10 +17,21 @@ struct NetworkView: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
-                    Button(action: {}) {
+                    Button(
+                        action: { viewModel.showQRCode() },
+                    ) {
                         Image(systemName: "qrcode")
                     }
                 }
+            }
+            .navigationTitle("network_friends_title")
+            .sheet(
+                isPresented: .constant(viewModel.shouldShowQRCode),
+                onDismiss: { viewModel.dismissQRCode(fromButton: false) },
+            ) {
+                NetworkQRCodeView(
+                    onDismiss: { viewModel.dismissQRCode(fromButton: true) },
+                )
             }
             .onAppear { viewModel.appear() }
         }
@@ -86,7 +97,6 @@ private struct NetworkSuccessView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
                 .padding()
             }
-            .navigationTitle("network_friends_title")
         }
     }
 }

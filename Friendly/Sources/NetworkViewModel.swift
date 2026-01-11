@@ -7,10 +7,27 @@ class NetworkViewModel {
 
     var state: State = .loading
 
+    private(set) var shouldShowQRCode: Bool = false
+
+    func showQRCode() {
+        shouldShowQRCode = true
+    }
+
+    func dismissQRCode(fromButton: Bool) {
+        shouldShowQRCode = false
+        if !fromButton {
+            reload()
+        }
+    }
+
     private var firstAppear = true
     func appear() {
         guard firstAppear else { return }
         firstAppear = false
+        reload()
+    }
+
+    private func reload() {
         Task {
             do {
                 let authorization = try storage.loadAuthorization()
