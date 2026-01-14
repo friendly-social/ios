@@ -6,6 +6,8 @@ struct ProfileView: View {
     @State private var showFriendDeclineConfirmation = false
     @State private var viewModel: ProfileViewModel
 
+    @Environment(\.openURL) private var openUrl
+
     init(
         router: Router,
         mode: Mode,
@@ -28,12 +30,26 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemGroupedBackground))
         .toolbar(content: {
-            if viewModel.enableSignOut {
-                ToolbarItemGroup(placement: .primaryAction) {
+            let showLink = switch viewModel.state {
+                case .success(let success): success.socialUrl != nil
+                default: false
+            }
+            ToolbarItemGroup(placement: .primaryAction) {
+                if showLink {
+                    Button {
+                        openUrl(viewModel.success.socialUrl!)
+                    } label: {
+                        Image(systemName: "link")
+                            .font(.headline)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                }
+                if viewModel.enableSignOut {
                     Button(action: { showSignUpConfirmation = true }) {
                         let systemName =
                             "rectangle.portrait.and.arrow.right"
                         Image(systemName: systemName)
+                            .font(.headline)
                     }
                     .confirmationDialog(
                         "profile_sign_out_confirmation",
@@ -48,9 +64,7 @@ struct ProfileView: View {
                         }
                     }
                 }
-            }
-            if viewModel.enableRemoveFromFriends {
-                ToolbarItem(placement: .primaryAction) {
+                if viewModel.enableRemoveFromFriends {
                     Menu {
                         Button(action: {
                             showFriendDeclineConfirmation = true
@@ -62,6 +76,7 @@ struct ProfileView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis")
+                            .font(.headline)
                     }
                     .confirmationDialog(
                         "profile_friends_decline_confirmation",

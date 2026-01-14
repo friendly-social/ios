@@ -17,6 +17,7 @@ struct SignUpView: View {
                 Inputs(
                     nickname: $viewModel.nickname,
                     description: $viewModel.description,
+                    socialLink: $viewModel.socialLink,
                 )
                 Interests(viewModel: viewModel)
             }
@@ -49,6 +50,7 @@ struct SignUpView: View {
                     case .required: "sign_up_required_fields"
                     case .nicknameMaxLength: "sign_up_nickname_max_length"
                     case .descriptionMaxLength: "sign_up_description_max_length"
+                    case .socialLinkMaxLength: "sign_up_social_link_max_length"
                     case .ioError: "sign_up_io_error"
                     }
                     Text(string)
@@ -131,30 +133,50 @@ private struct AvatarPicker: View {
 private struct Inputs: View {
     @Binding var nickname: String
     @Binding var description: String
+    @Binding var socialLink: String
 
     var body: some View {
         VStack(spacing: 0) {
-            TextField("sign_up_nickname", text: $nickname)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                // todo: add proper switch to field
-                // .submitLabel(.next)
-                .padding()
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
+            HStack {
+                Image(systemName: "person")
+                    .foregroundColor(.secondary)
+
+                TextField("sign_up_nickname", text: $nickname)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
 
             Divider()
-                .padding(.horizontal)
+                .padding(.vertical)
 
-            TextField(
-                "sign_up_description",
-                text: $description,
-                axis: .vertical,
-            )
-            .lineLimit(3...6)
-            .submitLabel(.done)
-            .padding()
-            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            HStack {
+                Image(systemName: "link")
+                    .foregroundColor(.secondary)
+                TextField(
+                    "sign_up_social_link",
+                    text: $socialLink,
+                    axis: .vertical,
+                )
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .background(Color(uiColor: .secondarySystemGroupedBackground))
+            }
+
+            Divider()
+                .padding(.vertical)
+
+            HStack(alignment: .top) {
+                Image(systemName: "bubble")
+                    .foregroundColor(.secondary)
+                TextField(
+                    "sign_up_description",
+                    text: $description,
+                    axis: .vertical,
+                )
+                .lineLimit(3...6)
+            }
         }
+        .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal)

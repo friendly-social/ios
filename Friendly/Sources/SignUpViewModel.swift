@@ -14,6 +14,9 @@ class SignUpViewModel {
     var description: String = "" {
         didSet { validate(reason: .description) }
     }
+    var socialLink: String = "" {
+        didSet { validate(reason: .socialLink) }
+    }
     let interests: [Interest] = [
         try! Interest("apples"),
         try! Interest("coding"),
@@ -83,6 +86,7 @@ class SignUpViewModel {
         if !validate(reason: .signUp) { return }
         let nickname = try! Nickname(nickname)
         let description = try! UserDescription(description)
+        let socialLink = try! SocialLink(socialLink)
         let interests = Array(pickedInterests)
         loading = true
         Task {
@@ -91,6 +95,7 @@ class SignUpViewModel {
                 description: description,
                 interests: interests,
                 avatar: avatarDescriptor,
+                socialLink: socialLink,
             )
             if let authorization = authorization,
                let _ = try? storage.saveAuthorization(authorization) {
@@ -145,9 +150,22 @@ class SignUpViewModel {
         return true
     }
 
+    private func validateSocialLink(_ reason: ValidateReason) -> Bool {
+        if socialLink.isEmpty { return true }
+        if socialLink.count > SocialLink.maxLength {
+            if reason == .socialLink {
+                error = .socialLinkMaxLength
+            }
+            return false
+        }
+        error = nil
+        return true
+    }
+
     enum ValidateReason {
         case nickname
         case description
+        case socialLink
         case signUp
     }
 
@@ -155,6 +173,7 @@ class SignUpViewModel {
         case required
         case nicknameMaxLength
         case descriptionMaxLength
+        case socialLinkMaxLength
         case ioError
     }
 }

@@ -57,6 +57,7 @@ struct FeedSwipeCardView: View {
                     Image(systemName: "xmark")
                         .bold()
                         .padding()
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .glassEffect(
@@ -99,6 +100,7 @@ struct FeedSwipeCardView: View {
                         .foregroundColor(.white)
                         .bold()
                         .padding()
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .glassEffect(

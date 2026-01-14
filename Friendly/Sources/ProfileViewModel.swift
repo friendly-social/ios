@@ -14,7 +14,7 @@ class ProfileViewModel {
     }
     private var otherProfile: ProfileView.OtherProfile {
         guard case .otherProfile(let result) = mode else {
-            fatalError("expected self profile")
+            fatalError("expected other profile")
         }
         return result
     }
@@ -39,6 +39,15 @@ class ProfileViewModel {
 
     private(set) var state: State = .loading
     private(set) var alertError: AlertError? = nil
+
+    var success: Success {
+        get {
+            guard case .success(let success) = state else {
+                fatalError("expected success")
+            }
+            return success
+        }
+    }
 
     func appear() {
         Task {
@@ -67,11 +76,18 @@ class ProfileViewModel {
             } else {
                 nil
             }
+            let socialUrl: URL? =
+                if let socialLink = userDetails.socialLink {
+                    URL(string: socialLink.string)
+                } else {
+                    nil
+                }
             let success = Success(
                 avatarUrl: url,
                 nickname: userDetails.nickname,
                 description: userDetails.description,
                 interests: userDetails.interests,
+                socialUrl: socialUrl,
             )
             state = .success(success)
         } catch {
@@ -132,5 +148,6 @@ class ProfileViewModel {
         let nickname: Nickname
         let description: UserDescription
         let interests: [Interest]
+        let socialUrl: URL?
     }
 }

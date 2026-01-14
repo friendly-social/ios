@@ -21,12 +21,14 @@ class NetworkClient {
         description: UserDescription,
         interests: [Interest],
         avatar: FileDescriptor?,
+        socialLink: SocialLink?,
     ) async throws(AuthGenerateError) -> Authorization {
         let body = AuthGenerateRequestBody(
             nickname: nickname.string,
             description: description.string,
             interests: interests.map(\.string),
             avatar: avatar?.serializable(),
+            socialLink: socialLink?.string,
         )
         do {
             let response = try await transport.unauthorized(
@@ -55,6 +57,7 @@ class NetworkClient {
         let description: String
         let interests: [String]
         @EncodeNil var avatar: FileDescriptorSerializable?
+        @EncodeNil var socialLink: String?
     }
 
     private struct AuthGenerateResponseBody: Decodable {

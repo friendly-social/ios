@@ -34,6 +34,17 @@
         }
       }
     },
+    "sign_up_social_link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Social link (Telegram, Whats App, etc.)"
+          }
+        }
+      }
+    },
     "sign_up_nickname" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -107,6 +118,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Description can't be longer than 1024 symbols"
+          }
+        }
+      }
+    },
+    "sign_up_social_link_max_length" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Social links can't be longer than 2048 symbols"
           }
         }
       }
@@ -239,6 +261,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "We have a problem reaching our servers"
+          }
+        }
+      }
+    },
+    "profile_contact" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact"
           }
         }
       }
