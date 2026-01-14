@@ -1,4 +1,5 @@
 import SwiftUI
+import CachedAsyncImage
 
 struct AvatarView: View {
     let url: URL?
@@ -9,7 +10,7 @@ struct AvatarView: View {
     var body: some View {
         VStack {
             if let url = url {
-                AsyncImage(url: url) { image in
+                CachedAsyncImage(url: url) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)

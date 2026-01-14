@@ -7,8 +7,15 @@ class NetworkViewModel {
     private let networkClient: NetworkClient = .meetacy
 
     var state: State = .loading
-
-    private(set) var shouldShowQRCode: Bool = false
+    var shouldShowQRCode: Bool = false {
+        didSet {
+            if !shouldShowQRCode {
+                Task {
+                    await reload()
+                }
+            }
+        }
+    }
 
     let router: Router
 
@@ -20,36 +27,22 @@ class NetworkViewModel {
         shouldShowQRCode = true
     }
 
-    func dismissQRCode(fromButton: Bool) {
-        shouldShowQRCode = false
-        if !fromButton {
-            reload()
+    func appear() {
+        Task {
+            await reload()
         }
     }
 
-    private var firstAppear = true
-    func appear() {
-        guard firstAppear else { return }
-        firstAppear = false
-        reload()
-    }
-
-    func onFriendsDecline() {
-        reload()
-    }
-
-    private func reload() {
-        Task {
-            do {
-                let authorization = try storage.loadAuthorization()
-                let network = try await networkClient.networkDetails(
-                    authorization: authorization,
-                )
-                let friends = mapUsers(network.friends)
-                state = .success(friends)
-            } catch {
-                state = .ioError
-            }
+    func reload() async {
+        do {
+            let authorization = try storage.loadAuthorization()
+            let network = try await networkClient.networkDetails(
+                authorization: authorization,
+            )
+            let friends = mapUsers(network.friends)
+            state = .success(friends)
+        } catch {
+            state = .ioError
         }
     }
 
@@ -66,7 +59,7 @@ class NetworkViewModel {
                 nickname: user.nickname,
                 onClick: { [weak self] in
                     guard let self = self else { return }
-                    let destination = NetworkView.ProfileDestination(
+                    let destination = ProfileDestination(
                         id: user.id,
                         accessHash: user.accessHash,
                     )
@@ -95,5 +88,10 @@ class NetworkViewModel {
         let avatarUrl: URL?
         let nickname: Nickname
         let onClick: () -> Void
+    }
+
+    struct ProfileDestination: Hashable {
+        let id: UserId
+        let accessHash: UserAccessHash
     }
 }

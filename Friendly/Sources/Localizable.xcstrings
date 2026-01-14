@@ -386,6 +386,28 @@
         }
       }
     },
+    "feed_liked_you" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FRIEND REQUEST"
+          }
+        }
+      }
+    },
+    "feed_extended_network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EXTENDED NETWORK"
+          }
+        }
+      }
+    },
   },
   "version" : "1.1"
 }

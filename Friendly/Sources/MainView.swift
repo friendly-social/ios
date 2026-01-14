@@ -10,8 +10,8 @@ struct MainView: View {
     var body: some View {
         TabView {
             Tab("main_feed", systemImage: "newspaper") {
-                RouterView { _ in
-                    FeedView()
+                RouterView { router in
+                    FeedView(router: router)
                 }
             }
             Tab("main_network", systemImage: "person.3") {

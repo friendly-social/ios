@@ -23,6 +23,7 @@ let project = Project(
             dependencies: [
                 .external(name: "Flow"),
                 .external(name: "QRCode"),
+                .external(name: "CachedAsyncImage"),
             ],
             settings: .settings(
                 base: [

@@ -8,58 +8,50 @@ struct NetworkView: View {
     }
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                switch viewModel.state {
-                case .loading: LoadingView()
-                case .ioError: IOErrorView()
-                case .success(let friends): NetworkSuccessView(friends: friends)
-                }
-            }
-            .animation(
-                .easeInOut(duration: 0.3),
-                value: viewModel.state.rawValue,
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(uiColor: .systemGroupedBackground))
-            .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Button(
-                        action: { viewModel.showQRCode() },
-                    ) {
-                        Image(systemName: "qrcode")
-                    }
-                }
-            }
-            .navigationTitle("network_friends_title")
-            .sheet(
-                isPresented: .constant(viewModel.shouldShowQRCode),
-                onDismiss: { viewModel.dismissQRCode(fromButton: false) },
-            ) {
-                NetworkQRCodeView(
-                    onDismiss: { viewModel.dismissQRCode(fromButton: true) },
-                )
-            }
-            .onAppear { viewModel.appear() }
-            .navigationDestination(
-                for: ProfileDestination.self,
-            ) { destination in
-                let profile = ProfileView.OtherProfile(
-                    id: destination.id,
-                    accessHash: destination.accessHash,
-                    onFriendsDecline: viewModel.onFriendsDecline,
-                )
-                ProfileView(
-                    router: viewModel.router,
-                    mode: .otherProfile(profile),
-                )
+        ZStack {
+            switch viewModel.state {
+            case .loading: LoadingView()
+            case .ioError: IOErrorView()
+            case .success(let friends): NetworkSuccessView(friends: friends)
             }
         }
-    }
-
-    struct ProfileDestination: Hashable {
-        let id: UserId
-        let accessHash: UserAccessHash
+        .animation(
+            .easeInOut(duration: 0.3),
+            value: viewModel.state.rawValue,
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button(
+                    action: { viewModel.showQRCode() },
+                ) {
+                    Image(systemName: "qrcode")
+                }
+            }
+        }
+        .navigationTitle("network_friends_title")
+        .sheet(
+            isPresented: $viewModel.shouldShowQRCode,
+        ) {
+            NetworkQRCodeView(
+                onDismiss: { viewModel.shouldShowQRCode = false },
+            )
+        }
+        .onAppear { viewModel.appear() }
+        .navigationDestination(
+            for: NetworkViewModel.ProfileDestination.self,
+        ) { destination in
+            let profile = ProfileView.OtherProfile(
+                id: destination.id,
+                accessHash: destination.accessHash,
+            )
+            ProfileView(
+                router: viewModel.router,
+                mode: .otherProfile(profile),
+            )
+        }
+        .refreshable { await viewModel.reload() }
     }
 }
 
@@ -95,21 +87,23 @@ private struct NetworkSuccessView: View {
 
     var body: some View {
         if friends.isEmpty {
-            VStack {
-                Image(systemName: "person.line.dotted.person")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 50, height: 50)
-                    .foregroundStyle(.secondary)
-                Text("network_friends_empty")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .padding(.top)
-                Text("network_friends_scan_qrcode")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            ZStack {
+                VStack {
+                    Image(systemName: "person.line.dotted.person")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 50, height: 50)
+                        .foregroundStyle(.secondary)
+                    Text("network_friends_empty")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .padding(.top)
+                    Text("network_friends_scan_qrcode")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
                 LazyVStack(spacing: 12) {

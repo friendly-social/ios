@@ -8,50 +8,82 @@ class FeedViewModel {
 
     var state: State = .loading
 
-    private var firstAppear = true
+    let router: Router
+
+    init(router: Router) {
+        self.router = router
+    }
+
     func appear() {
-        guard firstAppear else { return }
-        firstAppear = false
         Task {
-            do {
-                let authorization = try storage.loadAuthorization()
-                let queue = try await networkClient.feedQueue(
-                    authorization: authorization,
-                )
-                let entries = queue.entries.map { entry in
-                    let avatarUrl: URL? = if let avatar = entry.details.avatar {
-                        networkClient.filesDownloadUrl(for: avatar)
-                    } else {
-                        nil
-                    }
-                    return Entry(
-                        id: entry.details.id,
-                        avatarUrl: avatarUrl,
-                        nickname: entry.details.nickname,
-                        description: entry.details.description,
-                        interests: entry.details.interests,
-                        onLike: { [weak self] in
-                            guard let self = self else { return }
-                            self.onLike(
-                                authorization: authorization,
-                                id: entry.details.id,
-                                accessHash: entry.details.accessHash,
-                            )
-                        },
-                        onDislike: { [weak self] in
-                            guard let self = self else { return }
-                            self.onDislike(
-                                authorization: authorization,
-                                id: entry.details.id,
-                                accessHash: entry.details.accessHash,
-                            )
-                        },
-                    )
+            await reload()
+        }
+    }
+
+    private func reload() async {
+        do {
+            let authorization = try storage.loadAuthorization()
+            let queue = try await networkClient.feedQueue(
+                authorization: authorization,
+            )
+            let entries = queue.entries.map { entry in
+                let avatarUrl: URL? = if let avatar = entry.details.avatar {
+                    networkClient.filesDownloadUrl(for: avatar)
+                } else {
+                    nil
                 }
-                state = .success(entries)
-            } catch {
-                state = .ioError
+                let commonFriends: [CommonFriend] = entry.commonFriends
+                    .compactMap { friend in
+                        guard let avatar = friend.avatar else {
+                            return nil
+                        }
+                        let avatarUrl = networkClient.filesDownloadUrl(
+                            for: avatar,
+                        )
+                        return CommonFriend(
+                            id: friend.id,
+                            avatarUrl: avatarUrl,
+                            onClick: { [weak self] in
+                                guard let self = self else { return }
+                                self.router.path.append(
+                                    ProfileDestination(
+                                        id: friend.id,
+                                        accessHash: friend.accessHash,
+                                    )
+                                )
+                            },
+                        )
+                    }
+                return Entry(
+                    id: entry.details.id,
+                    avatarUrl: avatarUrl,
+                    nickname: entry.details.nickname,
+                    description: entry.details.description,
+                    interests: entry.details.interests,
+                    commonFriends: commonFriends,
+                    isRequest: entry.isRequest,
+                    isExtendedNetwork: entry.isExtendedNetwork,
+                    onLike: { [weak self] in
+                        guard let self = self else { return }
+                        self.onLike(
+                            authorization: authorization,
+                            id: entry.details.id,
+                            accessHash: entry.details.accessHash,
+                        )
+                    },
+                    onDislike: { [weak self] in
+                        guard let self = self else { return }
+                        self.onDislike(
+                            authorization: authorization,
+                            id: entry.details.id,
+                            accessHash: entry.details.accessHash,
+                        )
+                    },
+                )
             }
+            state = .success(entries)
+        } catch {
+            state = .ioError
         }
     }
 
@@ -121,7 +153,21 @@ class FeedViewModel {
         let nickname: Nickname
         let description: UserDescription
         let interests: [Interest]
+        let commonFriends: [CommonFriend]
+        let isRequest: Bool
+        let isExtendedNetwork: Bool
         let onLike: () -> Void
         let onDislike: () -> Void
+    }
+
+    struct CommonFriend {
+        let id: UserId
+        let avatarUrl: URL
+        let onClick: () -> Void
+    }
+
+    struct ProfileDestination: Hashable {
+        let id: UserId
+        let accessHash: UserAccessHash
     }
 }

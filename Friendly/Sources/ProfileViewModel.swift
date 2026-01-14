@@ -40,41 +40,42 @@ class ProfileViewModel {
     private(set) var state: State = .loading
     private(set) var alertError: AlertError? = nil
 
-    private var firstAppear = true
     func appear() {
-        guard firstAppear else { return }
-        firstAppear = false
         Task {
-            do {
-                let authorization = try storage.loadAuthorization()
-                let id = switch mode {
-                case .selfProfile: authorization.id
-                case .otherProfile(let otherProfile): otherProfile.id
-                }
-                let accessHash = switch mode {
-                case .selfProfile: authorization.accessHash
-                case .otherProfile(let otherProfile): otherProfile.accessHash
-                }
-                let userDetails = try await networkClient.usersDetails(
-                    authorization: authorization,
-                    id: id,
-                    accessHash: accessHash,
-                )
-                let url: URL? = if let avatar = userDetails.avatar {
-                    networkClient.filesDownloadUrl(for: avatar)
-                } else {
-                    nil
-                }
-                let success = Success(
-                    avatarUrl: url,
-                    nickname: userDetails.nickname,
-                    description: userDetails.description,
-                    interests: userDetails.interests,
-                )
-                state = .success(success)
-            } catch {
-                state = .ioError
+            await reload()
+        }
+    }
+
+    func reload() async {
+        do {
+            let authorization = try storage.loadAuthorization()
+            let id = switch mode {
+            case .selfProfile: authorization.id
+            case .otherProfile(let otherProfile): otherProfile.id
             }
+            let accessHash = switch mode {
+            case .selfProfile: authorization.accessHash
+            case .otherProfile(let otherProfile): otherProfile.accessHash
+            }
+            let userDetails = try await networkClient.usersDetails(
+                authorization: authorization,
+                id: id,
+                accessHash: accessHash,
+            )
+            let url: URL? = if let avatar = userDetails.avatar {
+                networkClient.filesDownloadUrl(for: avatar)
+            } else {
+                nil
+            }
+            let success = Success(
+                avatarUrl: url,
+                nickname: userDetails.nickname,
+                description: userDetails.description,
+                interests: userDetails.interests,
+            )
+            state = .success(success)
+        } catch {
+            state = .ioError
         }
     }
 
@@ -95,7 +96,8 @@ class ProfileViewModel {
                 )
                 await MainActor.run {
                     router.path.removeLast()
-                    profile.onFriendsDecline()
+                    // todo: add event bus and sent an event about this change
+                    // profile.onFriendsDecline()
                 }
             } catch {
                 alertError = .decline

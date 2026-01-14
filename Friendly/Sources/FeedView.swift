@@ -1,10 +1,14 @@
 import SwiftUI
 
 struct FeedView: View {
-    @State private var viewModel = FeedViewModel()
+    @State private var viewModel: FeedViewModel
+
+    init(router: Router) {
+        viewModel = FeedViewModel(router: router)
+    }
 
     var body: some View {
-        VStack {
+        ZStack {
             switch viewModel.state {
             case .loading: LoadingView()
             case .ioError: IOErrorView()
@@ -18,6 +22,18 @@ struct FeedView: View {
         .frame(maxHeight: .infinity)
         .background(Color(uiColor: .systemGroupedBackground))
         .onAppear { viewModel.appear() }
+        .navigationDestination(
+            for: FeedViewModel.ProfileDestination.self,
+        ) { destination in
+            let profile = ProfileView.OtherProfile(
+                id: destination.id,
+                accessHash: destination.accessHash,
+            )
+            ProfileView(
+                router: viewModel.router,
+                mode: .otherProfile(profile),
+            )
+        }
     }
 }
 
@@ -56,17 +72,10 @@ private struct FeedSuccessView: View {
             FeedEmptyView()
             let entries = Array(entries.prefix(2).enumerated())
             ForEach(entries, id: \.element.id) { (index, entry) in
-                FeedSwipeCardView(
-                    avatarUrl: entry.avatarUrl,
-                    nickname: entry.nickname,
-                    description: entry.description,
-                    interests: entry.interests,
-                    onLike: entry.onLike,
-                    onDislike: entry.onDislike,
-                )
-                .padding(.horizontal)
-                .padding(.bottom)
-                .zIndex(1 - Double(index))
+                FeedSwipeCardView(entry: entry)
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                    .zIndex(1 - Double(index))
             }
         }
     }

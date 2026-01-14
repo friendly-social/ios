@@ -23,6 +23,10 @@ let package = Package(
             url: "https://github.com/dagronf/QRCode",
             exact: "27.12.0",
         ),
+        .package(
+            url: "https://github.com/lorenzofiamingo/swiftui-cached-async-image",
+            exact: "2.1.1",
+        )
         // Add your own dependencies here:
         // .package(url: "https://github.com/Alamofire/Alamofire", from: "5.0.0"),
         // You can read more about dependencies here: https://docs.tuist.io/documentation/tuist/dependencies

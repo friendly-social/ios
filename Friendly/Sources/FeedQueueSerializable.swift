@@ -7,6 +7,7 @@ struct FeedQueueSerializable: Codable {
                 .commonFriends
                 .map { friend in try friend.typed() }
             return FeedQueue.Entry(
+                isRequest: entry.isRequest,
                 isExtendedNetwork: entry.isExtendedNetwork,
                 commonFriends: commonFriends,
                 details: try entry.details.typed(),
@@ -16,6 +17,7 @@ struct FeedQueueSerializable: Codable {
     }
 
     struct Entry: Codable {
+        let isRequest: Bool
         let isExtendedNetwork: Bool
         let commonFriends: [UserDetailsSerializable]
         let details: UserDetailsSerializable

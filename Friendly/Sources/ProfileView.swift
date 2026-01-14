@@ -95,6 +95,7 @@ struct ProfileView: View {
                 Text(string)
             }
         }
+        .refreshable { await viewModel.reload() }
     }
 
     enum Mode {
@@ -109,7 +110,6 @@ struct ProfileView: View {
     struct OtherProfile {
         let id: UserId
         let accessHash: UserAccessHash
-        let onFriendsDecline: () -> Void
     }
 }
 

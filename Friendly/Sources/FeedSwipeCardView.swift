@@ -1,4 +1,5 @@
 import SwiftUI
+import CachedAsyncImage
 import Flow
 
 struct FeedSwipeCardView: View {
@@ -7,40 +8,40 @@ struct FeedSwipeCardView: View {
     @State private var swipeStatus: LikeDislike = .none {
         didSet {
             if swipeStatus == .like {
-                onLike()
+                entry.onLike()
             }
             if swipeStatus == .dislike {
-                onDislike()
+                entry.onDislike()
             }
         }
     }
 
-    let avatarUrl: URL?
-    let nickname: Nickname
-    let description: UserDescription
-    let interests: [Interest]
-    let onLike: () -> Void
-    let onDislike: () -> Void
+    let entry: FeedViewModel.Entry
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             ZStack {
                 VStack {
-                    Avatar(url: avatarUrl).overlay {
+                    Avatar(url: entry.avatarUrl).overlay {
                         VStack {
+                            if entry.isRequest {
+                                TopChip(string: "feed_liked_you")
+                            } else if entry.isExtendedNetwork {
+                                TopChip(string: "feed_extended_network")
+                            }
                             Spacer()
                             Interests(
                                 dragDirection: $dragDirection,
-                                interests: interests,
+                                interests: entry.interests,
                             )
                             .padding(.bottom)
                         }
                     }
                     VStack(alignment: .leading) {
-                        Text(nickname.string)
+                        Text(entry.nickname.string)
                             .font(.title2)
                             .bold()
-                        Text(description.string)
+                        Text(entry.description.string)
                             .font(.subheadline)
                     }
                     .padding()
@@ -62,6 +63,34 @@ struct FeedSwipeCardView: View {
                     .regular.tint(.gray.opacity(0.2)).interactive(),
                     in: Circle(),
                 )
+                Spacer()
+                if !entry.commonFriends.isEmpty {
+                    ZStack {
+                        ForEach(
+                            entry.commonFriends.enumerated(),
+                            id: \.element.id,
+                        ) { i, friend in
+                            Button(action: friend.onClick) {
+                                AvatarView(
+                                    url: friend.avatarUrl,
+                                    size: 40,
+                                )
+                                .padding(3)
+                            }
+                            .buttonStyle(.plain)
+                            .glassEffect(.regular.tint(.gray.opacity(0.2)))
+                            .offset(x: CGFloat(i) * 25)
+                        }
+                    }
+                    .frame(
+                        width: CGFloat(
+                            40 + 6 + 25 * (entry.commonFriends.count - 1),
+                        ),
+                        alignment: .leading
+                    )
+                    .padding(2)
+                    .glassEffect(.regular.tint(.gray.opacity(0.2)))
+                }
                 Spacer()
                 Button(role: .confirm) {
                     runActionWithAnimation(for: .like)
@@ -142,6 +171,11 @@ struct FeedSwipeCardView: View {
         }
     }
 
+    struct CommonFriend {
+        let id: UserId
+        let avatarUrl: URL
+        let onClick: () -> Void
+    }
 }
 
 private enum DragDirection {
@@ -160,7 +194,7 @@ private struct Avatar: View {
     var body: some View {
         Group {
             if let url = url {
-                AsyncImage(url: url) { image in
+                CachedAsyncImage(url: url) { image in
                     image
                         .resizable()
                         .aspectRatio(1 / 1, contentMode: .fit)
@@ -251,5 +285,20 @@ private struct Interests: View {
                 .frame(width: 10)
             }
         )
+    }
+}
+
+private struct TopChip: View {
+    let string: LocalizedStringKey
+
+    var body: some View {
+        Text(string)
+            .font(.caption)
+            .bold()
+            .foregroundColor(.secondary)
+            .padding()
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

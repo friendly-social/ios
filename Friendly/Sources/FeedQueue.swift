@@ -7,6 +7,7 @@ struct FeedQueue {
                 .commonFriends
                 .map { friend in friend.serializable() }
             return FeedQueueSerializable.Entry(
+                isRequest: entry.isRequest,
                 isExtendedNetwork: entry.isExtendedNetwork,
                 commonFriends: commonFriends,
                 details: entry.details.serializable(),
@@ -16,6 +17,7 @@ struct FeedQueue {
     }
 
     struct Entry {
+        let isRequest: Bool
         let isExtendedNetwork: Bool
         let commonFriends: [UserDetails]
         let details: UserDetails
