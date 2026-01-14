@@ -2,14 +2,13 @@ import SwiftUI
 import QRCode
 
 struct NetworkQRCodeView : View {
-    private let viewModel: NetworkQRCodeViewModel
+    @State private var viewModel: NetworkQRCodeViewModel
 
     init(onDismiss: @escaping () -> Void) {
         self.viewModel = NetworkQRCodeViewModel(onDismiss: onDismiss)
     }
 
     var body: some View {
-        @Bindable var viewModel = viewModel
         NavigationView {
             ZStack {
                 switch viewModel.state {
@@ -22,6 +21,10 @@ struct NetworkQRCodeView : View {
                     )
                 }
             }
+            .animation(
+                .easeInOut(duration: 0.3),
+                value: viewModel.state.rawValue,
+            )
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("network_qrcode_title")
@@ -137,7 +140,7 @@ private struct QRCodeLink: View {
         .buttonStyle(.borderless)
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(url: url)
-               .presentationDetents([.medium])
+               .presentationDetents([.medium, .large])
         }
     }
 }

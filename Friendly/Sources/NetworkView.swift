@@ -1,10 +1,13 @@
 import SwiftUI
 
 struct NetworkView: View {
-    private let viewModel: NetworkViewModel = NetworkViewModel()
+    @State private var viewModel: NetworkViewModel
+
+    init(router: Router) {
+        self.viewModel = NetworkViewModel(router: router)
+    }
 
     var body: some View {
-        @Bindable var viewModel = viewModel
         NavigationView {
             ZStack {
                 switch viewModel.state {
@@ -13,6 +16,10 @@ struct NetworkView: View {
                 case .success(let friends): NetworkSuccessView(friends: friends)
                 }
             }
+            .animation(
+                .easeInOut(duration: 0.3),
+                value: viewModel.state.rawValue,
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
@@ -34,7 +41,25 @@ struct NetworkView: View {
                 )
             }
             .onAppear { viewModel.appear() }
+            .navigationDestination(
+                for: ProfileDestination.self,
+            ) { destination in
+                let profile = ProfileView.OtherProfile(
+                    id: destination.id,
+                    accessHash: destination.accessHash,
+                    onFriendsDecline: viewModel.onFriendsDecline,
+                )
+                ProfileView(
+                    router: viewModel.router,
+                    mode: .otherProfile(profile),
+                )
+            }
         }
+    }
+
+    struct ProfileDestination: Hashable {
+        let id: UserId
+        let accessHash: UserAccessHash
     }
 }
 
@@ -96,6 +121,9 @@ private struct NetworkSuccessView: View {
                 .background(Color(uiColor: .secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 20))
                 .padding()
+                Text("network_friends_add_hint")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -105,14 +133,18 @@ private struct FriendView: View {
     let friend: NetworkViewModel.Friend
 
     var body: some View {
-        HStack {
-            AvatarView(
-                url: friend.avatarUrl,
-                size: 50,
-            )
-            Text(friend.nickname.string)
-                .font(.body)
+        Button(action: friend.onClick) {
+            HStack {
+                AvatarView(
+                    url: friend.avatarUrl,
+                    size: 50,
+                )
+                Text(friend.nickname.string)
+                    .font(.body)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
     }
 }

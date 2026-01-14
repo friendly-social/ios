@@ -1,24 +1,36 @@
 import SwiftUI
 
 struct MainView: View {
-    private let viewModel: MainViewModel
+    @State private var viewModel: MainViewModel
 
     init(routeToSignUp: @escaping () -> Void) {
         viewModel = MainViewModel(routeToSignUp: routeToSignUp)
     }
 
     var body: some View {
-        @Bindable var viewModel = viewModel
         TabView {
             Tab("main_feed", systemImage: "newspaper") {
-                FeedView()
+                RouterView { _ in
+                    FeedView()
+                }
             }
             Tab("main_network", systemImage: "person.3") {
-                NetworkView()
+                RouterView { router in
+                    NetworkView(router: router)
+                }
             }
             Tab("main_profile", systemImage: "person.crop.circle") {
-                ProfileView(routeToSignUp: viewModel.routeToSignUp)
+                RouterView { router in
+                    let selfProfile = ProfileView.SelfProfile(
+                        routeToSignUp: viewModel.routeToSignUp,
+                    )
+                    ProfileView(
+                        router: router,
+                        mode: .selfProfile(selfProfile),
+                    )
+                }
             }
         }
     }
 }
+

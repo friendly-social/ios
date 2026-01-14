@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 @Observable
 class NetworkQRCodeViewModel {
     private let storage: Storage = .shared
@@ -23,11 +24,9 @@ class NetworkQRCodeViewModel {
                     authorization: authorization,
                 )
                 let url = buildQRUrl(for: authorization.id, with: token)
-                print(url)
                 let success = Success(url: url)
                 state = .success(success)
             } catch {
-                print(error)
                 state = .ioError
             }
         }
@@ -44,6 +43,14 @@ class NetworkQRCodeViewModel {
         case loading
         case ioError
         case success(Success)
+
+        var rawValue: Int {
+            return switch self {
+            case .loading: 0
+            case .ioError: 1
+            case .success: 2
+            }
+        }
     }
 
     struct Success {

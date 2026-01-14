@@ -1,10 +1,9 @@
 import SwiftUI
 
 struct ContentView: View {
-    private let viewModel: ContentViewModel = ContentViewModel()
+    @State private var viewModel: ContentViewModel = ContentViewModel()
 
     var body: some View {
-        @Bindable var viewModel = viewModel
         ZStack {
             switch viewModel.destination {
             case .empty: EmptyView()

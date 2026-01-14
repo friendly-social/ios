@@ -3,45 +3,113 @@ import Flow
 
 struct ProfileView: View {
     @State private var showSignUpConfirmation = false
+    @State private var showFriendDeclineConfirmation = false
+    @State private var viewModel: ProfileViewModel
 
-    private let viewModel: ProfileViewModel
-
-    init(routeToSignUp: @escaping () -> Void) {
-        viewModel = ProfileViewModel(routeToSignUp: routeToSignUp)
+    init(
+        router: Router,
+        mode: Mode,
+    ) {
+        viewModel = ProfileViewModel(router: router, mode: mode)
     }
 
     var body: some View {
-        @Bindable var viewModel = viewModel
-        NavigationStack {
-            ZStack {
-                switch viewModel.state {
-                case .loading: LoadingView()
-                case .ioError: IOErrorView()
-                case .success(let user): UserView(user: user)
-                }
+        ZStack {
+            switch viewModel.state {
+            case .loading: LoadingView()
+            case .ioError: IOErrorView()
+            case .success(let user): UserView(user: user)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(uiColor: .systemGroupedBackground))
-            .toolbar {
+        }
+        .animation(
+            .easeInOut(duration: 0.3),
+            value: viewModel.state.rawValue,
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .toolbar(content: {
+            if viewModel.enableSignOut {
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button(action: { showSignUpConfirmation = true }) {
-                        Image(
-                            systemName: "rectangle.portrait.and.arrow.right",
-                        )
+                        let systemName =
+                            "rectangle.portrait.and.arrow.right"
+                        Image(systemName: systemName)
                     }
                     .confirmationDialog(
                         "profile_sign_out_confirmation",
                         isPresented: $showSignUpConfirmation,
                         titleVisibility: .visible,
                     ) {
-                        Button("profile_sign_out_confirm", role: .destructive) {
+                        Button(
+                            "profile_sign_out_confirm",
+                            role: .destructive,
+                        ) {
                             viewModel.signOut()
                         }
                     }
                 }
             }
-            .onAppear { viewModel.appear() }
+            if viewModel.enableRemoveFromFriends {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button(action: {
+                            showFriendDeclineConfirmation = true
+                        }) {
+                            Label(
+                                "profile_friends_decline",
+                                systemImage: "person.fill.badge.minus",
+                            )
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .confirmationDialog(
+                        "profile_friends_decline_confirmation",
+                        isPresented: $showFriendDeclineConfirmation,
+                        titleVisibility: .visible,
+                    ) {
+                        Button(
+                            "profile_friends_decline_confirm",
+                            role: .destructive,
+                        ) {
+                            viewModel.friendsDecline()
+                        }
+                    }
+                }
+            }
+        })
+        .onAppear { viewModel.appear() }
+        .alert(
+            "profile_error",
+            isPresented: .constant(viewModel.alertError != nil),
+        ) {
+            Button("profile_error_ok") {
+                viewModel.clearAlertError()
+            }
+            .keyboardShortcut(.defaultAction)
+        } message: {
+            if let error = viewModel.alertError {
+                let string: LocalizedStringKey = switch error {
+                case .decline: "profile_error_decline"
+                }
+                Text(string)
+            }
         }
+    }
+
+    enum Mode {
+        case selfProfile(SelfProfile)
+        case otherProfile(OtherProfile)
+    }
+
+    struct SelfProfile {
+        let routeToSignUp: () -> Void
+    }
+
+    struct OtherProfile {
+        let id: UserId
+        let accessHash: UserAccessHash
+        let onFriendsDecline: () -> Void
     }
 }
 
@@ -119,49 +187,8 @@ private struct Interests: View {
     var body: some View {
         HFlow(horizontalAlignment: .center, verticalAlignment: .top) {
             ForEach(interests, id: \.string) { interest in
-                Chip(text: interest.string)
+                ChipView(text: interest.string)
             }
-        }
-    }
-}
-
-private struct Chip: View {
-    let text: String
-
-    @Environment(\.colorScheme) var colorScheme
-
-    private var pastelColor: Color {
-        let lightPastels = [
-            Color(red: 1.0, green: 0.8, blue: 0.8),
-            Color(red: 0.8, green: 0.9, blue: 1.0),
-            Color(red: 0.85, green: 0.95, blue: 0.85),
-            Color(red: 1.0, green: 0.9, blue: 0.7),
-            Color(red: 0.95, green: 0.8, blue: 1.0),
-        ]
-        let darkPastels = [
-            Color(red: 0.6, green: 0.3, blue: 0.3),
-            Color(red: 0.3, green: 0.4, blue: 0.6),
-            Color(red: 0.35, green: 0.45, blue: 0.35),
-            Color(red: 0.6, green: 0.5, blue: 0.3),
-            Color(red: 0.5, green: 0.3, blue: 0.6),
-        ]
-        let colors = colorScheme == .dark ? darkPastels : lightPastels
-        let sum = text.unicodeScalars.reduce(0) { acc, scalar in
-            acc + Int(scalar.value)
-        }
-        let index = abs(sum) % colors.count
-        return colors[index]
-    }
-
-    var body: some View {
-        Button(action: {}) {
-            Text(text)
-                .font(.subheadline)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(pastelColor)
-                .foregroundColor(.primary)
-                .clipShape(Capsule())
         }
     }
 }

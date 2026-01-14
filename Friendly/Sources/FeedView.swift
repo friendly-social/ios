@@ -1,22 +1,23 @@
 import SwiftUI
 
 struct FeedView: View {
-    private let viewModel: FeedViewModel = FeedViewModel()
+    @State private var viewModel = FeedViewModel()
 
     var body: some View {
-        @Bindable var viewModel = viewModel
-        NavigationStack {
-            ZStack {
-                switch viewModel.state {
-                case .loading: LoadingView()
-                case .ioError: IOErrorView()
-                case .success: FeedSuccessView()
-                }
+        VStack {
+            switch viewModel.state {
+            case .loading: LoadingView()
+            case .ioError: IOErrorView()
+            case .success(let entries): FeedSuccessView(entries: entries)
             }
-            .frame(maxHeight: .infinity)
-            .background(Color(uiColor: .systemGroupedBackground))
-            .onAppear { viewModel.appear() }
         }
+        .animation(
+            .easeInOut(duration: 0.3),
+            value: viewModel.state.rawValue,
+        )
+        .frame(maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .onAppear { viewModel.appear() }
     }
 }
 
@@ -48,7 +49,46 @@ private struct IOErrorView: View {
 }
 
 private struct FeedSuccessView: View {
-    var body: some View {
+    let entries: [FeedViewModel.Entry]
 
+    var body: some View {
+        ZStack {
+            FeedEmptyView()
+            let entries = Array(entries.prefix(2).enumerated())
+            ForEach(entries, id: \.element.id) { (index, entry) in
+                FeedSwipeCardView(
+                    avatarUrl: entry.avatarUrl,
+                    nickname: entry.nickname,
+                    description: entry.description,
+                    interests: entry.interests,
+                    onLike: entry.onLike,
+                    onDislike: entry.onDislike,
+                )
+                .padding(.horizontal)
+                .padding(.bottom)
+                .zIndex(1 - Double(index))
+            }
+        }
     }
 }
+
+private struct FeedEmptyView: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "tray")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 50, height: 50)
+                .foregroundStyle(.secondary)
+            Text("feed_empty")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.top)
+            Text("feed_empty_advice")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+

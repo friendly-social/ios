@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 @Observable
 class SignUpViewModel {
     private let onComplete: () -> Void
@@ -83,9 +84,8 @@ class SignUpViewModel {
         let nickname = try! Nickname(nickname)
         let description = try! UserDescription(description)
         let interests = Array(pickedInterests)
+        loading = true
         Task {
-            loading = true
-            defer { loading = false }
             let authorization = try? await networkClient.authGenerate(
                 nickname: nickname,
                 description: description,
@@ -98,6 +98,7 @@ class SignUpViewModel {
             } else {
                 error = .ioError
             }
+            loading = false
         }
     }
 

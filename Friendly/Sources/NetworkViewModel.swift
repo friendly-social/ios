@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 @Observable
 class NetworkViewModel {
     private let storage: Storage = .shared
@@ -8,6 +9,12 @@ class NetworkViewModel {
     var state: State = .loading
 
     private(set) var shouldShowQRCode: Bool = false
+
+    let router: Router
+
+    init(router: Router) {
+        self.router = router
+    }
 
     func showQRCode() {
         shouldShowQRCode = true
@@ -24,6 +31,10 @@ class NetworkViewModel {
     func appear() {
         guard firstAppear else { return }
         firstAppear = false
+        reload()
+    }
+
+    func onFriendsDecline() {
         reload()
     }
 
@@ -50,24 +61,39 @@ class NetworkViewModel {
                 nil
             }
             return Friend(
+                id: user.id,
                 avatarUrl: avatarUrl,
                 nickname: user.nickname,
-                id: user.id,
-                accessHash: user.accessHash,
+                onClick: { [weak self] in
+                    guard let self = self else { return }
+                    let destination = NetworkView.ProfileDestination(
+                        id: user.id,
+                        accessHash: user.accessHash,
+                    )
+                    self.router.path.append(destination)
+                }
             )
         }
     }
 
     enum State {
         case loading
-        case success([Friend])
         case ioError
+        case success([Friend])
+
+        var rawValue: Int {
+            return switch self {
+            case .loading: 0
+            case .ioError: 1
+            case .success: 2
+            }
+        }
     }
 
     struct Friend {
+        let id: UserId
         let avatarUrl: URL?
         let nickname: Nickname
-        let id: UserId
-        let accessHash: UserAccessHash
+        let onClick: () -> Void
     }
 }

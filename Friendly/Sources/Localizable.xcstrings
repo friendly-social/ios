@@ -177,6 +177,72 @@
         }
       }
     },
+    "profile_friends_decline_confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You might not be able to add this person back"
+          }
+        }
+      }
+    },
+    "profile_friends_decline_confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove anyways"
+          }
+        }
+      }
+    },
+    "profile_friends_decline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove friend"
+          }
+        }
+      }
+    },
+    "profile_error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't do that right now"
+          }
+        }
+      }
+    },
+    "profile_error_ok" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "profile_error_decline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We have a problem reaching our servers"
+          }
+        }
+      }
+    },
     "io_error_title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -206,6 +272,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Friends"
+          }
+        }
+      }
+    },
+    "network_friends_add_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add more friends to expand your network!"
           }
         }
       }
@@ -272,6 +349,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "feed_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friendly"
+          }
+        }
+      }
+    },
+    "feed_empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're all caught up!"
+          }
+        }
+      }
+    },
+    "feed_empty_advice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now you can talk to the people you've met"
           }
         }
       }

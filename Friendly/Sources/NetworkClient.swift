@@ -124,6 +124,35 @@ class NetworkClient {
         }
     }
 
+    enum FeedQueueError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func feedQueue(
+        authorization: Authorization,
+    ) async throws(FeedQueueError) -> FeedQueue {
+        do {
+            let response = try await transport.authorized(
+                path: "feed/queue",
+                method: .get,
+                body: nil,
+                type: FeedQueueSerializable.self,
+                authorization: authorization,
+            )
+            return try response.typed()
+        } catch let error as Transport.AuthorizedError {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError: throw .serverError
+            case .unauthorized: throw .unauthorized
+            }
+        } catch {
+            throw .serverError
+        }
+    }
+
     enum FriendsGenerateError: Error {
         case ioError(Error)
         case serverError
@@ -153,9 +182,88 @@ class NetworkClient {
         }
     }
 
-    private struct FriendsGenerateResponseBody : Decodable {
+    private struct FriendsGenerateResponseBody: Decodable {
         let token: String
     }
+
+    enum FriendsDeclineError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func friendsDecline(
+        authorization: Authorization,
+        id: UserId,
+        accessHash: UserAccessHash,
+    ) async throws(FriendsDeclineError) {
+        do {
+            let body = FriendsDeclineRequestBody(
+                userId: id.int64,
+                userAccessHash: accessHash.string,
+            )
+            let _ = try await transport.authorized(
+                path: "friends/decline",
+                method: .post,
+                body: body,
+                type: FriendsDeclineResponseBody.self,
+                authorization: authorization,
+            )
+        } catch {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError: throw .serverError
+            case .unauthorized: throw .unauthorized
+            }
+        }
+    }
+
+    private struct FriendsDeclineRequestBody: Encodable {
+        let userId: Int64
+        let userAccessHash: String
+    }
+
+    private struct FriendsDeclineResponseBody: Decodable {}
+
+
+    enum FriendsRequestError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func friendsRequest(
+        authorization: Authorization,
+        id: UserId,
+        accessHash: UserAccessHash,
+    ) async throws(FriendsRequestError) {
+        do {
+            let body = FriendsRequestRequestBody(
+                userId: id.int64,
+                userAccessHash: accessHash.string,
+            )
+            let _ = try await transport.authorized(
+                path: "friends/request",
+                method: .post,
+                body: body,
+                type: FriendsRequestResponseBody.self,
+                authorization: authorization,
+            )
+        } catch {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError: throw .serverError
+            case .unauthorized: throw .unauthorized
+            }
+        }
+    }
+
+    private struct FriendsRequestRequestBody: Encodable {
+        let userId: Int64
+        let userAccessHash: String
+    }
+
+    private struct FriendsRequestResponseBody: Decodable {}
 
     enum FilesUploadError: Error {
         case ioError(Error)
