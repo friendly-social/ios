@@ -51,6 +51,7 @@ struct SignUpView: View {
                     case .nicknameMaxLength: "sign_up_nickname_max_length"
                     case .descriptionMaxLength: "sign_up_description_max_length"
                     case .socialLinkMaxLength: "sign_up_social_link_max_length"
+                    case .socialLinkNotUrl: "sign_up_social_link_not_url"
                     case .ioError: "sign_up_io_error"
                     }
                     Text(string)

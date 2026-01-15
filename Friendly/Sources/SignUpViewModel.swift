@@ -86,7 +86,7 @@ class SignUpViewModel {
         if !validate(reason: .signUp) { return }
         let nickname = try! Nickname(nickname)
         let description = try! UserDescription(description)
-        let socialLink = try! SocialLink(socialLink)
+        let socialLink = encodeSocialLink()
         let interests = Array(pickedInterests)
         loading = true
         Task {
@@ -107,16 +107,30 @@ class SignUpViewModel {
         }
     }
 
+    func encodeSocialLink() -> SocialLink? {
+        if socialLink.isEmpty { return nil }
+        guard let socialLinkEncoded = URL(
+            string: socialLink,
+            encodingInvalidCharacters: true,
+        )?.absoluteString else { return nil }
+        return try? SocialLink(socialLinkEncoded)
+    }
+
     func clearError() {
         error = nil
     }
 
     @discardableResult
     private func validate(reason: ValidateReason) -> Bool {
-        return validateNickname(reason) && validateDescription(reason)
+        return validateNickname(reason) &&
+            validateSocialLink(reason) &&
+            validateDescription(reason)
     }
 
     private func validateNickname(_ reason: ValidateReason) -> Bool {
+        guard reason == .nickname || reason == .signUp else {
+            return true
+        }
         if nickname.isEmpty {
             if reason == .signUp {
                 error = .required
@@ -129,11 +143,13 @@ class SignUpViewModel {
             }
             return false
         }
-        error = nil
         return true
     }
 
     private func validateDescription(_ reason: ValidateReason) -> Bool {
+        guard reason == .description || reason == .signUp else {
+            return true
+        }
         if description.isEmpty {
             if reason == .signUp {
                 error = .required
@@ -146,19 +162,29 @@ class SignUpViewModel {
             }
             return false
         }
-        error = nil
         return true
     }
 
+    private let socialLinkRegex =
+        try! Regex("((http|https):\\/\\/)?\\w+\\.\\w+.*")
+
     private func validateSocialLink(_ reason: ValidateReason) -> Bool {
+        guard reason == .socialLink || reason == .signUp else {
+            return true
+        }
         if socialLink.isEmpty { return true }
         if socialLink.count > SocialLink.maxLength {
-            if reason == .socialLink {
+            if reason == .signUp {
                 error = .socialLinkMaxLength
             }
             return false
         }
-        error = nil
+        guard let _ = try? socialLinkRegex.wholeMatch(in: socialLink) else {
+            if reason == .signUp {
+                error = .socialLinkNotUrl
+            }
+            return false
+        }
         return true
     }
 
@@ -174,6 +200,7 @@ class SignUpViewModel {
         case nicknameMaxLength
         case descriptionMaxLength
         case socialLinkMaxLength
+        case socialLinkNotUrl
         case ioError
     }
 }

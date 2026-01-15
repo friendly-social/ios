@@ -1,7 +1,7 @@
 import SwiftUI
 import QRCode
 
-struct NetworkQRCodeView : View {
+struct NetworkQRCodeView: View {
     @State private var viewModel: NetworkQRCodeViewModel
 
     init(onDismiss: @escaping () -> Void) {
