@@ -36,7 +36,13 @@ class NetworkQRCodeViewModel {
         for userId: UserId,
         with token: FriendToken,
     ) -> URL {
-        return URL(string: "friendly://add/\(userId.int64)/\(token.string)")!
+        let reference = "add/\(userId.int64)/\(token.string)"
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
+
+        let string = networkClient.landingUrl.absoluteString +
+            "#?reference=\(reference)"
+
+        return URL(string: string)!
     }
 
     enum State {

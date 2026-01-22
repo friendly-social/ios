@@ -8,18 +8,32 @@ struct MainView: View {
     }
 
     var body: some View {
-        TabView {
-            Tab("main_feed", systemImage: "newspaper") {
+        TabView(selection: $viewModel.selectedItem) {
+            Tab(
+                "main_feed",
+                systemImage: "newspaper",
+                value: .feed,
+            ) {
                 RouterView { router in
                     FeedView(router: router)
                 }
             }
-            Tab("main_network", systemImage: "person.3") {
+
+            Tab(
+                "main_network",
+                systemImage: "person.3",
+                value: .network,
+            ) {
                 RouterView { router in
                     NetworkView(router: router)
                 }
             }
-            Tab("main_profile", systemImage: "person.crop.circle") {
+
+            Tab(
+                "main_profile",
+                systemImage: "person.crop.circle",
+                value: .profile,
+            ) {
                 RouterView { router in
                     let selfProfile = ProfileView.SelfProfile(
                         routeToSignUp: viewModel.routeToSignUp,
@@ -30,6 +44,12 @@ struct MainView: View {
                     )
                 }
             }
+        }
+        .onDeeplink { deeplink in
+            if case .addFriend = deeplink {
+                viewModel.onAddFriendDeeplink()
+            }
+            return false
         }
     }
 }

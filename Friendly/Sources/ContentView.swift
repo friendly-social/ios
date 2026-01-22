@@ -16,11 +16,6 @@ struct ContentView: View {
         .onAppear {
             viewModel.appear()
         }
-        // .task {
-        //     try? Tips.resetDatastore()
-        //     try? Tips.configure([
-        //         .displayFrequency(.hourly),
-        //     ])
-        // }
+        .withDeeplinkRouter()
     }
 }

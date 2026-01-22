@@ -112,8 +112,6 @@ class ProfileViewModel {
                 )
                 await MainActor.run {
                     router.path.removeLast()
-                    // todo: add event bus and sent an event about this change
-                    // profile.onFriendsDecline()
                 }
             } catch {
                 alertError = .decline

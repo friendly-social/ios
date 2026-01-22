@@ -4,10 +4,16 @@ import SwiftUI
 // todo: move to a separate swift module
 class NetworkClient {
     private let transport: Transport
-    private let baseUrl: URL
+    let baseUrl: URL
+    let landingUrl: URL
 
-    init(baseUrl: URL, session: URLSession = .shared) {
+    init(
+        baseUrl: URL,
+        landingUrl: URL,
+        session: URLSession = .shared,
+    ) {
         self.baseUrl = baseUrl
+        self.landingUrl = landingUrl
         self.transport = Transport(baseUrl: baseUrl, session: session)
     }
 
@@ -189,6 +195,45 @@ class NetworkClient {
         let token: String
     }
 
+    enum FriendsAddError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func friendsAdd(
+        authorization: Authorization,
+        token: FriendToken,
+        id: UserId,
+    ) async throws(FriendsAddError) {
+        do {
+            let body = FriendsAddRequestBody(
+                token: token.string,
+                userId: id.int64,
+            )
+            let _ = try await transport.authorized(
+                path: "friends/add",
+                method: .post,
+                body: body,
+                type: FriendsAddResponseBody.self,
+                authorization: authorization,
+            )
+        } catch {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError: throw .serverError
+            case .unauthorized: throw .unauthorized
+            }
+        }
+    }
+
+    private struct FriendsAddRequestBody: Encodable {
+        let token: String
+        let userId: Int64
+    }
+
+    private struct FriendsAddResponseBody: Decodable {}
+
     enum FriendsDeclineError: Error {
         case ioError(Error)
         case serverError
@@ -306,6 +351,9 @@ class NetworkClient {
 
     static let meetacy = NetworkClient(
         baseUrl: URL(string: "https://meetacy.app/friendly")!,
+        landingUrl: URL(
+            string: "https://friendly-social.github.io/landing/#/",
+        )!,
     )
 }
 

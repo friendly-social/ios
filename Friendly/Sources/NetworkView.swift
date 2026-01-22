@@ -52,6 +52,13 @@ struct NetworkView: View {
             )
         }
         .refreshable { await viewModel.reload() }
+        .onDeeplink { deeplink in
+            if case let .addFriend(id, token) = deeplink {
+                viewModel.onAddFriendDeeplink(id: id, token: token)
+                return true
+            }
+            return false
+        }
     }
 }
 

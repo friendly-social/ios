@@ -8,14 +8,18 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "me.y9san9.Friendly",
-            infoPlist: .extendingDefault(
-                with: [
-                    "UILaunchScreen": [
-                        "UIColorName": "",
-                        "UIImageName": "",
+            infoPlist: .extendingDefault(with: [
+                "UILaunchScreen": [
+                    "UIColorName": "",
+                    "UIImageName": "",
+                ],
+                "CFBundleURLTypes": [
+                    [
+                        "CFBundleURLSchemes": ["friendly"],
+                        "CFBundleURLName": "me.y9san9.Friendly",
                     ],
-                ]
-            ),
+                ],
+            ]),
             buildableFolders: [
                 "Friendly/Sources",
                 "Friendly/Resources",

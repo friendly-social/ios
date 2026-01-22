@@ -69,6 +69,24 @@ class NetworkViewModel {
         }
     }
 
+    func onAddFriendDeeplink(
+        id: UserId,
+        token: FriendToken,
+    ) {
+        Task {
+            shouldShowQRCode = false
+            guard let authorization = try? storage.loadAuthorization() else {
+                return
+            }
+            guard let _ = try? await networkClient.friendsAdd(
+                authorization: authorization,
+                token: token,
+                id: id,
+            ) else { return }
+            await reload()
+        }
+    }
+
     enum State {
         case loading
         case ioError
