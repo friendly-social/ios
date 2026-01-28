@@ -350,7 +350,7 @@ class NetworkClient {
     }
 
     static let meetacy = NetworkClient(
-        baseUrl: URL(string: "https://meetacy.app/friendly")!,
+        baseUrl: URL(string: "https://api.getfriend.ly")!,
         landingUrl: URL(
             string: "https://friendly-social.github.io/landing/#/",
         )!,

@@ -2,9 +2,14 @@ import SwiftUI
 
 struct NetworkView: View {
     @State private var viewModel: NetworkViewModel
+    @Binding private var addFriend: AddFriendCommand?
 
-    init(router: Router) {
+    init(
+        router: Router,
+        addFriend: Binding<AddFriendCommand?>,
+    ) {
         self.viewModel = NetworkViewModel(router: router)
+        _addFriend = addFriend
     }
 
     var body: some View {
@@ -52,12 +57,10 @@ struct NetworkView: View {
             )
         }
         .refreshable { await viewModel.reload() }
-        .onDeeplink { deeplink in
-            if case let .addFriend(id, token) = deeplink {
-                viewModel.onAddFriendDeeplink(id: id, token: token)
-                return true
-            }
-            return false
+        .onChange(of: addFriend == nil, initial: true) {
+            guard let addFriend = addFriend else { return }
+            viewModel.command(addFriend: addFriend)
+            self.addFriend = nil
         }
     }
 }

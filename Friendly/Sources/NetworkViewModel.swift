@@ -69,10 +69,9 @@ class NetworkViewModel {
         }
     }
 
-    func onAddFriendDeeplink(
-        id: UserId,
-        token: FriendToken,
-    ) {
+    func command(addFriend: AddFriendCommand) {
+        let id = addFriend.id
+        let token = addFriend.token
         Task {
             shouldShowQRCode = false
             guard let authorization = try? storage.loadAuthorization() else {

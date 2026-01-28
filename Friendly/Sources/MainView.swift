@@ -2,9 +2,14 @@ import SwiftUI
 
 struct MainView: View {
     @State private var viewModel: MainViewModel
+    @Binding private var addFriend: AddFriendCommand?
 
-    init(routeToSignUp: @escaping () -> Void) {
+    init(
+        routeToSignUp: @escaping () -> Void,
+        addFriend: Binding<AddFriendCommand?>,
+    ) {
         viewModel = MainViewModel(routeToSignUp: routeToSignUp)
+        _addFriend = addFriend
     }
 
     var body: some View {
@@ -25,7 +30,10 @@ struct MainView: View {
                 value: .network,
             ) {
                 RouterView { router in
-                    NetworkView(router: router)
+                    NetworkView(
+                        router: router,
+                        addFriend: $viewModel.addFriend,
+                    )
                 }
             }
 
@@ -45,11 +53,10 @@ struct MainView: View {
                 }
             }
         }
-        .onDeeplink { deeplink in
-            if case .addFriend = deeplink {
-                viewModel.onAddFriendDeeplink()
-            }
-            return false
+        .onChange(of: addFriend == nil, initial: true) {
+            guard let addFriend = addFriend else { return }
+            viewModel.command(addFriend: addFriend)
+            self.addFriend = nil
         }
     }
 }

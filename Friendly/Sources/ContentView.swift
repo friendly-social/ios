@@ -6,9 +6,15 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             switch viewModel.destination {
-            case .empty: EmptyView()
-            case .signUp: SignUpView(onComplete: viewModel.onSignUp)
-            case .main: MainView(routeToSignUp: viewModel.routeToSignUp)
+            case .empty:
+                EmptyView()
+            case .signUp:
+                SignUpView(onComplete: viewModel.onSignUp)
+            case .main:
+                MainView(
+                    routeToSignUp: viewModel.routeToSignUp,
+                    addFriend: $viewModel.addFriend,
+                )
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.destination)
@@ -16,6 +22,12 @@ struct ContentView: View {
         .onAppear {
             viewModel.appear()
         }
-        .withDeeplinkRouter()
+        .onOpenURL { url in
+            guard let deeplink = Deeplink.of(url: url) else { return }
+            switch deeplink {
+                case let .addFriend(id, token):
+                    viewModel.onAddFriend(id: id, token: token)
+            }
+        }
     }
 }
