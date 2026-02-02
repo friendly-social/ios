@@ -1,0 +1,20 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    # Install Tuist dependencies
+    sh("tuist install")
+    # Generate project
+    sh("tuist generate")
+    # Build and upload to TestFlight
+    build_app(
+      workspace: "Friendly.xcworkspace",
+      scheme: "Friendly",
+      export_method: "app-store"
+    )
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+end
