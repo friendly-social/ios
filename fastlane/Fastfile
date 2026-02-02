@@ -7,12 +7,19 @@ platform :ios do
     sh("cd .. && tuist install")
     # Generate project
     sh("cd .. && tuist generate")
+    # Parse provisioning profile to get Name and UUID
+    profile_path = File.expand_path("../profile.mobileprovision")
+    profile = FastlaneCore::ProvisioningProfile.parse(profile_path)
+    profile_name = profile["Name"]
+    profile_uuid = profile["UUID"]
+    
     # Configure Code Signing specifically for the App target
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "Friendly.xcodeproj",
       targets: ["Friendly"],
-      profile_name: "Friendly App Store",
+      profile_name: profile_name,
+      profile_uuid: profile_uuid,
       team_id: ENV["APPLE_TEAM_ID"],
       code_sign_identity: "Apple Distribution",
       build_configurations: ["Release"]
@@ -27,7 +34,7 @@ platform :ios do
       export_options: {
         method: "app-store",
         provisioningProfiles: {
-          "me.y9san9.Friendly" => "Friendly App Store"
+          "me.y9san9.Friendly" => profile_name
         }
       }
     )
