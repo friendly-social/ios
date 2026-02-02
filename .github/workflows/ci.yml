@@ -59,8 +59,7 @@ jobs:
         
         # Install certificate
         echo "$CERTIFICATE_BASE64" | base64 --decode > certificate.p12
-        security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+        security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -A
         
         # Install provisioning profile
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
