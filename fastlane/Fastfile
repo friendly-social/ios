@@ -5,39 +5,9 @@ platform :ios do
   lane :beta do
     # Install Tuist dependencies
     sh("cd .. && tuist install")
+    
     # Generate project
     sh("cd .. && tuist generate")
-    # Parse provisioning profile to get Name and UUID
-    profile_path = File.expand_path("../profile.mobileprovision")
-    profile = FastlaneCore::ProvisioningProfile.parse(profile_path)
-    profile_name = profile["Name"]
-    profile_uuid = profile["UUID"]
-    
-    # Configure Code Signing specifically for the App target
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      path: "Friendly.xcodeproj",
-      targets: ["Friendly"],
-      profile_name: profile_name,
-      profile_uuid: profile_uuid,
-      team_id: ENV["APPLE_TEAM_ID"],
-      code_sign_identity: "Apple Distribution",
-      build_configurations: ["Release"]
-    )
-
-    # Build the app
-    build_app(
-      workspace: "Friendly.xcworkspace",
-      scheme: "Friendly",
-      export_method: "app-store",
-      xcargs: "CURRENT_PROJECT_VERSION='#{ENV['GITHUB_RUN_NUMBER']}'",
-      export_options: {
-        method: "app-store",
-        provisioningProfiles: {
-          "me.y9san9.Friendly" => profile_name
-        }
-      }
-    )
 
     # Auth with API Key
     api_key = app_store_connect_api_key(
@@ -48,15 +18,60 @@ platform :ios do
       in_house: false
     )
 
-    # Upload to TestFlight and distribute to testers
+    # Get latest build number from TestFlight + 1
+    current_build_number = latest_testflight_build_number(
+      api_key: api_key,
+      initial_build_number: 0
+    )
+    new_build_number = current_build_number + 1
+    puts "Building version: #{new_build_number}"
+
+    # Parse provisioning profile
+    require 'fastlane_core'
+    profile_path = File.expand_path("../profile.mobileprovision")
+    profile = FastlaneCore::ProvisioningProfile.parse(profile_path)
+    
+    # Configure Code Signing
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Friendly.xcodeproj",
+      targets: ["Friendly"],
+      profile_name: profile["Name"],
+      profile_uuid: profile["UUID"],
+      team_id: ENV["APPLE_TEAM_ID"],
+      code_sign_identity: "Apple Distribution",
+      build_configurations: ["Release"]
+    )
+
+    # Build the app
+    build_app(
+      workspace: "Friendly.xcworkspace",
+      scheme: "Friendly",
+      export_method: "app-store",
+      xcargs: "CURRENT_PROJECT_VERSION='#{new_build_number}'",
+      export_options: {
+        method: "app-store",
+        provisioningProfiles: {
+          "me.y9san9.Friendly" => profile["Name"]
+        }
+      }
+    )
+
+    # Generate changelog
+    changelog_text = changelog_from_git_commits(
+      commits_count: 10,
+      merge_commit_filtering: "exclude_merges",
+      pretty: "- %s"
+    )
+
+    # Upload to TestFlight
     upload_to_testflight(
       api_key: api_key,
-      skip_waiting_for_build_processing: false, # Must wait for processing to distribute
-      distribute_external: true, # Distribute to external testers
+      skip_waiting_for_build_processing: false,
+      distribute_external: true,
       notify_external_testers: true,
-      changelog: "Bug fixes and performance improvements" # Required for external testing
-      # If you have specific groups, uncomment and list them:
-      # groups: ["Public Testers", "Beta Testers"] 
+      changelog: changelog_text,
+      groups: ["External Group"]
     )
   end
 end
