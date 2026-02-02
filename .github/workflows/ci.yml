@@ -28,7 +28,7 @@ jobs:
     - name: Install Tuist
       run: |
         mise use -g tuist@latest
-        tuist --version
+        tuist version
     
     - name: Install dependencies
       run: |
