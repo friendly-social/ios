@@ -62,10 +62,8 @@ jobs:
         security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -A
         
         # Install provisioning profile
-        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
         echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > profile.mobileprovision
-        UUID=$(grep -aA1 UUID profile.mobileprovision | grep -o "[-A-Z0-9]\{36\}")
-        cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+        bundle exec fastlane run install_provisioning_profile path:"profile.mobileprovision"
     
     - name: Build and upload to TestFlight
       if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
