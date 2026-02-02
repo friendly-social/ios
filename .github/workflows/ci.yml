@@ -20,19 +20,22 @@ jobs:
         ruby-version: 3.2
         bundler-cache: true
     
+    - name: Install Mise and Tuist
+      uses: jdx/mise-action@v2
+      with:
+        install: false
+        
     - name: Install Tuist
       run: |
-        curl -Ls https://install.tuist.io | bash
-        export PATH="$PATH:$HOME/.tuist/bin"
+        mise use -g tuist@latest
+        tuist --version
     
     - name: Install dependencies
       run: |
-        export PATH="$PATH:$HOME/.tuist/bin"
         tuist install
     
     - name: Generate project
       run: |
-        export PATH="$PATH:$HOME/.tuist/bin"
         tuist generate
     
     - name: Setup Xcode
@@ -83,7 +86,6 @@ jobs:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        export PATH="$PATH:$HOME/.tuist/bin"
         tuist install
         tuist generate
         xcodebuild -workspace Friendly.xcworkspace -scheme Friendly -configuration Release -destination 'generic/platform=iOS' clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
