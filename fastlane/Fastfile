@@ -4,14 +4,21 @@ platform :ios do
   desc "Build and upload to TestFlight"
   lane :beta do
     # Install Tuist dependencies
-    sh("tuist install")
+    sh("cd .. && tuist install")
     # Generate project
-    sh("tuist generate")
+    sh("cd .. && tuist generate")
     # Build and upload to TestFlight
     build_app(
-      workspace: "Friendly.xcworkspace",
+      workspace: "../Friendly.xcworkspace",
       scheme: "Friendly",
-      export_method: "app-store"
+      export_method: "app-store",
+      xcargs: "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM='#{ENV['APPLE_TEAM_ID']}' PROVISIONING_PROFILE_SPECIFIER='Friendly App Store'",
+      export_options: {
+        method: "app-store",
+        provisioningProfiles: {
+          "me.y9san9.Friendly" => "Friendly App Store"
+        }
+      }
     )
     upload_to_testflight(
       skip_waiting_for_build_processing: true
