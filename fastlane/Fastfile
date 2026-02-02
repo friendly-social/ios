@@ -54,6 +54,7 @@ platform :ios do
       skip_waiting_for_build_processing: false, # Must wait for processing to distribute
       distribute_external: true, # Distribute to external testers
       notify_external_testers: true,
+      changelog: "Bug fixes and performance improvements" # Required for external testing
       # If you have specific groups, uncomment and list them:
       # groups: ["Public Testers", "Beta Testers"] 
     )
