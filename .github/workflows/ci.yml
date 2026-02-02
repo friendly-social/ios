@@ -69,11 +69,9 @@ jobs:
     - name: Build and upload to TestFlight
       if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
       env:
-        APPLE_ID: ${{ secrets.APPLE_ID }}
-        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        FASTLANE_USER: ${{ secrets.APPLE_ID }}
-        FASTLANE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+        APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        APP_STORE_CONNECT_API_KEY_KEY_CONTENT_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_CONTENT_BASE64 }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
         bundle exec fastlane beta

@@ -9,6 +9,7 @@ let project = Project(
             product: .app,
             bundleId: "me.y9san9.Friendly",
             infoPlist: .extendingDefault(with: [
+                "ITSAppUsesNonExemptEncryption": false,
                 "UILaunchScreen": [
                     "UIColorName": "",
                     "UIImageName": "",
