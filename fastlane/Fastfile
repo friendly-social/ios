@@ -7,12 +7,23 @@ platform :ios do
     sh("cd .. && tuist install")
     # Generate project
     sh("cd .. && tuist generate")
+    # Configure Code Signing specifically for the App target
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Friendly.xcodeproj",
+      targets: ["Friendly"],
+      profile_name: "Friendly App Store",
+      team_id: ENV["APPLE_TEAM_ID"],
+      code_sign_identity: "Apple Distribution",
+      build_configurations: ["Release"]
+    )
+
     # Build and upload to TestFlight
     build_app(
       workspace: "Friendly.xcworkspace",
       scheme: "Friendly",
       export_method: "app-store",
-      xcargs: "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM='#{ENV['APPLE_TEAM_ID']}' PROVISIONING_PROFILE_SPECIFIER='Friendly App Store' CODE_SIGN_IDENTITY='Apple Distribution' CURRENT_PROJECT_VERSION='#{ENV['GITHUB_RUN_NUMBER']}'",
+      xcargs: "CURRENT_PROJECT_VERSION='#{ENV['GITHUB_RUN_NUMBER']}'",
       export_options: {
         method: "app-store",
         provisioningProfiles: {
