@@ -9,6 +9,8 @@ let project = Project(
             product: .app,
             bundleId: "me.y9san9.Friendly",
             infoPlist: .extendingDefault(with: [
+                "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "ITSAppUsesNonExemptEncryption": false,
                 "UILaunchScreen": [
                     "UIColorName": "",
@@ -32,7 +34,9 @@ let project = Project(
             ],
             settings: .settings(
                 base: [
-                    "OTHER_LDFLAGS": "-ObjC"
+                    "OTHER_LDFLAGS": "-ObjC",
+                    "MARKETING_VERSION": "1.0",
+                    "CURRENT_PROJECT_VERSION": "1"
                 ],
             )
         ),
