@@ -33,6 +33,11 @@ struct NetworkView: View {
                 ) {
                     Image(systemName: "qrcode")
                 }
+                Button(
+                    action: { viewModel.findQRCode() },
+                ) {
+                    Image(systemName: "qrcode.viewfinder")
+                }
             }
         }
         .navigationTitle("network_friends_title")
@@ -41,6 +46,13 @@ struct NetworkView: View {
         ) {
             NetworkQRCodeView(
                 onDismiss: { viewModel.shouldShowQRCode = false },
+            )
+        }
+        .sheet(
+            isPresented: $viewModel.shouldFindQRCode,
+        ) {
+            ScanToUseAppView(
+                onSuccess: { _ in viewModel.shouldFindQRCode = false },
             )
         }
         .onAppear { viewModel.appear() }

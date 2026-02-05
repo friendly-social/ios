@@ -18,6 +18,54 @@
         }
       }
     },
+    "button_base_close" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть"
+          }
+        }
+      }
+    },
+    "error_base_subtite" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Повторите еще"
+          }
+        }
+      }
+    },
+    "error_base_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ошибка"
+          }
+        }
+      }
+    },
     "feed_empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -439,6 +487,166 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Вы уверены?\n\nВ данный момент невозможно войти в аккаунт обратно!"
+          }
+        }
+      }
+    },
+    "scan_enter_info_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning is required to verify access and link the account."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сканирование нужно, чтобы подтвердить доступ и связать аккаунт."
+          }
+        }
+      }
+    },
+    "scan_enter_info_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To use the app, scan another user's QR code"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для использования приложения nотсканируйте qr код другого пользователя"
+          }
+        }
+      }
+    },
+    "scan_enter_open_scanner" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan QR"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сканировать QR"
+          }
+        }
+      }
+    },
+    "scan_enter_scanning_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This may take a few seconds"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Это может занять пару секунд"
+          }
+        }
+      }
+    },
+    "scan_enter_scanning_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking QR…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Проверяем QR…"
+          }
+        }
+      }
+    },
+    "scanner_qrcode_camera_permission_message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To scan a QR code, please allow camera access in your device settings."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для сканирования QR-кода разрешите доступ к камере в настройках устройства"
+          }
+        }
+      }
+    },
+    "scanner_qrcode_camera_permission_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access required"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Нет доступа к камере"
+          }
+        }
+      }
+    },
+    "scanner_qrcode_navigation_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR Scanning"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сканирование QR"
+          }
+        }
+      }
+    },
+    "scanner_qrcode_subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning will start automatically"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сканирование начнётся автоматически"
+          }
+        }
+      }
+    },
+    "scanner_qrcode_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place the QR code inside the scanning area"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Поместите QR-код в область сканирования"
           }
         }
       }
