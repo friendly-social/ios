@@ -71,7 +71,8 @@ platform :ios do
       distribute_external: true,
       notify_external_testers: true,
       changelog: changelog_text,
-      groups: ["External Group"]
+      groups: ["External Group"],
+      reject_build_waiting_for_review: true
     )
   end
 end
