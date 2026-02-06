@@ -16,6 +16,15 @@ class NetworkViewModel {
             }
         }
     }
+    var shouldFindQRCode: Bool = false {
+        didSet {
+            if !shouldFindQRCode {
+                Task {
+                    await reload()
+                }
+            }
+        }
+    }
 
     let router: Router
 
@@ -25,6 +34,10 @@ class NetworkViewModel {
 
     func showQRCode() {
         shouldShowQRCode = true
+    }
+
+    func findQRCode() {
+        shouldFindQRCode = true
     }
 
     func appear() {
