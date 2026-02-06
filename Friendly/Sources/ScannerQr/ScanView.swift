@@ -6,11 +6,21 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct ScanToUseAppView: View {
     @StateObject private var viewModel: ScanToUseAppViewModel
+    @State private var pickedPhotoItem: PhotosPickerItem? = nil
+    private var isBlocked: Bool
+    
+    @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
 
-    init(onSuccess: @escaping (Bool) -> Void) {
+    init(
+        isBlocked: Bool,
+        onSuccess: @escaping (AddFriendCommand) -> Void
+    ) {
+        self.isBlocked = isBlocked
         _viewModel = StateObject(wrappedValue: ScanToUseAppViewModel(onSuccess: onSuccess))
     }
 
@@ -24,14 +34,24 @@ struct ScanToUseAppView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if !isBlocked {
+                    toolbarContent
+                }
+            }
             .alert(
                 "scan_enter_error_alert_title",
                 isPresented: $viewModel.isErrorAlertPresented
             ) {
-                Button("scan_enter_error_alert_button_close") { viewModel.retry() }
                 Button("scan_enter_error_alert_button_cancel", role: .cancel) { }
             } message: {
-                Text(viewModel.errorMessage ?? "error_base_message")
+                Text(
+                    String(
+                        localized: LocalizedStringResource(
+                            stringLiteral: viewModel.errorMessage ?? "error_base_message"
+                        )
+                    )
+                )
             }
             .sheet(isPresented: $viewModel.isScannerPresented) {
                 QRScannerCameraView { code in
@@ -40,6 +60,18 @@ struct ScanToUseAppView: View {
                         return
                     }
                     viewModel.handleScanned(code: code)
+                }
+            }
+            .onChange(of: pickedPhotoItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    defer { pickedPhotoItem = nil }
+                    if let data = try? await newItem.loadTransferable(type: Data.self) {
+                        viewModel.handlePickedImageData(data)
+                    } else {
+                        viewModel.errorMessage = "scan_enter_photo_invalid_image"
+                        viewModel.isErrorAlertPresented = true
+                    }
                 }
             }
         }
@@ -79,6 +111,19 @@ struct ScanToUseAppView: View {
             .buttonStyle(.glassProminent)
             .padding(.horizontal)
 
+            PhotosPicker(
+                selection: $pickedPhotoItem,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
+                Text("scan_enter_open_photo_scanner")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            }
+            .buttonStyle(.glass)
+            .padding(.horizontal)
+
             Spacer(minLength: 24)
         }
     }
@@ -101,5 +146,17 @@ struct ScanToUseAppView: View {
             .padding(.horizontal, 32)
         }
         .transition(.opacity)
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            Text("scanner_qrcode_navigation_title")
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+            }
+        }
     }
 }

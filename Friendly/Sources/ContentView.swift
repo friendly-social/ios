@@ -15,6 +15,10 @@ struct ContentView: View {
                     routeToSignUp: viewModel.routeToSignUp,
                     addFriend: $viewModel.addFriend,
                 )
+            case .qrAddFriend:
+                ScanToUseAppView(isBlocked: true) { friend in
+                    viewModel.onAddFriendWithQr(id: friend.id, token: friend.token)
+                }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.destination)

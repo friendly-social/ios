@@ -60,6 +60,7 @@ class Storage {
         try? clearToken()
         try? clearId()
         try? clearAccessHash()
+        try? clearHasFriend()
     }
 
     private func clearToken() throws(Error) {
@@ -93,6 +94,65 @@ class Storage {
         guard status == errSecSuccess else {
             throw .ioError
         }
+    }
+
+    func getHasFriend() throws(Error) -> Bool {
+        do {
+            return try loadHasFriend()
+        } catch {
+            throw .ioError
+        }
+    }
+    
+    func addFriend() throws(Error) {
+        try saveHasFriend(true)
+    }
+
+    private func saveHasFriend(_ value: Bool) throws(Error) {
+        let byte: UInt8 = value ? 1 : 0
+        let data = Data([byte])
+        
+        _ = SecItemDelete([
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrAccount: "authorization.hasFriend",
+        ] as CFDictionary)
+        
+        let query = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrAccount: "authorization.hasFriend",
+            kSecValueData: data,
+        ] as CFDictionary
+        let status = SecItemAdd(query, nil)
+        guard status == errSecSuccess else { throw .ioError }
+    }
+
+    private func clearHasFriend() throws(Error) {
+        let status = SecItemDelete([
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrAccount: "authorization.hasFriend",
+        ] as CFDictionary)
+        
+        guard status == errSecSuccess || status == errSecItemNotFound else { throw .ioError }
+    }
+
+    private func loadHasFriend() throws(Error) -> Bool {
+        var data: AnyObject?
+        let query = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrAccount: "authorization.hasFriend",
+            kSecReturnData: true,
+        ] as CFDictionary
+        
+        let status = SecItemCopyMatching(query, &data)
+        
+        if status == errSecItemNotFound {
+            return false
+        }
+        guard status == errSecSuccess, let data = data as? Data else {
+            throw .ioError
+        }
+
+        return data.first == 1
     }
 
     func hasAuthorization() throws(Error) -> Bool {

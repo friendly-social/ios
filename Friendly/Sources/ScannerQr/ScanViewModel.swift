@@ -20,12 +20,10 @@ final class ScanToUseAppViewModel: ObservableObject {
     @Published var isScannerPresented = false
     @Published var isErrorAlertPresented = false
     @Published var errorMessage: String?
-
-    private let onSuccess: (Bool) -> Void
-
-    private var lastScannedCode: String?
-
-    init(onSuccess: @escaping (Bool) -> Void) {
+    
+    private let onSuccess: (AddFriendCommand) -> Void
+    
+    init(onSuccess: @escaping (AddFriendCommand) -> Void) {
         self.onSuccess = onSuccess
     }
 
@@ -40,31 +38,69 @@ final class ScanToUseAppViewModel: ObservableObject {
 
     func handleScanned(code: String) {
         isScannerPresented = false
-        lastScannedCode = code
-        validate(code: code)
+        validate(from: code)
     }
+    
+    private func validate(from code: String) {
+        state = .idle
+        errorMessage = nil
+        isErrorAlertPresented = false
+        
+        do {
+            let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            guard let url = URL(string: trimmed) else {
+                throw ScanEnterError.invalidURL
+            }
 
-    func retry() {
-        guard let code = lastScannedCode else { return }
-        validate(code: code)
+            let deeplink = Deeplink.parseOf(url: url)
+            switch deeplink {
+            case .addFriend(let id, let token):
+                onSuccess(AddFriendCommand(id: id, token: token))
+            case nil:
+                throw ScanEnterError.invalidURL
+            }
+            
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            isErrorAlertPresented = true
+        }
     }
+}
 
-    private func validate(code: String) {
-        guard state != .loading else { return }
+extension ScanToUseAppViewModel {
+    func handlePickedImageData(_ data: Data) {
         state = .loading
         errorMessage = nil
         isErrorAlertPresented = false
 
         Task {
-            do {
-                // Проверить код, записать его на бек
-                state = .idle
-                onSuccess(true)
-            } catch {
-                state = .idle
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            guard let image = UIImage(data: data),
+                  let cgImage = image.cgImage else {
+                errorMessage = "scan_enter_photo_invalid_image"
                 isErrorAlertPresented = true
+                return
             }
+            
+            let codes = cgImage.detectQRCodeStrings()
+            guard let code = codes.first, !code.isEmpty else {
+                errorMessage = "scan_enter_photo_qr_not_found"
+                isErrorAlertPresented = true
+                return
+            }
+            
+            handleScanned(code: code)
+        }
+    }
+}
+
+enum ScanEnterError: LocalizedError {
+    case invalidURL
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return String(localized: "scan_enter_invalid_url")
         }
     }
 }

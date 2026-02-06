@@ -34,6 +34,23 @@
         }
       }
     },
+    "error_base_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to verify the data. Please try again later."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось проверить данные. Попробуйте ещё раз позже."
+          }
+        }
+      }
+    },
     "error_base_subtite" : {
       "localizations" : {
         "en" : {
@@ -491,6 +508,57 @@
         }
       }
     },
+    "scan_enter_error_alert_button_cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмена"
+          }
+        }
+      }
+    },
+    "scan_enter_error_alert_button_close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторить"
+          }
+        }
+      }
+    },
+    "scan_enter_error_alert_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR verification failed"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ошибка проверки QR"
+          }
+        }
+      }
+    },
     "scan_enter_info_subtitle" : {
       "localizations" : {
         "en" : {
@@ -523,6 +591,22 @@
         }
       }
     },
+    "scan_enter_open_photo_scanner" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan from Photos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сканировать из фото"
+          }
+        }
+      }
+    },
     "scan_enter_open_scanner" : {
       "localizations" : {
         "en" : {
@@ -535,6 +619,23 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Сканировать QR"
+          }
+        }
+      }
+    },
+    "scan_enter_photo_qr_not_found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t find a QR code in the selected image"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось найти QR-код на выбранном изображении"
           }
         }
       }
