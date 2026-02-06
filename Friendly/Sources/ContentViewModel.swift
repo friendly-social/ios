@@ -28,10 +28,9 @@ class ContentViewModel {
         destination = .qrAddFriend
     }
 
-    func onAddFriendWithQr(id: UserId, token: FriendToken) {
+    func onAddFriendWithQr() {
         try? storage.addFriend()
         destination = .main
-        addFriend = AddFriendCommand(id: id, token: token)
     }
 
     func routeToSignUp() {

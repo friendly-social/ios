@@ -16,9 +16,7 @@ struct ContentView: View {
                     addFriend: $viewModel.addFriend,
                 )
             case .qrAddFriend:
-                ScanToUseAppView(isBlocked: true) { friend in
-                    viewModel.onAddFriendWithQr(id: friend.id, token: friend.token)
-                }
+                ScanToUseAppView(isBlocked: true) { viewModel.onAddFriendWithQr() }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.destination)

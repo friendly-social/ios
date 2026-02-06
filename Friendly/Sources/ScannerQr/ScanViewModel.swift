@@ -10,20 +10,22 @@ import SwiftUI
 
 @MainActor
 final class ScanToUseAppViewModel: ObservableObject {
-
     enum State: Equatable {
         case idle
         case loading
     }
+    
+    private let storage: Storage = .shared
+    private let networkClient: NetworkClient = .meetacy
 
     @Published var state: State = .idle
     @Published var isScannerPresented = false
     @Published var isErrorAlertPresented = false
     @Published var errorMessage: String?
     
-    private let onSuccess: (AddFriendCommand) -> Void
+    private let onSuccess: () -> Void
     
-    init(onSuccess: @escaping (AddFriendCommand) -> Void) {
+    init(onSuccess: @escaping () -> Void) {
         self.onSuccess = onSuccess
     }
 
@@ -40,6 +42,30 @@ final class ScanToUseAppViewModel: ObservableObject {
         isScannerPresented = false
         validate(from: code)
     }
+
+    private func add(friend: AddFriendCommand) {
+        state = .loading
+        errorMessage = nil
+        isErrorAlertPresented = false
+        
+        let id = friend.id
+        let token = friend.token
+        Task {
+            guard let authorization = try? storage.loadAuthorization() else {
+                isErrorAlertPresented = true
+                return
+            }
+            guard let _ = try? await networkClient.friendsAdd(
+                authorization: authorization,
+                token: token,
+                id: id,
+            ) else {
+                isErrorAlertPresented = true
+                return
+            }
+            onSuccess()
+        }
+    }
     
     private func validate(from code: String) {
         state = .idle
@@ -55,8 +81,8 @@ final class ScanToUseAppViewModel: ObservableObject {
 
             let deeplink = Deeplink.parseOf(url: url)
             switch deeplink {
-            case .addFriend(let id, let token):
-                onSuccess(AddFriendCommand(id: id, token: token))
+            case let .addFriend(id, token):
+                add(friend: AddFriendCommand(id: id, token: token))
             case nil:
                 throw ScanEnterError.invalidURL
             }

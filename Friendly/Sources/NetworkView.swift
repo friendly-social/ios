@@ -51,10 +51,7 @@ struct NetworkView: View {
         .sheet(
             isPresented: $viewModel.shouldFindQRCode,
         ) {
-            ScanToUseAppView(isBlocked: false) { friend in
-                viewModel.shouldFindQRCode = false
-                viewModel.command(addFriend: friend)
-            }
+            ScanToUseAppView(isBlocked: false) { viewModel.shouldFindQRCode = false }
         }
         .onAppear { viewModel.appear() }
         .navigationDestination(

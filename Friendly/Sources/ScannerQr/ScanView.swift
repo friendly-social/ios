@@ -18,7 +18,7 @@ struct ScanToUseAppView: View {
 
     init(
         isBlocked: Bool,
-        onSuccess: @escaping (AddFriendCommand) -> Void
+        onSuccess: @escaping () -> Void
     ) {
         self.isBlocked = isBlocked
         _viewModel = StateObject(wrappedValue: ScanToUseAppViewModel(onSuccess: onSuccess))
@@ -27,10 +27,9 @@ struct ScanToUseAppView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                content
-
-                if viewModel.state == .loading {
-                    loadingOverlay
+                switch viewModel.state {
+                case .idle: content
+                case .loading: LoadingView()
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -128,26 +127,6 @@ struct ScanToUseAppView: View {
         }
     }
 
-    private var loadingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.25).ignoresSafeArea()
-
-            VStack(spacing: 12) {
-                ProgressView()
-                Text("scan_enter_scanning_title")
-                    .font(.headline)
-                Text("scan_enter_scanning_subtitle")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(20)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, 32)
-        }
-        .transition(.opacity)
-    }
-
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .principal) {
@@ -158,5 +137,12 @@ struct ScanToUseAppView: View {
                 Image(systemName: "xmark")
             }
         }
+    }
+}
+
+private struct LoadingView: View {
+    var body: some View {
+        ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
