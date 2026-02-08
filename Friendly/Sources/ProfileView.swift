@@ -39,7 +39,7 @@ struct ProfileView: View {
                     Button {
                         openUrl(viewModel.success.socialUrl!)
                     } label: {
-                        Image(systemName: "link")
+                        Image(systemName: "paperplane")
                             .font(.headline)
                     }
                     .transition(.opacity.combined(with: .move(edge: .trailing)))

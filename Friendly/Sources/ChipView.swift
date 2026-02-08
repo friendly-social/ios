@@ -19,24 +19,35 @@ struct ChipView: View {
 
     private var pastelColor: Color {
         let lightPastels = [
-            Color(red: 1.0, green: 0.8, blue: 0.8),
-            Color(red: 0.8, green: 0.9, blue: 1.0),
-            Color(red: 0.85, green: 0.95, blue: 0.85),
-            Color(red: 1.0, green: 0.9, blue: 0.7),
-            Color(red: 0.95, green: 0.8, blue: 1.0),
+            Color(red: 1.0, green: 0.7, blue: 0.7),
+            Color(red: 1.0, green: 0.85, blue: 0.6),
+            Color(red: 1.0, green: 0.95, blue: 0.7),
+            Color(red: 0.8, green: 1.0, blue: 0.7),
+            Color(red: 0.7, green: 1.0, blue: 0.85),
+            Color(red: 0.7, green: 0.9, blue: 1.0),
+            Color(red: 0.8, green: 0.75, blue: 1.0),
+            Color(red: 0.95, green: 0.75, blue: 1.0),
+            Color(red: 1.0, green: 0.75, blue: 0.9),
+            Color(red: 0.9, green: 0.85, blue: 0.75),
         ]
+
         let darkPastels = [
-            Color(red: 0.6, green: 0.3, blue: 0.3),
-            Color(red: 0.3, green: 0.4, blue: 0.6),
-            Color(red: 0.35, green: 0.45, blue: 0.35),
-            Color(red: 0.6, green: 0.5, blue: 0.3),
-            Color(red: 0.5, green: 0.3, blue: 0.6),
+            Color(red: 0.6, green: 0.25, blue: 0.25),
+            Color(red: 0.6, green: 0.4, blue: 0.2),
+            Color(red: 0.55, green: 0.5, blue: 0.2),
+            Color(red: 0.35, green: 0.5, blue: 0.25),
+            Color(red: 0.25, green: 0.5, blue: 0.4),
+            Color(red: 0.25, green: 0.4, blue: 0.6),
+            Color(red: 0.35, green: 0.3, blue: 0.55),
+            Color(red: 0.5, green: 0.3, blue: 0.55),
+            Color(red: 0.6, green: 0.3, blue: 0.45),
+            Color(red: 0.5, green: 0.4, blue: 0.3),
         ]
         let colors = colorScheme == .dark ? darkPastels : lightPastels
-        let sum = text.unicodeScalars.reduce(0) { acc, scalar in
-            acc + Int(scalar.value)
+        let sum = text.utf8.reduce(0) { acc, byte in
+            (acc &* 31 &+ Int(byte)) & 0x7FFFFFFF
         }
-        let index = abs(sum) % colors.count
+        let index = sum % colors.count
         return colors[index]
     }
 

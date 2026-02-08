@@ -86,6 +86,23 @@
         }
       }
     },
+    "feed_expand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раскрыть"
+          }
+        }
+      }
+    },
     "io_error_subtitle" : {
       "extractionState" : "manual",
       "localizations" : {

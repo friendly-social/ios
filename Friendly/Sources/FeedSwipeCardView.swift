@@ -41,10 +41,15 @@ struct FeedSwipeCardView: View {
                         Text(entry.nickname.string)
                             .font(.title2)
                             .bold()
-                        Text(entry.description.string)
+                            .padding(.bottom, 3)
+                        CollapsibleText(text: entry.description.string)
                             .font(.subheadline)
+                            .truncationMode(.tail)
+                            .lineLimit(9)
                     }
-                    .padding()
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                    .padding(.top, 5)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -111,8 +116,14 @@ struct FeedSwipeCardView: View {
             }
             .padding(.bottom)
             .padding(.horizontal)
+            .background {
+                BlurView()
+            }
         }
         .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .overlay {
+            ColoredOverlay(translation: translation.width)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(
             color: .black.opacity(0.05),
@@ -177,6 +188,61 @@ struct FeedSwipeCardView: View {
         let id: UserId
         let avatarUrl: URL
         let onClick: () -> Void
+    }
+}
+
+private struct ColoredOverlay: View {
+    let translation: CGFloat
+
+    var body: some View {
+        if translation < -100 {
+            let progress = -(max(-300, translation) + 100) / 200
+            ZStack {
+                Color.red.opacity(0.3 * progress)
+                Rectangle().fill(.ultraThinMaterial.opacity(0.9 * progress))
+            }
+        }
+        if translation > 100 {
+            let progress = (min(300, translation) - 100) / 200
+            ZStack {
+                Color.accentColor.opacity(0.3 * progress)
+                Rectangle().fill(.ultraThinMaterial.opacity(0.9 * progress))
+            }
+        }
+    }
+}
+
+private struct CollapsibleText: View {
+    let text: String
+
+    @State private var isExpanded = false
+    @State private var isTruncated = false
+
+    var body: some View {
+        VStack(alignment: .trailing) {
+            Text(text)
+                .lineLimit(isExpanded ? nil : 8)
+                .background {
+                    ViewThatFits(in: .vertical) {
+                        Text(text)
+                            .lineLimit(nil)
+                            .hidden()
+                        Color.clear.onAppear {
+                            isTruncated = true
+                        }
+                    }
+                }
+            Spacer()
+                .frame(height: 7)
+            if isTruncated && !isExpanded {
+                Button("feed_expand") {
+                    withAnimation {
+                        isExpanded = true
+                    }
+                }
+                .fontWeight(.bold)
+            }
+        }
     }
 }
 
@@ -302,5 +368,20 @@ private struct TopChip: View {
             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+
+private struct BlurView: View {
+    var body: some View {
+        ZStack {
+            let gradient = LinearGradient(
+                gradient: Gradient(colors: [.clear, .black]),
+                startPoint: .top,
+                endPoint: .bottom,
+            )
+            Color(.secondarySystemGroupedBackground)
+                .mask(gradient)
+        }
     }
 }

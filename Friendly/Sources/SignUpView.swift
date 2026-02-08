@@ -151,7 +151,7 @@ private struct Inputs: View {
                 .padding(.vertical)
 
             HStack {
-                Image(systemName: "link")
+                Image(systemName: "paperplane")
                     .foregroundColor(.secondary)
                 TextField(
                     "sign_up_social_link",
