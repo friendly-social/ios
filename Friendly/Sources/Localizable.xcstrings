@@ -52,6 +52,23 @@
         }
       }
     },
+    "feed_expand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раскрыть"
+          }
+        }
+      }
+    },
     "feed_extended_network" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -82,23 +99,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ЗАПРОС В ДРУЗЬЯ"
-          }
-        }
-      }
-    },
-    "feed_expand" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expand"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Раскрыть"
           }
         }
       }
@@ -320,6 +320,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Добавить друзей"
+          }
+        }
+      }
+    },
+    "profile_edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Редактирование"
+          }
+        }
+      }
+    },
+    "profile_edit_button_save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить"
           }
         }
       }

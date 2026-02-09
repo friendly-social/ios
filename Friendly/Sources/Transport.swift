@@ -31,6 +31,7 @@ struct Transport {
         let httpMethod = switch method {
         case .get: "GET"
         case .post: "POST"
+        case .patch: "PATCH"
         }
         request.httpMethod = httpMethod
         request.setValue(
@@ -67,26 +68,12 @@ struct Transport {
         method: Method,
         body: Encodable?,
         type: T.Type,
-        authorization: Authorization,
+        authorization: Authorization
     ) async throws(AuthorizedError) -> T where T: Decodable {
-        let url = baseUrl.appending(path: path)
-        var request = URLRequest(url: url)
-        let httpMethod = switch method {
-        case .get: "GET"
-        case .post: "POST"
-        }
-        request.httpMethod = httpMethod
-        request.setValue(
-            "application/json",
-            forHTTPHeaderField: "Content-Type",
-        )
-        request.setValue(
-            authorization.token.string,
-            forHTTPHeaderField: "X-Token",
-        )
-        request.setValue(
-            "\(authorization.id.int64)",
-            forHTTPHeaderField: "X-User-Id",
+        var request = createRequestAuthorized(
+            path: path,
+            method: method,
+            authorization: authorization
         )
         do {
             if let body = body {
@@ -106,6 +93,73 @@ struct Transport {
         } catch {
             throw .ioError(error)
         }
+    }
+
+    func authorizedVoid(
+        path: String,
+        method: Method,
+        body: Encodable?,
+        authorization: Authorization
+    ) async throws(AuthorizedError) {
+        var request = createRequestAuthorized(
+            path: path,
+            method: method,
+            authorization: authorization
+        )
+        do {
+            if let body = body {
+                request.httpBody = try encoder.encode(body)
+            }
+            if let body = request.httpBody {
+                print(String(decoding: body, as: UTF8.self))
+            }
+
+            let (data, response) = try await session.data(for: request)
+            let string = String(decoding: data, as: UTF8.self)
+
+            guard let response = response as? HTTPURLResponse else {
+                throw AuthorizedError.serverError("\(response): \(string)")
+            }
+
+            print("statusCode: \(response.statusCode)")
+            guard response.statusCode == 200 else {
+                print("response:\(response): string:\(string)")
+                throw AuthorizedError.serverError("\(response): \(string)")
+            }
+            return
+        } catch let error as AuthorizedError {
+            throw error
+        } catch {
+            throw .ioError(error)
+        }
+    }
+
+    private func createRequestAuthorized(
+        path: String,
+        method: Method,
+        authorization: Authorization
+    )  -> URLRequest {
+        let url = baseUrl.appending(path: path)
+        var request = URLRequest(url: url)
+        let httpMethod = switch method {
+        case .get: "GET"
+        case .post: "POST"
+        case .patch: "PATCH"
+        }
+        request.httpMethod = httpMethod
+        request.setValue(
+            "application/json",
+            forHTTPHeaderField: "Content-Type",
+        )
+        request.setValue(
+            authorization.token.string,
+            forHTTPHeaderField: "X-Token",
+        )
+        request.setValue(
+            "\(authorization.id.int64)",
+            forHTTPHeaderField: "X-User-Id",
+        )
+        return request
     }
 
     enum UploadError: Error {
@@ -161,6 +215,7 @@ struct Transport {
     enum Method {
         case get
         case post
+        case patch
     }
 
 }

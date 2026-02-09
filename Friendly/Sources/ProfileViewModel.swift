@@ -21,6 +21,19 @@ class ProfileViewModel {
 
     let enableSignOut: Bool
     let enableRemoveFromFriends: Bool
+    var shouldEditProfile: Bool = false {
+        didSet {
+            if !shouldEditProfile {
+                Task {
+                    await reload()
+                }
+            }
+        }
+    }
+    
+    func showEditProfile() {
+        shouldEditProfile = true
+    }
 
     init(
         router: Router,
@@ -40,7 +53,7 @@ class ProfileViewModel {
     private(set) var state: State = .loading
     private(set) var alertError: AlertError? = nil
 
-    var success: Success {
+    var success: ProfileInfo {
         get {
             guard case .success(let success) = state else {
                 fatalError("expected success")
@@ -82,7 +95,7 @@ class ProfileViewModel {
                 } else {
                     nil
                 }
-            let success = Success(
+            let success = ProfileInfo(
                 avatarUrl: url,
                 nickname: userDetails.nickname,
                 description: userDetails.description,
@@ -125,7 +138,7 @@ class ProfileViewModel {
 
     enum State {
         case loading
-        case success(Success)
+        case success(ProfileInfo)
         case ioError
 
         var rawValue: Int {
@@ -139,13 +152,5 @@ class ProfileViewModel {
 
     enum AlertError {
         case decline
-    }
-
-    struct Success {
-        let avatarUrl: URL?
-        let nickname: Nickname
-        let description: UserDescription
-        let interests: [Interest]
-        let socialUrl: URL?
     }
 }
