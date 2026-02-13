@@ -37,9 +37,6 @@ struct ProfileEditView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("profile_edit")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .padding(.top)
                 }
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button(action: { viewModel.dismiss() }) {
@@ -50,7 +47,7 @@ struct ProfileEditView: View {
             .scrollDismissesKeyboard(.interactively)
             .background(Color(uiColor: .systemGroupedBackground))
             .safeAreaInset(edge: .bottom) {
-                saveButton(viewModel: viewModel)
+                SaveButton(viewModel: viewModel)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
             }
@@ -222,7 +219,7 @@ private struct Interests: View {
     }
 }
 
-private struct saveButton: View {
+private struct SaveButton: View {
     let viewModel: ProfileEditViewModel
 
     @Environment(\.colorScheme) var colorScheme
