@@ -29,12 +29,41 @@ struct ProfileView: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemGroupedBackground))
+        .sheet(
+            isPresented: $viewModel.shouldEditProfile,
+        ) {
+            let profileInfo: ProfileInfo? = switch viewModel.state {
+            case .success(let success): success
+            default: nil
+            }
+            if let profileInfo {
+                ProfileEditView(
+                    profileInfo: profileInfo,
+                    onComplete: {
+                        viewModel.shouldEditProfile = false
+                    }
+                )
+            }
+        }
         .toolbar(content: {
             let showLink = switch viewModel.state {
                 case .success(let success): success.socialUrl != nil
                 default: false
             }
+            let showEdit: Bool = switch viewModel.state {
+            case .success: true
+            default: false
+            }
             ToolbarItemGroup(placement: .primaryAction) {
+                if showEdit {
+                    Button {
+                        viewModel.showEditProfile()
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.headline)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                }
                 if showLink {
                     Button {
                         openUrl(viewModel.success.socialUrl!)
@@ -156,7 +185,7 @@ private struct IOErrorView: View {
 }
 
 private struct UserView: View {
-    let user: ProfileViewModel.Success
+    let user: ProfileInfo
 
     var body: some View {
         ScrollView {
@@ -171,7 +200,7 @@ private struct UserView: View {
 }
 
 private struct Details: View {
-    let user: ProfileViewModel.Success
+    let user: ProfileInfo
 
     var body: some View {
         VStack(spacing: 0) {

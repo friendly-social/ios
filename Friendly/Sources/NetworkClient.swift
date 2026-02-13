@@ -104,6 +104,38 @@ class NetworkClient {
         }
     }
 
+    func usersEdit(
+        authorization: Authorization,
+        nickname: Nickname,
+        description: UserDescription,
+        interests: [Interest],
+        avatar: FileDescriptor?,
+        socialLink: SocialLink?
+    ) async throws(UserDetailsError) {
+        let path = "users/edit"
+        let body = UserEditRequestBody(
+            nickname: nickname.string,
+            description: description.string,
+            interests: interests.map(\.string),
+            avatar: avatar?.serializable(),
+            socialLink: socialLink?.string
+        )
+        do {
+            try await transport.authorizedVoid(
+                path: path,
+                method: .patch,
+                body: body,
+                authorization: authorization,
+            )
+        } catch let error {
+            switch error {
+                case .ioError(let error): throw .ioError(error)
+                case .serverError: throw .serverError
+                case .unauthorized: throw .unauthorized
+            }
+        }
+    }
+
     enum NetworkDetailsError: Error {
         case ioError(Error)
         case serverError
