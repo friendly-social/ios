@@ -12,6 +12,8 @@ let project = Project(
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "ITSAppUsesNonExemptEncryption": false,
+                "NSCameraUsageDescription": "Friendly needs access to your camera to scan QR codes and add friends.",
+                "NSPhotoLibraryUsageDescription": "Friendly needs access to your photo library to let you pick QR codes from your photos or upload a profile picture.",
                 "UILaunchScreen": [
                     "UIColorName": "",
                     "UIImageName": "",
