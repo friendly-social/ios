@@ -8,6 +8,7 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "me.y9san9.Friendly",
+            deploymentTargets: .iOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
