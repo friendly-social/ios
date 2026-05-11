@@ -51,7 +51,7 @@ struct ProfileView: View {
                 default: false
             }
             let showEdit: Bool = switch viewModel.state {
-            case .success: true
+            case .success: viewModel.enableSignOut
             default: false
             }
             ToolbarItemGroup(placement: .primaryAction) {
