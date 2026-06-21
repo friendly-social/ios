@@ -10,11 +10,9 @@ class ContentViewModel {
     func appear() {
         do {
             if try storage.hasAuthorization() {
-                if try storage.getHasFriend() {
-                    destination = .main
-                } else {
-                    destination = .qrAddFriend
-                }
+                destination = try storage.getHasFriend()
+                    ? .main
+                    : .qrAddFriend
             } else {
                 destination = .signUp
             }
@@ -29,6 +27,11 @@ class ContentViewModel {
     }
 
     func onAddFriendWithQr() {
+        try? storage.addFriend()
+        destination = .main
+    }
+
+    func onEmailLogin() {
         try? storage.addFriend()
         destination = .main
     }

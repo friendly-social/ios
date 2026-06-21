@@ -6,6 +6,7 @@ struct UserDetails {
     let interests: [Interest]
     let avatar: FileDescriptor?
     let socialLink: SocialLink?
+    let email: String?
 
     func serializable() -> UserDetailsSerializable {
         return UserDetailsSerializable(
@@ -16,6 +17,7 @@ struct UserDetails {
             interests: interests.map(\.string),
             avatar: avatar?.serializable(),
             socialLink: socialLink?.string,
+            email: email,
         )
     }
 }

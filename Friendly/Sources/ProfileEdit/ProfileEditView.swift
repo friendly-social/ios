@@ -24,6 +24,7 @@ struct ProfileEditView: View {
     }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         NavigationView {
             ScrollView {
                 AvatarPicker(viewModel: viewModel)
@@ -32,6 +33,20 @@ struct ProfileEditView: View {
                     description: $viewModel.description,
                     socialLink: $viewModel.socialLink,
                 )
+                if let email = viewModel.email {
+                    EmailInfoView(
+                        email: email,
+                        isUnlinking: viewModel.isUnlinkingEmail,
+                        onUnlink: viewModel.unlinkEmail,
+                    )
+                        .padding(.horizontal)
+                } else {
+                    AuthBindingsNavigationButton { email in
+                        viewModel.emailLinked(email)
+                        viewModel.dismiss()
+                    }
+                        .padding(.horizontal)
+                }
                 Interests(viewModel: viewModel)
             }
             .toolbar {
@@ -75,6 +90,53 @@ struct ProfileEditView: View {
         }
         .onDisappear {
             viewModel.cancelTasks()
+        }
+    }
+}
+
+private struct EmailInfoView: View {
+    let email: String
+    let isUnlinking: Bool
+    let onUnlink: () -> Void
+
+    @State private var showUnlinkConfirmation = false
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("profile_edit_email_title")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(email)
+                    .font(.body)
+            }
+            Spacer()
+            if isUnlinking {
+                ProgressView()
+            } else {
+                Button(role: .destructive) {
+                    showUnlinkConfirmation = true
+                } label: {
+                    Image(systemName: "link.badge.minus")
+                }
+                .accessibilityLabel("profile_edit_unlink_email_button")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.top, 8)
+        .confirmationDialog(
+            "profile_edit_unlink_email_confirmation",
+            isPresented: $showUnlinkConfirmation,
+            titleVisibility: .visible,
+        ) {
+            Button(
+                "profile_edit_unlink_email_confirm",
+                role: .destructive,
+                action: onUnlink,
+            )
         }
     }
 }
@@ -241,5 +303,25 @@ private struct SaveButton: View {
         }
         .buttonStyle(.glassProminent)
         .disabled(viewModel.saveButtonDisabled)
+    }
+}
+
+private struct AuthBindingsNavigationButton: View {
+    let onEmailLinked: (String) -> Void
+
+    var body: some View {
+        NavigationLink {
+            AuthBindingsView(onEmailLinked: onEmailLinked)
+        } label: {
+            HStack {
+                Image(systemName: "envelope")
+                Text("profile_edit_auth_bindings_button")
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(.glass)
+        .padding(.top, 8)
     }
 }

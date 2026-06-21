@@ -13,4 +13,5 @@ struct ProfileInfo {
     let description: UserDescription
     let interests: [Interest]
     let socialUrl: URL?
+    let email: String?
 }

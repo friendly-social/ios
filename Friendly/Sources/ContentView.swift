@@ -9,14 +9,21 @@ struct ContentView: View {
             case .empty:
                 EmptyView()
             case .signUp:
-                SignUpView(onComplete: viewModel.onSignUp)
+                SignUpView(
+                    onSignUp: viewModel.onSignUp,
+                    onEmailLogin: viewModel.onEmailLogin,
+                )
             case .main:
                 MainView(
                     routeToSignUp: viewModel.routeToSignUp,
                     addFriend: $viewModel.addFriend,
                 )
             case .qrAddFriend:
-                ScanToUseAppView(isBlocked: true) { viewModel.onAddFriendWithQr() }
+                ScanToUseAppView(
+                    isBlocked: true,
+                    onEmailLogin: viewModel.onEmailLogin,
+                    onSuccess: viewModel.onAddFriendWithQr,
+                )
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.destination)

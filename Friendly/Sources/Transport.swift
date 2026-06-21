@@ -17,7 +17,7 @@ struct Transport {
 
     enum UnauthorizedError: Error {
         case ioError(Error)
-        case serverError
+        case serverError(statusCode: Int, body: String)
     }
 
     func unauthorized<T>(
@@ -44,10 +44,16 @@ struct Transport {
             }
             let (data, response) = try await session.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                throw UnauthorizedError.serverError
+                throw UnauthorizedError.serverError(
+                    statusCode: 0,
+                    body: String(decoding: data, as: UTF8.self),
+                )
             }
             guard response.statusCode == 200 else {
-                throw UnauthorizedError.serverError
+                throw UnauthorizedError.serverError(
+                    statusCode: response.statusCode,
+                    body: String(decoding: data, as: UTF8.self),
+                )
             }
             return try decoder.decode(type, from: data)
         } catch let error as UnauthorizedError {
@@ -57,9 +63,53 @@ struct Transport {
         }
     }
 
+    func unauthorizedVoid(
+        path: String,
+        method: Method,
+        body: Encodable?,
+        headers: [String: String] = [:],
+    ) async throws(UnauthorizedError) {
+        let url = baseUrl.appending(path: path)
+        var request = URLRequest(url: url)
+        let httpMethod = switch method {
+        case .get: "GET"
+        case .post: "POST"
+        case .patch: "PATCH"
+        }
+        request.httpMethod = httpMethod
+        request.setValue(
+            "application/json",
+            forHTTPHeaderField: "Content-Type",
+        )
+        apply(headers: headers, to: &request)
+        do {
+            if let body = body {
+                request.httpBody = try encoder.encode(body)
+            }
+            let (data, response) = try await session.data(for: request)
+            guard let response = response as? HTTPURLResponse else {
+                throw UnauthorizedError.serverError(
+                    statusCode: 0,
+                    body: String(decoding: data, as: UTF8.self),
+                )
+            }
+            guard response.statusCode == 200 else {
+                throw UnauthorizedError.serverError(
+                    statusCode: response.statusCode,
+                    body: String(decoding: data, as: UTF8.self),
+                )
+            }
+            return
+        } catch let error as UnauthorizedError {
+            throw error
+        } catch {
+            throw .ioError(error)
+        }
+    }
+
     enum AuthorizedError: Error {
         case ioError(Error)
-        case serverError(String)
+        case serverError(statusCode: Int, body: String)
         case unauthorized
     }
 
@@ -82,10 +132,16 @@ struct Transport {
             let (data, response) = try await session.data(for: request)
             let string = String(decoding: data, as: UTF8.self)
             guard let response = response as? HTTPURLResponse else {
-                throw AuthorizedError.serverError("\(response): \(string)")
+                throw AuthorizedError.serverError(statusCode: 0, body: string)
+            }
+            if response.statusCode == 401 {
+                throw AuthorizedError.unauthorized
             }
             guard response.statusCode == 200 else {
-                throw AuthorizedError.serverError("\(response): \(string)")
+                throw AuthorizedError.serverError(
+                    statusCode: response.statusCode,
+                    body: string,
+                )
             }
             return try decoder.decode(type, from: data)
         } catch let error as AuthorizedError {
@@ -99,32 +155,33 @@ struct Transport {
         path: String,
         method: Method,
         body: Encodable?,
-        authorization: Authorization
+        authorization: Authorization,
+        headers: [String: String] = [:],
     ) async throws(AuthorizedError) {
         var request = createRequestAuthorized(
             path: path,
             method: method,
             authorization: authorization
         )
+        apply(headers: headers, to: &request)
         do {
             if let body = body {
                 request.httpBody = try encoder.encode(body)
             }
-            if let body = request.httpBody {
-                print(String(decoding: body, as: UTF8.self))
-            }
-
             let (data, response) = try await session.data(for: request)
             let string = String(decoding: data, as: UTF8.self)
 
             guard let response = response as? HTTPURLResponse else {
-                throw AuthorizedError.serverError("\(response): \(string)")
+                throw AuthorizedError.serverError(statusCode: 0, body: string)
             }
-
-            print("statusCode: \(response.statusCode)")
+            if response.statusCode == 401 {
+                throw AuthorizedError.unauthorized
+            }
             guard response.statusCode == 200 else {
-                print("response:\(response): string:\(string)")
-                throw AuthorizedError.serverError("\(response): \(string)")
+                throw AuthorizedError.serverError(
+                    statusCode: response.statusCode,
+                    body: string,
+                )
             }
             return
         } catch let error as AuthorizedError {
@@ -223,6 +280,15 @@ struct Transport {
         case get
         case post
         case patch
+    }
+
+    private func apply(
+        headers: [String: String],
+        to request: inout URLRequest,
+    ) {
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
     }
 
 }

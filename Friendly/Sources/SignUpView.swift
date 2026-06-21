@@ -5,9 +5,14 @@ import Flow
 
 struct SignUpView: View {
     @State private var viewModel: SignUpViewModel
+    private let onEmailLogin: () -> Void
 
-    init(onComplete: @escaping () -> Void) {
-        self.viewModel = SignUpViewModel(onComplete: onComplete)
+    init(
+        onSignUp: @escaping () -> Void,
+        onEmailLogin: @escaping () -> Void,
+    ) {
+        self.viewModel = SignUpViewModel(onComplete: onSignUp)
+        self.onEmailLogin = onEmailLogin
     }
 
     var body: some View {
@@ -32,7 +37,19 @@ struct SignUpView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                SignUpButton(viewModel: viewModel)
+                VStack(spacing: 8) {
+                    SignUpButton(viewModel: viewModel)
+                    NavigationLink {
+                        EmailLoginView(onSuccess: onEmailLogin)
+                    } label: {
+                        Text("sign_up_email_login")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(viewModel.loading || viewModel.uploading)
+                }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
             }

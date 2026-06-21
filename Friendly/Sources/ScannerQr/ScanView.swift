@@ -12,15 +12,18 @@ struct ScanToUseAppView: View {
     @StateObject private var viewModel: ScanToUseAppViewModel
     @State private var pickedPhotoItem: PhotosPickerItem? = nil
     private var isBlocked: Bool
+    private let onEmailLogin: (() -> Void)?
     
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
 
     init(
         isBlocked: Bool,
+        onEmailLogin: (() -> Void)? = nil,
         onSuccess: @escaping () -> Void
     ) {
         self.isBlocked = isBlocked
+        self.onEmailLogin = onEmailLogin
         _viewModel = StateObject(wrappedValue: ScanToUseAppViewModel(onSuccess: onSuccess))
     }
 
@@ -97,6 +100,24 @@ struct ScanToUseAppView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 16)
+
+            if isBlocked, let onEmailLogin {
+                Text("scan_enter_blocked_email_description")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                NavigationLink {
+                    EmailLoginView(onSuccess: onEmailLogin)
+                } label: {
+                    Text("scan_enter_blocked_email_login_button")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.horizontal)
+            }
 
             Spacer()
 

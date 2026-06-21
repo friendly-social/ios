@@ -24,6 +24,7 @@ class ProfileEditViewModel {
     var socialLink: String = "" {
         didSet { validate(reason: .socialLink) }
     }
+    var email: String?
     let interests: [Interest] = [
         try! Interest("apples"),
         try! Interest("coding"),
@@ -45,15 +46,17 @@ class ProfileEditViewModel {
     var clearImage: Bool = false
     var avatarDescriptor: FileDescriptor? = nil
     var loading: Bool = false
+    var isUnlinkingEmail: Bool = false
     var error: Error? = nil
     var profileInfo: ProfileInfo
 
     var saveButtonDisabled: Bool {
-        get { return uploading }
+        uploading || isUnlinkingEmail
     }
 
     private var uploadTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
+    private var unlinkEmailTask: Task<Void, Never>?
 
     init(
         profileInfo: ProfileInfo,
@@ -63,6 +66,7 @@ class ProfileEditViewModel {
         self.nickname = profileInfo.nickname.string
         self.description = profileInfo.description.string
         self.socialLink = profileInfo.socialUrl.map(\.absoluteString) ?? ""
+        self.email = profileInfo.email
         self.pickedInterests = Set(profileInfo.interests)
         self.onComplete = onComplete
     }
@@ -75,6 +79,35 @@ class ProfileEditViewModel {
     func cancelTasks() {
         uploadTask?.cancel()
         saveTask?.cancel()
+        unlinkEmailTask?.cancel()
+    }
+
+    func emailLinked(_ email: String) {
+        self.email = email
+    }
+
+    func unlinkEmail() {
+        guard email != nil, !isUnlinkingEmail else { return }
+        unlinkEmailTask?.cancel()
+        let networkClient = networkClient
+        let storage = storage
+        unlinkEmailTask = Task { [weak self] in
+            self?.isUnlinkingEmail = true
+            defer { self?.isUnlinkingEmail = false }
+
+            do {
+                let authorization = try storage.loadAuthorization()
+                try await networkClient.emailUnlink(
+                    authorization: authorization,
+                )
+                try Task.checkCancellation()
+                self?.email = nil
+            } catch is CancellationError {
+                return
+            } catch {
+                self?.error = .ioError
+            }
+        }
     }
 
     func upload(_ data: Data) {
