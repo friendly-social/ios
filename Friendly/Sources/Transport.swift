@@ -140,7 +140,10 @@ struct Transport {
         authorization: Authorization
     )  -> URLRequest {
         let url = baseUrl.appending(path: path)
-        var request = URLRequest(url: url)
+        var request = URLRequest(
+            url: url,
+            cachePolicy: .reloadIgnoringLocalCacheData,
+        )
         let httpMethod = switch method {
         case .get: "GET"
         case .post: "POST"
@@ -150,6 +153,10 @@ struct Transport {
         request.setValue(
             "application/json",
             forHTTPHeaderField: "Content-Type",
+        )
+        request.setValue(
+            "no-cache",
+            forHTTPHeaderField: "Cache-Control",
         )
         request.setValue(
             authorization.token.string,
