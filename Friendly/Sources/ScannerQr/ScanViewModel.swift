@@ -38,6 +38,10 @@ final class ScanToUseAppViewModel: ObservableObject {
         isScannerPresented = false
     }
 
+    func tapCancelButton() {
+        state = .idle
+    }
+
     func handleScanned(code: String) {
         isScannerPresented = false
         validate(from: code)

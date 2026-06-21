@@ -42,7 +42,9 @@ struct ScanToUseAppView: View {
                 "scan_enter_error_alert_title",
                 isPresented: $viewModel.isErrorAlertPresented
             ) {
-                Button("scan_enter_error_alert_button_cancel", role: .cancel) { }
+                Button("scan_enter_error_alert_button_cancel", role: .cancel) {
+                    viewModel.tapCancelButton()
+                }
             } message: {
                 Text(
                     String(
