@@ -21,15 +21,7 @@ class ProfileViewModel {
 
     let enableSignOut: Bool
     let enableRemoveFromFriends: Bool
-    var shouldEditProfile: Bool = false {
-        didSet {
-            if !shouldEditProfile {
-                Task {
-                    await reload()
-                }
-            }
-        }
-    }
+    var shouldEditProfile: Bool = false
     
     func showEditProfile() {
         shouldEditProfile = true
@@ -49,6 +41,7 @@ class ProfileViewModel {
 
     private let storage: Storage = .shared
     private let networkClient: NetworkClient = .meetacy
+    private var reloadTask: Task<Void, Never>?
 
     private(set) var state: State = .loading
     private(set) var alertError: AlertError? = nil
@@ -63,12 +56,33 @@ class ProfileViewModel {
     }
 
     func appear() {
-        Task {
-            await reload()
-        }
+        startReload()
+    }
+
+    func editProfileDismissed() {
+        startReload()
     }
 
     func reload() async {
+        let task = makeReloadTask()
+        await task.value
+    }
+
+    private func startReload() {
+        makeReloadTask()
+    }
+
+    @discardableResult
+    private func makeReloadTask() -> Task<Void, Never> {
+        reloadTask?.cancel()
+        let task = Task<Void, Never> { [weak self] in
+            _ = await self?.performReload()
+        }
+        reloadTask = task
+        return task
+    }
+
+    private func performReload() async {
         do {
             let authorization = try storage.loadAuthorization()
             let id = switch mode {
@@ -84,6 +98,14 @@ class ProfileViewModel {
                 id: id,
                 accessHash: accessHash,
             )
+            try Task.checkCancellation()
+
+            let currentAuthorization = try storage.loadAuthorization()
+            guard currentAuthorization.id == authorization.id,
+                  currentAuthorization.token == authorization.token else {
+                return
+            }
+
             let url: URL? = if let avatar = userDetails.avatar {
                 networkClient.filesDownloadUrl(for: avatar)
             } else {
@@ -103,12 +125,16 @@ class ProfileViewModel {
                 socialUrl: socialUrl,
             )
             state = .success(success)
+        } catch is CancellationError {
+            return
         } catch {
+            guard !Task.isCancelled else { return }
             state = .ioError
         }
     }
 
     func signOut() {
+        reloadTask?.cancel()
         storage.clearAuthorization()
         selfProfile.routeToSignUp()
     }

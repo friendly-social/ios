@@ -31,6 +31,9 @@ struct ProfileView: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .sheet(
             isPresented: $viewModel.shouldEditProfile,
+            onDismiss: {
+                viewModel.editProfileDismissed()
+            },
         ) {
             let profileInfo: ProfileInfo? = switch viewModel.state {
             case .success(let success): success
@@ -66,7 +69,7 @@ struct ProfileView: View {
                 }
                 if showLink {
                     Button {
-                        openUrl(viewModel.success.socialUrl!)
+                        openSocialLink(viewModel.success.socialUrl!)
                     } label: {
                         Image(systemName: "paperplane")
                             .font(.headline)
@@ -140,6 +143,17 @@ struct ProfileView: View {
             }
         }
         .refreshable { await viewModel.reload() }
+    }
+
+    private func openSocialLink(_ url: URL) {
+        let destination =
+            if url.scheme == nil {
+                URL(string: "https://\(url.absoluteString)")
+            } else {
+                url
+            }
+        guard let destination else { return }
+        openUrl(destination)
     }
 
     enum Mode {

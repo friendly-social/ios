@@ -74,7 +74,7 @@ struct ProfileEditView: View {
             }
         }
         .onDisappear {
-            viewModel.dismiss()
+            viewModel.cancelTasks()
         }
     }
 }

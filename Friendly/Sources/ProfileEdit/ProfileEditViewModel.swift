@@ -68,9 +68,13 @@ class ProfileEditViewModel {
     }
     
     func dismiss() {
+        cancelTasks()
+        onComplete()
+    }
+
+    func cancelTasks() {
         uploadTask?.cancel()
         saveTask?.cancel()
-        onComplete()
     }
 
     func upload(_ data: Data) {
