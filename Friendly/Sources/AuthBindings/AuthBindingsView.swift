@@ -6,41 +6,52 @@ struct AuthBindingsView: View {
     @State private var viewModel = AuthBindingsViewModel()
 
     var body: some View {
-        @Bindable var viewModel = viewModel
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("auth_bindings_title")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
-                Text("auth_bindings_subtitle")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
-                NavigationLink {
-                    EmailBindingView(onSuccess: onEmailLinked)
-                } label: {
-                    EmailBindingButtonLabel()
-                }
-                .buttonStyle(.borderedProminent)
+                titleLabel
+                subtitleLabel
+                emailBindingNavigationLink
                 AppleBindingButton(viewModel: viewModel)
                 GoogleBindingButton(viewModel: viewModel)
             }
             .padding()
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("auth_bindings_navigation_title")
+        .navigationTitle(String(localized: .authBindingsNavigationTitle))
         .navigationBarTitleDisplayMode(.inline)
         .alert(
-            "auth_bindings_provider_unavailable_title",
+            String(localized: .authBindingsProviderUnavailableTitle),
             isPresented: $viewModel.showProviderUnavailableAlert,
         ) {
-            Button("sign_up_error_ok", role: .cancel) {}
+            Button(String(localized: .signUpErrorOk), role: .cancel) {}
         } message: {
-            Text("auth_bindings_provider_unavailable_message")
+            Text(.authBindingsProviderUnavailableMessage)
         }
+    }
+
+    private var titleLabel: some View {
+        Text(.authBindingsTitle)
+            .font(.title2)
+            .fontWeight(.bold)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .multilineTextAlignment(.center)
+    }
+
+    private var subtitleLabel: some View {
+        Text(.authBindingsSubtitle)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .multilineTextAlignment(.center)
+    }
+
+    private var emailBindingNavigationLink: some View {
+        NavigationLink {
+            EmailBindingView(onSuccess: onEmailLinked)
+        } label: {
+            EmailBindingButtonLabel()
+        }
+        .buttonStyle(.borderedProminent)
     }
 }
 
@@ -48,7 +59,7 @@ private struct EmailBindingButtonLabel: View {
     var body: some View {
         HStack {
             Image(systemName: "envelope")
-            Text("profile_edit_bind_email_button")
+            Text(.profileEditBindEmailButton)
         }
         .font(.headline)
         .frame(maxWidth: .infinity)
@@ -63,7 +74,7 @@ private struct AppleBindingButton: View {
         Button(action: { viewModel.tapAppleAuthorization() }) {
             HStack {
                 Image(systemName: "apple.logo")
-                Text("auth_bindings_apple_button")
+                Text(.authBindingsAppleButton)
             }
             .font(.headline)
             .frame(maxWidth: .infinity)
@@ -80,7 +91,7 @@ private struct GoogleBindingButton: View {
         Button(action: { viewModel.tapGoogleAuthorization() }) {
             HStack {
                 Image(systemName: "globe")
-                Text("auth_bindings_google_button")
+                Text(.authBindingsGoogleButton)
             }
             .font(.headline)
             .frame(maxWidth: .infinity)

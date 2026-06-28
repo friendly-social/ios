@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 @Observable
 class EmailLoginViewModel {
-    private let networkClient: NetworkClient = .meetacy
+    private let worker = EmailAuthWorker()
     private let storage: Storage = .shared
     private let emailCodeFlow: EmailCodeFlow
     private var emailCodeState: EmailCodeFlow.State
@@ -26,7 +26,7 @@ class EmailLoginViewModel {
     var status: Status = .idle
 
     private var sendTask: Task<Void, Never>?
-    private var confirmTask: Task<Void, Never>?
+    private var confirmTask: Task<Authorization, Swift.Error>?
 
     init() {
         let emailCodeFlow = EmailCodeFlow()
@@ -46,7 +46,7 @@ class EmailLoginViewModel {
         guard emailCodeFlow.canRequestCode else { return }
         sendTask?.cancel()
         let emailCodeFlow = emailCodeFlow
-        let networkClient = networkClient
+        let worker = worker
         sendTask = Task { [weak self] in
             self?.status = .idle
             emailCodeFlow.isSendingCode = true
@@ -54,8 +54,7 @@ class EmailLoginViewModel {
 
             do {
                 let email = try emailCodeFlow.requestEmail()
-                try await networkClient.authEmail(email: email)
-                try Task.checkCancellation()
+                try await worker.requestLoginCode(email: email)
                 emailCodeFlow.didRequestCode(for: email)
             } catch is CancellationError {
                 return
@@ -69,40 +68,47 @@ class EmailLoginViewModel {
         }
     }
 
-    func confirmCode(onSuccess: @escaping () -> Void) {
-        guard canConfirm else { return }
+    func confirmCode() async throws {
+        guard canConfirm else {
+            throw EmailCodeFlow.Error.invalidCode
+        }
         confirmTask?.cancel()
         let emailCodeFlow = emailCodeFlow
-        let networkClient = networkClient
+        let worker = worker
         let storage = storage
-        confirmTask = Task { [weak self] in
-            self?.status = .idle
-            emailCodeFlow.isConfirmingCode = true
-            defer { emailCodeFlow.isConfirmingCode = false }
+        status = .idle
+        emailCodeFlow.isConfirmingCode = true
+        defer {
+            emailCodeFlow.isConfirmingCode = false
+            confirmTask = nil
+        }
 
-            do {
-                let email = try emailCodeFlow.requestEmail()
-                let code = try emailCodeFlow.codeToConfirm()
-                let authorization = try await networkClient.authLogin(
+        do {
+            let email = try emailCodeFlow.requestEmail()
+            let code = try emailCodeFlow.codeToConfirm()
+            let task: Task<Authorization, Swift.Error> = Task {
+                try await worker.login(
                     email: email,
                     code: code.int,
                 )
-                try Task.checkCancellation()
-                storage.clearAuthorization()
-                try storage.saveAuthorization(authorization)
-                self?.status = .success
-                onSuccess()
-            } catch is CancellationError {
-                return
-            } catch NetworkClient.AuthLoginError.invalidOrExpiredCode {
-                self?.status = .invalidCode
-            } catch EmailCodeFlow.Error.invalidEmail {
-                self?.status = .invalidEmail
-            } catch EmailCodeFlow.Error.invalidCode {
-                self?.status = .invalidCode
-            } catch {
-                self?.status = .networkError
             }
+            confirmTask = task
+
+            let authorization = try await withTaskCancellationHandler {
+                try await task.value
+            } onCancel: {
+                task.cancel()
+            }
+            try Task.checkCancellation()
+            guard !task.isCancelled else {
+                throw CancellationError()
+            }
+            storage.clearAuthorization()
+            try storage.saveAuthorization(authorization)
+            status = .success
+        } catch {
+            updateStatus(for: error)
+            throw error
         }
     }
 
@@ -122,6 +128,21 @@ class EmailLoginViewModel {
     private func clearStatus() {
         if status != .idle {
             status = .idle
+        }
+    }
+
+    private func updateStatus(for error: Swift.Error) {
+        switch error {
+        case is CancellationError:
+            break
+        case NetworkClient.AuthLoginError.invalidOrExpiredCode:
+            status = .invalidCode
+        case EmailCodeFlow.Error.invalidEmail:
+            status = .invalidEmail
+        case EmailCodeFlow.Error.invalidCode:
+            status = .invalidCode
+        default:
+            status = .networkError
         }
     }
 

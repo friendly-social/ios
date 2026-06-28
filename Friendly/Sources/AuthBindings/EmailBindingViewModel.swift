@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 @Observable
 class EmailBindingViewModel {
-    private let networkClient: NetworkClient = .meetacy
+    private let worker = EmailAuthWorker()
     private let storage: Storage = .shared
     private let emailCodeFlow: EmailCodeFlow
     private var emailCodeState: EmailCodeFlow.State
@@ -19,7 +19,7 @@ class EmailBindingViewModel {
     var status: Status = .idle
 
     private var sendTask: Task<Void, Never>?
-    private var confirmTask: Task<Void, Never>?
+    private var confirmTask: Task<Void, Swift.Error>?
 
     init() {
         let emailCodeFlow = EmailCodeFlow()
@@ -39,7 +39,7 @@ class EmailBindingViewModel {
         guard emailCodeFlow.canRequestCode else { return }
         sendTask?.cancel()
         let emailCodeFlow = emailCodeFlow
-        let networkClient = networkClient
+        let worker = worker
         let storage = storage
         sendTask = Task { [weak self] in
             self?.status = .idle
@@ -49,11 +49,10 @@ class EmailBindingViewModel {
             do {
                 let email = try emailCodeFlow.requestEmail()
                 let authorization = try storage.loadAuthorization()
-                try await networkClient.emailLink(
+                try await worker.requestBindingCode(
                     authorization: authorization,
                     email: email,
                 )
-                try Task.checkCancellation()
                 emailCodeFlow.didRequestCode(for: email)
             } catch is CancellationError {
                 return
@@ -69,41 +68,49 @@ class EmailBindingViewModel {
         }
     }
 
-    func confirmCode(onSuccess: @escaping (String) -> Void) {
-        guard emailCodeFlow.canConfirm else { return }
+    func confirmCode() async throws -> String {
+        guard emailCodeFlow.canConfirm else {
+            throw EmailCodeFlow.Error.invalidCode
+        }
         confirmTask?.cancel()
         let emailCodeFlow = emailCodeFlow
-        let networkClient = networkClient
+        let worker = worker
         let storage = storage
-        confirmTask = Task { [weak self] in
-            self?.status = .idle
-            emailCodeFlow.isConfirmingCode = true
-            defer { emailCodeFlow.isConfirmingCode = false }
+        status = .idle
+        emailCodeFlow.isConfirmingCode = true
+        defer {
+            emailCodeFlow.isConfirmingCode = false
+            confirmTask = nil
+        }
 
-            do {
-                guard let email = emailCodeFlow.requestedEmail else {
-                    throw EmailCodeFlow.Error.invalidEmail
-                }
-                let code = try emailCodeFlow.codeToConfirm()
-                let authorization = try storage.loadAuthorization()
-                try await networkClient.emailConfirm(
+        do {
+            guard let email = emailCodeFlow.requestedEmail else {
+                throw EmailCodeFlow.Error.invalidEmail
+            }
+            let code = try emailCodeFlow.codeToConfirm()
+            let authorization = try storage.loadAuthorization()
+            let task: Task<Void, Swift.Error> = Task {
+                try await worker.confirmBinding(
                     authorization: authorization,
                     code: code.int,
                 )
-                try Task.checkCancellation()
-                self?.status = .success
-                onSuccess(email)
-            } catch is CancellationError {
-                return
-            } catch NetworkClient.EmailConfirmError.invalidOrExpiredCode {
-                self?.status = .invalidCode
-            } catch NetworkClient.EmailConfirmError.unauthorized {
-                self?.status = .unauthorized
-            } catch EmailCodeFlow.Error.invalidCode {
-                self?.status = .invalidCode
-            } catch {
-                self?.status = .networkError
             }
+            confirmTask = task
+
+            try await withTaskCancellationHandler {
+                try await task.value
+            } onCancel: {
+                task.cancel()
+            }
+            try Task.checkCancellation()
+            guard !task.isCancelled else {
+                throw CancellationError()
+            }
+            status = .success
+            return email
+        } catch {
+            updateStatus(for: error)
+            throw error
         }
     }
 
@@ -123,6 +130,23 @@ class EmailBindingViewModel {
     private func clearStatus() {
         if status != .idle {
             status = .idle
+        }
+    }
+
+    private func updateStatus(for error: Swift.Error) {
+        switch error {
+        case is CancellationError:
+            break
+        case NetworkClient.EmailConfirmError.invalidOrExpiredCode:
+            status = .invalidCode
+        case NetworkClient.EmailConfirmError.unauthorized:
+            status = .unauthorized
+        case EmailCodeFlow.Error.invalidEmail:
+            status = .invalidEmail
+        case EmailCodeFlow.Error.invalidCode:
+            status = .invalidCode
+        default:
+            status = .networkError
         }
     }
 

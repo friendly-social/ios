@@ -1,10 +1,14 @@
 import SwiftUI
 
 struct InlineErrorView: View {
-    let key: LocalizedStringKey
+    let resource: LocalizedStringResource
+
+    init(_ resource: LocalizedStringResource) {
+        self.resource = resource
+    }
 
     var body: some View {
-        Text(key)
+        Text(resource)
             .font(.footnote)
             .foregroundStyle(.red)
             .frame(maxWidth: .infinity, alignment: .center)

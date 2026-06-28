@@ -2,6 +2,24 @@ import Foundation
 
 @MainActor
 final class EmailCodeFlow {
+    struct State {
+        let email: String
+        let code: String
+        let isSendingCode: Bool
+        let isConfirmingCode: Bool
+        let remainingSeconds: Int
+        let isEmailLocked: Bool
+        let canRequestCode: Bool
+        let isEmailValid: Bool
+        let canConfirm: Bool
+        let formattedTimer: String
+    }
+
+    enum Error: Swift.Error {
+        case invalidEmail
+        case invalidCode
+    }
+
     var email: String = "" {
         didSet { notifyStateChanged() }
     }
@@ -31,6 +49,7 @@ final class EmailCodeFlow {
 
     var isEmailValid: Bool {
         let normalized = normalizedEmail
+        guard let emailRegex else { return false }
         return normalized.count <= 2048 &&
             (try? emailRegex.wholeMatch(in: normalized)) != nil
     }
@@ -43,9 +62,8 @@ final class EmailCodeFlow {
     }
 
     var formattedTimer: String {
-        let minutes = remainingSeconds / 60
-        let seconds = remainingSeconds % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+        Duration.seconds(remainingSeconds)
+            .formatted(.time(pattern: .minuteSecond))
     }
 
     func state() -> State {
@@ -66,7 +84,7 @@ final class EmailCodeFlow {
     private var cooldownTask: Task<Void, Never>?
     private var stateChanged: ((State) -> Void)?
     private let emailRegex =
-        try! Regex("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}")
+        try? Regex("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}")
 
     private var normalizedEmail: String {
         email.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -131,23 +149,5 @@ final class EmailCodeFlow {
 
     private func notifyStateChanged() {
         stateChanged?(state())
-    }
-
-    struct State {
-        let email: String
-        let code: String
-        let isSendingCode: Bool
-        let isConfirmingCode: Bool
-        let remainingSeconds: Int
-        let isEmailLocked: Bool
-        let canRequestCode: Bool
-        let isEmailValid: Bool
-        let canConfirm: Bool
-        let formattedTimer: String
-    }
-
-    enum Error: Swift.Error {
-        case invalidEmail
-        case invalidCode
     }
 }
