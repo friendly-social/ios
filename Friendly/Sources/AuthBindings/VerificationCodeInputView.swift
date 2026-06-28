@@ -11,38 +11,58 @@ struct VerificationCodeInputView: View {
 
     var body: some View {
         ZStack {
-            HStack(spacing: 4) {
-                ForEach(0..<4, id: \.self) { index in
-                    VerificationCodeCell(
-                        digit: digit(at: index),
-                        isFocused: isFocused && index == digits.count,
-                        isError: isError,
-                    )
-                }
-                Text(verbatim: "-")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 12)
-                ForEach(4..<8, id: \.self) { index in
-                    VerificationCodeCell(
-                        digit: digit(at: index),
-                        isFocused: isFocused && index == digits.count,
-                        isError: isError,
-                    )
-                }
-            }
-            TextField("", text: $code)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .focused($isFocused)
-                .opacity(0.01)
-                .frame(width: 1, height: 1)
+            codeCellsView
+            hiddenCodeTextField
         }
         .contentShape(Rectangle())
         .onTapGesture {
             isFocused = true
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var codeCellsView: some View {
+        HStack(spacing: 4) {
+            leadingCodeCells
+            codeSeparatorLabel
+            trailingCodeCells
+        }
+    }
+
+    private var leadingCodeCells: some View {
+        ForEach(0..<4, id: \.self) { index in
+            codeCell(at: index)
+        }
+    }
+
+    private var codeSeparatorLabel: some View {
+        Text(verbatim: "-")
+            .font(.headline)
+            .foregroundStyle(.secondary)
+            .frame(width: 12)
+    }
+
+    private var trailingCodeCells: some View {
+        ForEach(4..<8, id: \.self) { index in
+            codeCell(at: index)
+        }
+    }
+
+    private var hiddenCodeTextField: some View {
+        TextField("", text: $code)
+            .keyboardType(.numberPad)
+            .textContentType(.oneTimeCode)
+            .focused($isFocused)
+            .opacity(0.01)
+            .frame(width: 1, height: 1)
+    }
+
+    private func codeCell(at index: Int) -> some View {
+        VerificationCodeCell(
+            digit: digit(at: index),
+            isFocused: isFocused && index == digits.count,
+            isError: isError,
+        )
     }
 
     private func digit(at index: Int) -> String {

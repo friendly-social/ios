@@ -7,14 +7,8 @@ struct AuthBindingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                titleLabel
-                subtitleLabel
-                emailBindingNavigationLink
-                AppleBindingButton(viewModel: viewModel)
-                GoogleBindingButton(viewModel: viewModel)
-            }
-            .padding()
+            contentView
+                .padding()
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(String(localized: .authBindingsNavigationTitle))
@@ -26,6 +20,16 @@ struct AuthBindingsView: View {
             Button(String(localized: .signUpErrorOk), role: .cancel) {}
         } message: {
             Text(.authBindingsProviderUnavailableMessage)
+        }
+    }
+
+    private var contentView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            titleLabel
+            subtitleLabel
+            emailBindingNavigationLink
+            AppleBindingButton(viewModel: viewModel)
+            GoogleBindingButton(viewModel: viewModel)
         }
     }
 

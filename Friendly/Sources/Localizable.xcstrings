@@ -1325,6 +1325,7 @@
       }
     },
     "scan_enter_info_subtitle" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1341,6 +1342,7 @@
       }
     },
     "scan_enter_info_title" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1357,6 +1359,7 @@
       }
     },
     "scan_enter_open_photo_scanner" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1373,6 +1376,7 @@
       }
     },
     "scan_enter_open_scanner" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1472,6 +1476,7 @@
       }
     },
     "scanner_qrcode_navigation_title" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {

@@ -30,10 +30,7 @@ struct ScanToUseAppView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                switch viewModel.state {
-                case .idle: content
-                case .loading: LoadingView()
-                }
+                stateView
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -42,20 +39,27 @@ struct ScanToUseAppView: View {
                 }
             }
             .alert(
-                "scan_enter_error_alert_title",
+                String(localized: .scanEnterErrorAlertTitle),
                 isPresented: $viewModel.isErrorAlertPresented
             ) {
-                Button("scan_enter_error_alert_button_cancel", role: .cancel) {
+                Button(
+                    String(localized: .scanEnterErrorAlertButtonCancel),
+                    role: .cancel
+                ) {
                     viewModel.tapCancelButton()
                 }
             } message: {
-                Text(
-                    String(
-                        localized: LocalizedStringResource(
-                            stringLiteral: viewModel.errorMessage ?? "error_base_message"
+                if let errorMessage = viewModel.errorMessage {
+                    Text(
+                        String(
+                            localized: LocalizedStringResource(
+                                stringLiteral: errorMessage
+                            )
                         )
                     )
-                )
+                } else {
+                    Text(.errorBaseMessage)
+                }
             }
             .sheet(isPresented: $viewModel.isScannerPresented) {
                 QRScannerCameraView { code in
@@ -81,79 +85,105 @@ struct ScanToUseAppView: View {
         }
     }
 
-    private var content: some View {
+    @ViewBuilder
+    private var stateView: some View {
+        switch viewModel.state {
+        case .idle:
+            contentView
+        case .loading:
+            LoadingView()
+        }
+    }
+
+    private var contentView: some View {
         VStack(spacing: 20) {
             Spacer()
+            qrCodeImage
+            titleLabel
+            subtitleLabel
+            emailLoginSectionView
+            Spacer()
+            openScannerButton
+            photoPickerButton
+            Spacer(minLength: 24)
+        }
+    }
 
-            Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: 56))
-                .padding(.bottom, 8)
+    private var qrCodeImage: some View {
+        Image(systemName: "qrcode.viewfinder")
+            .font(.system(size: 56))
+            .padding(.bottom, 8)
+    }
 
-            Text("scan_enter_info_title")
-                .font(.title3)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
-                
+    private var titleLabel: some View {
+        Text(.scanEnterInfoTitle)
+            .font(.title3)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+    }
 
-            Text("scan_enter_info_subtitle")
-                .font(.subheadline)
+    private var subtitleLabel: some View {
+        Text(.scanEnterInfoSubtitle)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+    }
+
+    @ViewBuilder
+    private var emailLoginSectionView: some View {
+        if isBlocked, let onEmailLogin {
+            Text(.scanEnterBlockedEmailDescription)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 16)
-
-            if isBlocked, let onEmailLogin {
-                Text("scan_enter_blocked_email_description")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                NavigationLink {
-                    EmailLoginView(onSuccess: onEmailLogin)
-                } label: {
-                    Text("scan_enter_blocked_email_login_button")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
-            }
-
-            Spacer()
-
-            Button {
-                viewModel.openScanner()
+            NavigationLink {
+                EmailLoginView(onSuccess: onEmailLogin)
             } label: {
-                Text("scan_enter_open_scanner")
+                Text(.scanEnterBlockedEmailLoginButton)
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
             }
-            .keyboardShortcut(.defaultAction)
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
             .padding(.horizontal)
-
-            PhotosPicker(
-                selection: $pickedPhotoItem,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
-                Text("scan_enter_open_photo_scanner")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-            }
-            .buttonStyle(.glass)
-            .padding(.horizontal)
-
-            Spacer(minLength: 24)
         }
+    }
+
+    private var openScannerButton: some View {
+        Button {
+            viewModel.openScanner()
+        } label: {
+            Text(.scanEnterOpenScanner)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+        }
+        .keyboardShortcut(.defaultAction)
+        .buttonStyle(.glassProminent)
+        .padding(.horizontal)
+    }
+
+    private var photoPickerButton: some View {
+        PhotosPicker(
+            selection: $pickedPhotoItem,
+            matching: .images,
+            photoLibrary: .shared()
+        ) {
+            Text(.scanEnterOpenPhotoScanner)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+        }
+        .buttonStyle(.glass)
+        .padding(.horizontal)
     }
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            Text("scanner_qrcode_navigation_title")
+            Text(.scannerQrcodeNavigationTitle)
         }
         ToolbarItem(placement: .primaryAction) {
             Button(action: { dismiss() }) {
