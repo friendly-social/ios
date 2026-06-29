@@ -691,38 +691,6 @@
         }
       }
     },
-    "scan_enter_scanning_subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This may take a few seconds"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Это может занять пару секунд"
-          }
-        }
-      }
-    },
-    "scan_enter_scanning_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking QR…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Проверяем QR…"
-          }
-        }
-      }
-    },
     "scanner_qrcode_camera_permission_message" : {
       "localizations" : {
         "en" : {
