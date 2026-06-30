@@ -163,8 +163,6 @@ private struct AvatarPicker: View {
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var selectedImageData: Data? = nil
 
-    @Environment(\.colorScheme) var colorScheme
-
     var body: some View {
         @Bindable var viewModel = viewModel
         VStack {
@@ -185,14 +183,7 @@ private struct AvatarPicker: View {
                         }
                     }
             } else {
-                let opacity = colorScheme == .light ? 0.5 : 1
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 150, height: 150)
-                    .background(.white)
-                    .foregroundStyle(.gray.gradient.opacity(opacity))
-                    .clipShape(Circle())
+                AvatarView(url: viewModel.profileInfo.avatarUrl, size: 150)
                     .glassEffect()
             }
 
