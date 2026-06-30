@@ -26,7 +26,7 @@ struct ScanToUseAppView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 switch viewModel.state {
                 case .idle: content
@@ -155,6 +155,8 @@ struct ScanToUseAppView: View {
 
                 Spacer(minLength: 24)
             }
+            .frame(maxWidth: 500)
+            .frame(maxWidth: .infinity)
         }
         .onTapGesture { isLinkTextFieldFocused = false }
         .scrollIndicators(.hidden)
