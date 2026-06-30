@@ -168,6 +168,40 @@
         }
       }
     },
+    "invalid_link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid link"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недействительная ссылка"
+          }
+        }
+      }
+    },
+    "invite_link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite link"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ссылка-приглашение"
+          }
+        }
+      }
+    },
     "io_error_subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -389,6 +423,23 @@
         }
       }
     },
+    "paste" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставить"
+          }
+        }
+      }
+    },
     "profile_edit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -576,19 +627,36 @@
         }
       }
     },
-    "scan_enter_error_alert_button_close" : {
+    "scan_enter_error_alert_button_okay" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try again"
+            "value" : "Okay"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Повторить"
+            "value" : "Понятно"
+          }
+        }
+      }
+    },
+    "scan_enter_error_alert_description_default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please try again later"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пожалуйста, повторите попытку позже"
           }
         }
       }
@@ -610,18 +678,35 @@
         }
       }
     },
+    "scan_enter_error_alert_title_default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что-то пошло не так"
+          }
+        }
+      }
+    },
     "scan_enter_info_subtitle" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scanning is required to verify access and link the account."
+            "value" : "Scanning a QR code or entering an invite link is required to verify access and link the account."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Сканирование нужно, чтобы подтвердить доступ и связать аккаунт."
+            "state" : "translated",
+            "value" : "Для подтверждения доступа и привязки учетной записи требуется отсканировать QR-код или ввести ссылку для приглашения."
           }
         }
       }
@@ -631,13 +716,47 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To use the app, scan another user's QR code"
+            "value" : "To use the app, you need an invite link or QR code from an existing user"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Для использования приложения nотсканируйте qr код другого пользователя"
+            "state" : "translated",
+            "value" : "Для использования приложения вам нужна ссылка для приглашения или QR-код от существующего пользователя"
+          }
+        }
+      }
+    },
+    "scan_enter_invalid_link_from_qr" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This QR code doesn't contain a valid invite link. Try scanning another code."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот QR-код не содержит действительной пригласительной ссылки. Попробуйте отсканировать другой код."
+          }
+        }
+      }
+    },
+    "scan_enter_invalid_link_from_text_field" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid invite link. Please check the link and try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неверная пригласительная ссылка. Проверьте ссылку и попробуйте снова."
           }
         }
       }
@@ -687,38 +806,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не удалось найти QR-код на выбранном изображении"
-          }
-        }
-      }
-    },
-    "scan_enter_scanning_subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This may take a few seconds"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Это может занять пару секунд"
-          }
-        }
-      }
-    },
-    "scan_enter_scanning_title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking QR…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Проверяем QR…"
           }
         }
       }

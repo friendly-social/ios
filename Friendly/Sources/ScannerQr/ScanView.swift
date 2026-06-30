@@ -12,7 +12,8 @@ struct ScanToUseAppView: View {
     @StateObject private var viewModel: ScanToUseAppViewModel
     @State private var pickedPhotoItem: PhotosPickerItem? = nil
     private var isBlocked: Bool
-    
+
+    @FocusState private var isLinkTextFieldFocused: Bool
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
 
@@ -25,7 +26,7 @@ struct ScanToUseAppView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 switch viewModel.state {
                 case .idle: content
@@ -39,21 +40,20 @@ struct ScanToUseAppView: View {
                 }
             }
             .alert(
-                "scan_enter_error_alert_title",
-                isPresented: $viewModel.isErrorAlertPresented
-            ) {
-                Button("scan_enter_error_alert_button_cancel", role: .cancel) {
-                    viewModel.tapCancelButton()
-                }
-            } message: {
-                Text(
-                    String(
-                        localized: LocalizedStringResource(
-                            stringLiteral: viewModel.errorMessage ?? "error_base_message"
-                        )
-                    )
-                )
-            }
+                viewModel.alert?.title ?? "",
+                isPresented: Binding(
+                    get: { viewModel.alert != nil },
+                    set: { if !$0 { viewModel.alert = nil } },
+                ),
+                actions: {
+                    Button("scan_enter_error_alert_button_okay", role: .cancel) {
+                        viewModel.resetState()
+                    }
+                },
+                message: {
+                    Text(viewModel.alert?.message ?? String(localized: "error_base_message"))
+                },
+            )
             .sheet(isPresented: $viewModel.isScannerPresented) {
                 QRScannerCameraView { code in
                     guard let code, !code.isEmpty else {
@@ -70,8 +70,7 @@ struct ScanToUseAppView: View {
                     if let data = try? await newItem.loadTransferable(type: Data.self) {
                         viewModel.handlePickedImageData(data)
                     } else {
-                        viewModel.errorMessage = "scan_enter_photo_invalid_image"
-                        viewModel.isErrorAlertPresented = true
+                        viewModel.alert = .photoInvalidImage
                     }
                 }
             }
@@ -79,54 +78,90 @@ struct ScanToUseAppView: View {
     }
 
     private var content: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 20) {
+                Image(systemName: "qrcode.viewfinder")
+                    .font(.system(size: 56))
+                    .padding(.bottom, 8)
 
-            Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: 56))
-                .padding(.bottom, 8)
+                Text("scan_enter_info_title")
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
 
-            Text("scan_enter_info_title")
-                .font(.title3)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
-                
 
-            Text("scan_enter_info_subtitle")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
+                Text("scan_enter_info_subtitle")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
 
-            Spacer()
+                Spacer(minLength: 40)
 
-            Button {
-                viewModel.openScanner()
-            } label: {
-                Text("scan_enter_open_scanner")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
+                HStack {
+                    Image(systemName: "link")
+                        .foregroundStyle(.secondary)
+
+                    TextField("invite_link", text: $viewModel.inviteLinkText)
+                        .focused($isLinkTextFieldFocused)
+                        .font(.body)
+                        .frame(maxWidth: .infinity)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                        .autocapitalization(.none)
+                        .onSubmit { viewModel.handleEnteredInviteLinkText() }
+                        .overlay(alignment: .trailing) {
+                            if viewModel.inviteLinkText.isEmpty {
+                                Button("paste") {
+                                    guard let text = UIPasteboard.general.string else {
+                                        return
+                                    }
+                                    viewModel.inviteLinkText = text
+                                    viewModel.handleEnteredInviteLinkText()
+                                }
+                                .padding(.trailing, 8)
+                            }
+                        }
+                        .onTapGesture { isLinkTextFieldFocused = true }
+                }
+                .padding()
+                .background(.regularMaterial, in: .rect(cornerRadius: 14))
+                .padding(.horizontal)
+
+                Button {
+                    viewModel.openScanner()
+                } label: {
+                    Text("scan_enter_open_scanner")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.glassProminent)
+                .padding(.horizontal)
+
+                PhotosPicker(
+                    selection: $pickedPhotoItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    Text("scan_enter_open_photo_scanner")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                .buttonStyle(.glass)
+                .padding(.horizontal)
+
+                Spacer(minLength: 24)
             }
-            .keyboardShortcut(.defaultAction)
-            .buttonStyle(.glassProminent)
-            .padding(.horizontal)
-
-            PhotosPicker(
-                selection: $pickedPhotoItem,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
-                Text("scan_enter_open_photo_scanner")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-            }
-            .buttonStyle(.glass)
-            .padding(.horizontal)
-
-            Spacer(minLength: 24)
+            .frame(maxWidth: 500)
+            .frame(maxWidth: .infinity)
         }
+        .onTapGesture { isLinkTextFieldFocused = false }
+        .scrollIndicators(.hidden)
+        .scrollBounceBehavior(.basedOnSize)
+        .padding(.top)
     }
 
     @ToolbarContentBuilder
