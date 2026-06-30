@@ -5,59 +5,88 @@ import Flow
 
 struct SignUpView: View {
     @State private var viewModel: SignUpViewModel
+    private let onEmailLogin: () -> Void
 
-    init(onComplete: @escaping () -> Void) {
-        self.viewModel = SignUpViewModel(onComplete: onComplete)
+    init(
+        onSignUp: @escaping () -> Void,
+        onEmailLogin: @escaping () -> Void,
+    ) {
+        self.viewModel = SignUpViewModel(onComplete: onSignUp)
+        self.onEmailLogin = onEmailLogin
     }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                AvatarPicker(viewModel: viewModel)
-                Inputs(
-                    nickname: $viewModel.nickname,
-                    description: $viewModel.description,
-                    socialLink: $viewModel.socialLink,
-                )
-                Interests(viewModel: viewModel)
-            }
+            contentView
             .scrollDismissesKeyboard(.interactively)
             .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("app_name")
+                    Text(.appName)
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .padding(.top)
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                SignUpButton(viewModel: viewModel)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
+                bottomControlsView
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
             }
             .alert(
-                "sign_up_error",
+                String(localized: .signUpError),
                 isPresented: .constant(viewModel.error != nil),
             ) {
-                Button("sign_up_error_ok") {
+                Button(String(localized: .signUpErrorOk)) {
                     viewModel.clearError()
                 }
                 .keyboardShortcut(.defaultAction)
             } message: {
                 if let error = viewModel.error {
-                    let string: LocalizedStringKey = switch error {
-                    case .required: "sign_up_required_fields"
-                    case .nicknameMaxLength: "sign_up_nickname_max_length"
-                    case .descriptionMaxLength: "sign_up_description_max_length"
-                    case .socialLinkMaxLength: "sign_up_social_link_max_length"
-                    case .socialLinkNotUrl: "sign_up_social_link_not_url"
-                    case .ioError: "sign_up_io_error"
+                    let resource: LocalizedStringResource = switch error {
+                    case .required: .signUpRequiredFields
+                    case .nicknameMaxLength: .signUpNicknameMaxLength
+                    case .descriptionMaxLength: .signUpDescriptionMaxLength
+                    case .socialLinkMaxLength: .signUpSocialLinkMaxLength
+                    case .socialLinkNotUrl: .signUpSocialLinkNotUrl
+                    case .ioError: .signUpIoError
                     }
-                    Text(string)
+                    Text(resource)
                 }
             }
         }
+    }
+
+    private var contentView: some View {
+        ScrollView {
+            AvatarPicker(viewModel: viewModel)
+            Inputs(
+                nickname: $viewModel.nickname,
+                description: $viewModel.description,
+                socialLink: $viewModel.socialLink,
+            )
+            Interests(viewModel: viewModel)
+        }
+    }
+
+    private var bottomControlsView: some View {
+        VStack(spacing: 8) {
+            SignUpButton(viewModel: viewModel)
+            emailLoginNavigationLink
+        }
+    }
+
+    private var emailLoginNavigationLink: some View {
+        NavigationLink {
+            EmailLoginView(onSuccess: onEmailLogin)
+        } label: {
+            Text(.signUpEmailLogin)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding()
+        }
+        .buttonStyle(.glass)
+        .disabled(viewModel.loading || viewModel.uploading)
     }
 }
 
@@ -101,7 +130,7 @@ private struct AvatarPicker: View {
             }
 
             PhotosPicker(selection: $selectedItem, matching: .images) {
-                Text("sign_up_upload")
+                Text(.signUpUpload)
                     .padding(.vertical, 5)
                     .padding(.horizontal, 20)
             }
@@ -142,7 +171,10 @@ private struct Inputs: View {
                 Image(systemName: "person")
                     .foregroundColor(.secondary)
 
-                TextField("sign_up_nickname", text: $nickname)
+                TextField(
+                    String(localized: .signUpNickname),
+                    text: $nickname
+                )
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
@@ -154,7 +186,7 @@ private struct Inputs: View {
                 Image(systemName: "paperplane")
                     .foregroundColor(.secondary)
                 TextField(
-                    "sign_up_social_link",
+                    String(localized: .signUpSocialLink),
                     text: $socialLink,
                     axis: .vertical,
                 )
@@ -170,7 +202,7 @@ private struct Inputs: View {
                 Image(systemName: "bubble")
                     .foregroundColor(.secondary)
                 TextField(
-                    "sign_up_description",
+                    String(localized: .signUpDescription),
                     text: $description,
                     axis: .vertical,
                 )
@@ -210,7 +242,7 @@ private struct SignUpButton: View {
         @Bindable var viewModel = viewModel
         Button(action: { viewModel.clickSignUp() }) {
             ZStack {
-                Text("sign_up_sign_up")
+                Text(.signUpSignUp)
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()

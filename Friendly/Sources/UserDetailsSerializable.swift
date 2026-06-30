@@ -6,6 +6,7 @@ struct UserDetailsSerializable: Codable {
     let interests: [String]
     let avatar: FileDescriptorSerializable?
     let socialLink: String?
+    let email: String?
 
     func typed() throws -> UserDetails {
         let socialLink: SocialLink? =
@@ -24,6 +25,7 @@ struct UserDetailsSerializable: Codable {
             },
             avatar: try avatar?.typed(),
             socialLink: socialLink,
+            email: email,
         )
     }
 }

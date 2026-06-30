@@ -4,6 +4,7 @@ import SwiftUI
 // todo: move to a separate swift module
 class NetworkClient {
     private let transport: Transport
+    private let localeRepository: LocaleRepository
     let baseUrl: URL
     let landingUrl: URL
 
@@ -11,10 +12,12 @@ class NetworkClient {
         baseUrl: URL,
         landingUrl: URL,
         session: URLSession = .shared,
+        localeRepository: LocaleRepository = LocaleRepository(),
     ) {
         self.baseUrl = baseUrl
         self.landingUrl = landingUrl
         self.transport = Transport(baseUrl: baseUrl, session: session)
+        self.localeRepository = localeRepository
     }
 
     enum AuthGenerateError: Error {
@@ -67,6 +70,85 @@ class NetworkClient {
     }
 
     private struct AuthGenerateResponseBody: Decodable {
+        let token: String
+        let id: Int64
+        let accessHash: String
+    }
+
+    enum AuthEmailError: Error {
+        case ioError(Error)
+        case serverError
+        case unknownEmail
+    }
+
+    func authEmail(email: String) async throws(AuthEmailError) {
+        do {
+            let body = AuthEmailRequestBody(email: email)
+            try await transport.unauthorizedVoid(
+                path: "auth/email",
+                method: .post,
+                body: body,
+                headers: localeHeaders,
+            )
+        } catch let error {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError(let statusCode, _):
+                if statusCode == 401 {
+                    throw .unknownEmail
+                }
+                throw .serverError
+            }
+        }
+    }
+
+    private struct AuthEmailRequestBody: Encodable {
+        let email: String
+    }
+
+    enum AuthLoginError: Error {
+        case ioError(Error)
+        case serverError
+        case invalidOrExpiredCode
+    }
+
+    func authLogin(
+        email: String,
+        code: Int,
+    ) async throws(AuthLoginError) -> Authorization {
+        do {
+            let body = AuthLoginRequestBody(email: email, code: code)
+            let response = try await transport.unauthorized(
+                path: "auth/login",
+                method: .post,
+                body: body,
+                type: AuthLoginResponseBody.self,
+            )
+            return Authorization(
+                token: try Token(response.token),
+                id: UserId(response.id),
+                accessHash: try UserAccessHash(response.accessHash),
+            )
+        } catch let error as Transport.UnauthorizedError {
+            switch error {
+            case .ioError(let error): throw .ioError(error)
+            case .serverError(let statusCode, _):
+                if statusCode == 403 {
+                    throw .invalidOrExpiredCode
+                }
+                throw .serverError
+            }
+        } catch {
+            throw .serverError
+        }
+    }
+
+    private struct AuthLoginRequestBody: Encodable {
+        let email: String
+        let code: Int
+    }
+
+    private struct AuthLoginResponseBody: Decodable {
         let token: String
         let id: Int64
         let accessHash: String
@@ -132,6 +214,115 @@ class NetworkClient {
                 case .ioError(let error): throw .ioError(error)
                 case .serverError: throw .serverError
                 case .unauthorized: throw .unauthorized
+            }
+        }
+    }
+
+    enum EmailLinkError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+        case alreadyUsed
+    }
+
+    func emailLink(
+        authorization: Authorization,
+        email: String,
+    ) async throws(EmailLinkError) {
+        do {
+            let body = EmailLinkRequestBody(email: email)
+            try await transport.authorizedVoid(
+                path: "email/link",
+                method: .post,
+                body: body,
+                authorization: authorization,
+                headers: localeHeaders,
+            )
+        } catch let error {
+            switch error {
+            case .ioError(let error):
+                throw .ioError(error)
+            case .unauthorized:
+                throw .unauthorized
+            case .serverError(let statusCode, _):
+                if statusCode == 409 {
+                    throw .alreadyUsed
+                }
+                throw .serverError
+            }
+        }
+    }
+
+    private struct EmailLinkRequestBody: Encodable {
+        let email: String
+    }
+
+    private var localeHeaders: [String: String] {
+        ["X-Locale": localeRepository.obtain().rawValue]
+    }
+
+    enum EmailConfirmError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+        case invalidOrExpiredCode
+    }
+
+    func emailConfirm(
+        authorization: Authorization,
+        code: Int,
+    ) async throws(EmailConfirmError) {
+        do {
+            let body = EmailConfirmRequestBody(code: code)
+            try await transport.authorizedVoid(
+                path: "email/confirm",
+                method: .post,
+                body: body,
+                authorization: authorization,
+            )
+        } catch let error {
+            switch error {
+            case .ioError(let error):
+                throw .ioError(error)
+            case .unauthorized:
+                throw .unauthorized
+            case .serverError(let statusCode, _):
+                if statusCode == 403 {
+                    throw .invalidOrExpiredCode
+                }
+                throw .serverError
+            }
+        }
+    }
+
+    private struct EmailConfirmRequestBody: Encodable {
+        let code: Int
+    }
+
+    enum EmailUnlinkError: Error {
+        case ioError(Error)
+        case serverError
+        case unauthorized
+    }
+
+    func emailUnlink(
+        authorization: Authorization,
+    ) async throws(EmailUnlinkError) {
+        do {
+            try await transport.authorizedVoid(
+                path: "email/unlink",
+                method: .post,
+                body: nil,
+                authorization: authorization,
+            )
+        } catch let error {
+            switch error {
+            case .ioError(let error):
+                throw .ioError(error)
+            case .unauthorized:
+                throw .unauthorized
+            case .serverError:
+                throw .serverError
             }
         }
     }
@@ -388,4 +579,3 @@ class NetworkClient {
         )!,
     )
 }
-

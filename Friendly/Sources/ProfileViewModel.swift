@@ -123,6 +123,7 @@ class ProfileViewModel {
                 description: userDetails.description,
                 interests: userDetails.interests,
                 socialUrl: socialUrl,
+                email: userDetails.email,
             )
             state = .success(success)
         } catch is CancellationError {
