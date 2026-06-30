@@ -2,14 +2,11 @@ import SwiftUI
 
 struct NetworkView: View {
     @State private var viewModel: NetworkViewModel
-    @Binding private var addFriend: AddFriendCommand?
 
     init(
         router: Router,
-        addFriend: Binding<AddFriendCommand?>,
     ) {
         self.viewModel = NetworkViewModel(router: router)
-        _addFriend = addFriend
     }
 
     var body: some View {
@@ -51,9 +48,11 @@ struct NetworkView: View {
         .sheet(
             isPresented: $viewModel.shouldFindQRCode,
         ) {
-            ScanToUseAppView(isBlocked: false) { viewModel.shouldFindQRCode = false }
+            ScanToUseAppView(isBlocked: false) {
+                viewModel.shouldFindQRCode = false
+            }
         }
-        .onAppear { viewModel.appear() }
+        .task { await viewModel.reload() }
         .navigationDestination(
             for: NetworkViewModel.ProfileDestination.self,
         ) { destination in
@@ -67,11 +66,6 @@ struct NetworkView: View {
             )
         }
         .refreshable { await viewModel.reload() }
-        .onChange(of: addFriend == nil, initial: true) {
-            guard let addFriend = addFriend else { return }
-            viewModel.command(addFriend: addFriend)
-            self.addFriend = nil
-        }
     }
 }
 

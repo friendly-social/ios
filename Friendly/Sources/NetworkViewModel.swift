@@ -7,6 +7,8 @@ class NetworkViewModel {
     private let networkClient: NetworkClient = .meetacy
 
     var state: State = .loading
+    private var reloadGeneration: Int = 0
+
     var shouldShowQRCode: Bool = false {
         didSet {
             if !shouldShowQRCode {
@@ -40,21 +42,26 @@ class NetworkViewModel {
         shouldFindQRCode = true
     }
 
-    func appear() {
-        Task {
-            await reload()
-        }
-    }
-
     func reload() async {
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
+
         do {
             let authorization = try storage.loadAuthorization()
             let network = try await networkClient.networkDetails(
                 authorization: authorization,
             )
+            guard !Task.isCancelled,
+                  generation == reloadGeneration else {
+                return
+            }
             let friends = mapUsers(network.friends)
             state = .success(friends)
         } catch {
+            guard !Task.isCancelled,
+                  generation == reloadGeneration else {
+                return
+            }
             state = .ioError
         }
     }
@@ -79,23 +86,6 @@ class NetworkViewModel {
                     self.router.path.append(destination)
                 }
             )
-        }
-    }
-
-    func command(addFriend: AddFriendCommand) {
-        let id = addFriend.id
-        let token = addFriend.token
-        Task {
-            shouldShowQRCode = false
-            guard let authorization = try? storage.loadAuthorization() else {
-                return
-            }
-            guard let _ = try? await networkClient.friendsAdd(
-                authorization: authorization,
-                token: token,
-                id: id,
-            ) else { return }
-            await reload()
         }
     }
 

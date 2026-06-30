@@ -15,8 +15,7 @@ final class ScanToUseAppViewModel: ObservableObject {
         case loading
     }
     
-    private let storage: Storage = .shared
-    private let networkClient: NetworkClient = .meetacy
+    private let addFriendService: AddFriendService = .shared
 
     @Published var state: State = .idle
     @Published var isScannerPresented = false
@@ -52,18 +51,9 @@ final class ScanToUseAppViewModel: ObservableObject {
         errorMessage = nil
         isErrorAlertPresented = false
         
-        let id = friend.id
-        let token = friend.token
         Task {
-            guard let authorization = try? storage.loadAuthorization() else {
-                isErrorAlertPresented = true
-                return
-            }
-            guard let _ = try? await networkClient.friendsAdd(
-                authorization: authorization,
-                token: token,
-                id: id,
-            ) else {
+            guard let _ = try? await addFriendService.add(friend) else {
+                state = .idle
                 isErrorAlertPresented = true
                 return
             }

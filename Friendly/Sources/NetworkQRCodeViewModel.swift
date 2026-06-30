@@ -63,4 +63,3 @@ class NetworkQRCodeViewModel {
         let url: URL
     }
 }
-

@@ -2,14 +2,14 @@ import SwiftUI
 
 struct MainView: View {
     @State private var viewModel: MainViewModel
-    @Binding private var addFriend: AddFriendCommand?
+    @Binding private var route: ContentViewModel.MainRoute?
 
     init(
         routeToSignUp: @escaping () -> Void,
-        addFriend: Binding<AddFriendCommand?>,
+        route: Binding<ContentViewModel.MainRoute?>,
     ) {
         viewModel = MainViewModel(routeToSignUp: routeToSignUp)
-        _addFriend = addFriend
+        _route = route
     }
 
     var body: some View {
@@ -32,7 +32,6 @@ struct MainView: View {
                 RouterView { router in
                     NetworkView(
                         router: router,
-                        addFriend: $viewModel.addFriend,
                     )
                 }
             }
@@ -53,11 +52,13 @@ struct MainView: View {
                 }
             }
         }
-        .onChange(of: addFriend == nil, initial: true) {
-            guard let addFriend = addFriend else { return }
-            viewModel.command(addFriend: addFriend)
-            self.addFriend = nil
+        .onChange(of: route, initial: true) {
+            guard let route else { return }
+            switch route {
+            case .feed:
+                viewModel.showFeed()
+            }
+            self.route = nil
         }
     }
 }
-

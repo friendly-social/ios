@@ -420,8 +420,9 @@ class NetworkClient {
 
     enum FriendsAddError: Error {
         case ioError(Error)
-        case serverError
+        case serverError(statusCode: Int)
         case unauthorized
+        case expiredToken
     }
 
     func friendsAdd(
@@ -434,19 +435,27 @@ class NetworkClient {
                 token: token.string,
                 userId: id.int64,
             )
-            let _ = try await transport.authorized(
+            let response = try await transport.authorized(
                 path: "friends/add",
                 method: .post,
                 body: body,
                 type: FriendsAddResponseBody.self,
                 authorization: authorization,
             )
-        } catch {
+            if response.type == "FriendTokenExpired" {
+                throw FriendsAddError.expiredToken
+            }
+        } catch let error as FriendsAddError {
+            throw error
+        } catch let error as Transport.AuthorizedError {
             switch error {
             case .ioError(let error): throw .ioError(error)
-            case .serverError: throw .serverError
+            case .serverError(let statusCode, _):
+                throw .serverError(statusCode: statusCode)
             case .unauthorized: throw .unauthorized
             }
+        } catch {
+            throw .serverError(statusCode: 0)
         }
     }
 
@@ -455,7 +464,9 @@ class NetworkClient {
         let userId: Int64
     }
 
-    private struct FriendsAddResponseBody: Decodable {}
+    private struct FriendsAddResponseBody: Decodable {
+        let type: String
+    }
 
     enum FriendsDeclineError: Error {
         case ioError(Error)
@@ -575,7 +586,7 @@ class NetworkClient {
     static let meetacy = NetworkClient(
         baseUrl: URL(string: "https://api.getfriend.ly")!,
         landingUrl: URL(
-            string: "https://friendly-social.github.io/landing/#/",
+            string: "https://getfriend.ly/#/",
         )!,
     )
 }

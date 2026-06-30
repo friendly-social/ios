@@ -5,18 +5,24 @@ struct ContentView: View {
 
     var body: some View {
         destinationView
-        .animation(.easeInOut(duration: 0.3), value: viewModel.destination)
-        .transition(.opacity)
-        .onAppear {
-            viewModel.appear()
-        }
-        .onOpenURL { url in
-            guard let deeplink = Deeplink.of(url: url) else { return }
-            switch deeplink {
+            .animation(.easeInOut(duration: 0.3), value: viewModel.destination)
+            .transition(.opacity)
+            .onAppear {
+                viewModel.appear()
+            }
+            .onOpenURL { url in
+                guard let deeplink = Deeplink.parseOf(url: url) else {
+                    viewModel.onInvalidFriendLink()
+                    return
+                }
+                switch deeplink {
                 case let .addFriend(id, token):
                     viewModel.onAddFriend(id: id, token: token)
+                }
             }
-        }
+            .alert(item: $viewModel.friendLinkAlert) { alert in
+                friendLinkAlert(alert)
+            }
     }
 
     private var destinationView: some View {
@@ -32,7 +38,7 @@ struct ContentView: View {
             case .main:
                 MainView(
                     routeToSignUp: viewModel.routeToSignUp,
-                    addFriend: $viewModel.addFriend,
+                    route: $viewModel.mainRoute,
                 )
             case .qrAddFriend:
                 ScanToUseAppView(
@@ -41,6 +47,58 @@ struct ContentView: View {
                     onSuccess: viewModel.onAddFriendWithQr,
                 )
             }
+
+            if viewModel.isProcessingFriendAccess {
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private func friendLinkAlert(
+        _ alert: ContentViewModel.FriendLinkAlert,
+    ) -> Alert {
+        switch alert {
+        case .authenticationRequired:
+            Alert(
+                title: Text(.friendLinkAuthRequiredTitle),
+                message: Text(.friendLinkAuthRequiredMessage),
+                dismissButton: .default(Text(.buttonBaseClose)),
+            )
+        case .alreadyProcessing:
+            Alert(
+                title: Text(.friendLinkProcessingTitle),
+                message: Text(.friendLinkProcessingMessage),
+                dismissButton: .default(Text(.buttonBaseClose)),
+            )
+        case .invalidInvite:
+            Alert(
+                title: Text(.friendLinkInvalidTitle),
+                message: Text(.friendLinkInvalidMessage),
+                dismissButton: .default(Text(.buttonBaseClose)),
+            )
+        case .retryInvite:
+            Alert(
+                title: Text(.friendLinkRetryTitle),
+                message: Text(.friendLinkRetryMessage),
+                primaryButton: .default(Text(.friendLinkRetryButton)) {
+                    viewModel.retryFriendLink()
+                },
+                secondaryButton: .cancel(Text(.friendLinkCancelButton)) {
+                    viewModel.cancelFriendLink()
+                },
+            )
+        case .retryReconciliation:
+            Alert(
+                title: Text(.friendGateRetryTitle),
+                message: Text(.friendGateRetryMessage),
+                primaryButton: .default(Text(.friendLinkRetryButton)) {
+                    viewModel.retryFriendAccessReconciliation()
+                },
+                secondaryButton: .cancel(Text(.friendLinkCancelButton)),
+            )
         }
     }
 }
