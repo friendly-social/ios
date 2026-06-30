@@ -113,7 +113,10 @@ struct ScanToUseAppView: View {
                         .overlay(alignment: .trailing) {
                             if viewModel.inviteLinkText.isEmpty {
                                 Button("paste") {
-                                    viewModel.inviteLinkText = UIPasteboard.general.string ?? ""
+                                    guard let text = UIPasteboard.general.string else {
+                                        return
+                                    }
+                                    viewModel.inviteLinkText = text
                                     viewModel.handleEnteredInviteLinkText()
                                 }
                                 .padding(.trailing, 8)
