@@ -205,5 +205,35 @@ class ContentViewModel {
         case retryReconciliation
 
         var id: Int { rawValue }
+
+        var title: LocalizedStringResource {
+            switch self {
+            case .authenticationRequired:
+                .friendLinkAuthRequiredTitle
+            case .alreadyProcessing:
+                .friendLinkProcessingTitle
+            case .invalidInvite:
+                .friendLinkInvalidTitle
+            case .retryInvite:
+                .friendLinkRetryTitle
+            case .retryReconciliation:
+                .friendGateRetryTitle
+            }
+        }
+
+        var message: LocalizedStringResource {
+            switch self {
+            case .authenticationRequired:
+                .friendLinkAuthRequiredMessage
+            case .alreadyProcessing:
+                .friendLinkProcessingMessage
+            case .invalidInvite:
+                .friendLinkInvalidMessage
+            case .retryInvite:
+                .friendLinkRetryMessage
+            case .retryReconciliation:
+                .friendGateRetryMessage
+            }
+        }
     }
 }

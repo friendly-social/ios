@@ -61,28 +61,16 @@ struct ContentView: View {
         _ alert: ContentViewModel.FriendLinkAlert,
     ) -> Alert {
         switch alert {
-        case .authenticationRequired:
+        case .authenticationRequired, .alreadyProcessing, .invalidInvite:
             Alert(
-                title: Text(.friendLinkAuthRequiredTitle),
-                message: Text(.friendLinkAuthRequiredMessage),
-                dismissButton: .default(Text(.buttonBaseClose)),
-            )
-        case .alreadyProcessing:
-            Alert(
-                title: Text(.friendLinkProcessingTitle),
-                message: Text(.friendLinkProcessingMessage),
-                dismissButton: .default(Text(.buttonBaseClose)),
-            )
-        case .invalidInvite:
-            Alert(
-                title: Text(.friendLinkInvalidTitle),
-                message: Text(.friendLinkInvalidMessage),
+                title: Text(alert.title),
+                message: Text(alert.message),
                 dismissButton: .default(Text(.buttonBaseClose)),
             )
         case .retryInvite:
             Alert(
-                title: Text(.friendLinkRetryTitle),
-                message: Text(.friendLinkRetryMessage),
+                title: Text(alert.title),
+                message: Text(alert.message),
                 primaryButton: .default(Text(.friendLinkRetryButton)) {
                     viewModel.retryFriendLink()
                 },
@@ -92,8 +80,8 @@ struct ContentView: View {
             )
         case .retryReconciliation:
             Alert(
-                title: Text(.friendGateRetryTitle),
-                message: Text(.friendGateRetryMessage),
+                title: Text(alert.title),
+                message: Text(alert.message),
                 primaryButton: .default(Text(.friendLinkRetryButton)) {
                     viewModel.retryFriendAccessReconciliation()
                 },
