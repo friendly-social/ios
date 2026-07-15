@@ -14,16 +14,25 @@ final class ScanToUseAppViewModel: ObservableObject {
         case idle
         case loading
     }
-    
-    private let addFriendService: AddFriendService = .shared
 
+    struct Alert: Equatable {
+        let title: LocalizedStringResource
+        let message: LocalizedStringResource
+    }
+
+    private enum InviteLinkInputSource {
+        case qr
+        case textField
+    }
+    
     @Published var state: State = .idle
     @Published var isScannerPresented = false
-    @Published var isErrorAlertPresented = false
-    @Published var errorMessage: String?
-    
+    @Published var alert: Alert?
+    @Published var inviteLinkText = ""
+
     private let onSuccess: () -> Void
-    
+    private let addFriendService: AddFriendService = .shared
+
     init(onSuccess: @escaping () -> Void) {
         self.onSuccess = onSuccess
     }
@@ -37,53 +46,48 @@ final class ScanToUseAppViewModel: ObservableObject {
         isScannerPresented = false
     }
 
-    func tapCancelButton() {
-        state = .idle
-    }
-
     func handleScanned(code: String) {
         isScannerPresented = false
-        validate(from: code)
+        let text = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let command = addFriendCommand(from: text) else {
+            alert = .invalidLinkFromQr
+            return
+        }
+        add(friend: command)
+    }
+
+    func handleEnteredInviteLinkText() {
+        guard let command = addFriendCommand(from: inviteLinkText) else {
+            alert = .invalidLinkFromTextField
+            return
+        }
+        add(friend: command)
+    }
+
+    func resetState() {
+        state = .idle
+        alert = nil
+    }
+
+    private func addFriendCommand(from urlString: String) -> AddFriendCommand? {
+        let deeplink = URL(string: urlString).flatMap(Deeplink.parseOf(url:))
+        return switch deeplink {
+        case let .addFriend(id, token):
+            AddFriendCommand(id: id, token: token)
+        case nil:
+            nil
+        }
     }
 
     private func add(friend: AddFriendCommand) {
         state = .loading
-        errorMessage = nil
-        isErrorAlertPresented = false
-        
         Task {
-            guard let _ = try? await addFriendService.add(friend) else {
-                state = .idle
-                isErrorAlertPresented = true
-                return
+            do {
+                try await addFriendService.add(friend)
+                onSuccess()
+            } catch {
+                alert = .unknownError
             }
-            onSuccess()
-        }
-    }
-    
-    private func validate(from code: String) {
-        state = .idle
-        errorMessage = nil
-        isErrorAlertPresented = false
-        
-        do {
-            let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            guard let url = URL(string: trimmed) else {
-                throw ScanEnterError.invalidURL
-            }
-
-            let deeplink = Deeplink.parseOf(url: url)
-            switch deeplink {
-            case let .addFriend(id, token):
-                add(friend: AddFriendCommand(id: id, token: token))
-            case nil:
-                throw ScanEnterError.invalidURL
-            }
-            
-        } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            isErrorAlertPresented = true
         }
     }
 }
@@ -91,36 +95,55 @@ final class ScanToUseAppViewModel: ObservableObject {
 extension ScanToUseAppViewModel {
     func handlePickedImageData(_ data: Data) {
         state = .loading
-        errorMessage = nil
-        isErrorAlertPresented = false
-
         Task {
             guard let image = UIImage(data: data),
                   let cgImage = image.cgImage else {
-                errorMessage = "scan_enter_photo_invalid_image"
-                isErrorAlertPresented = true
+                alert = .photoInvalidImage(title: .scanEnterErrorAlertTitle)
                 return
             }
-            
+
             let codes = cgImage.detectQRCodeStrings()
             guard let code = codes.first, !code.isEmpty else {
-                errorMessage = "scan_enter_photo_qr_not_found"
-                isErrorAlertPresented = true
+                alert = .photoQrNotFound
                 return
             }
-            
+
+            state = .idle
             handleScanned(code: code)
         }
     }
 }
 
-enum ScanEnterError: LocalizedError {
-    case invalidURL
-
-    var errorDescription: String? {
-        switch self {
-        case .invalidURL:
-            return String(localized: "scan_enter_invalid_url")
-        }
+extension ScanToUseAppViewModel.Alert {
+    static var unknownError: Self {
+        Self(
+            title: .scanEnterErrorAlertTitleDefault,
+            message: .scanEnterErrorAlertDescriptionDefault,
+        )
     }
-}
+
+    static var invalidLinkFromQr: Self {
+        Self(
+            title: .invalidLink,
+            message: .scanEnterInvalidLinkFromQr,
+        )
+    }
+
+    static var invalidLinkFromTextField: Self {
+        Self(
+            title: .invalidLink,
+            message: .scanEnterInvalidLinkFromTextField,
+        )
+    }
+    
+    static var photoQrNotFound: Self {
+        Self(
+            title: .scanEnterErrorAlertTitle,
+            message: .scanEnterPhotoQrNotFound,
+        )
+    }
+    
+    static func photoInvalidImage(title: LocalizedStringResource) -> Self {
+        Self(title: title, message: .scanEnterPhotoInvalidImage)
+    }
+ }

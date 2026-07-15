@@ -11,6 +11,7 @@ import PhotosUI
 struct ScanToUseAppView: View {
     @StateObject private var viewModel: ScanToUseAppViewModel
     @State private var pickedPhotoItem: PhotosPickerItem? = nil
+    @FocusState private var isLinkTextFieldFocused: Bool
     private var isBlocked: Bool
     private let onEmailLogin: (() -> Void)?
     
@@ -28,7 +29,7 @@ struct ScanToUseAppView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 stateView
             }
@@ -39,28 +40,25 @@ struct ScanToUseAppView: View {
                 }
             }
             .alert(
-                String(localized: .scanEnterErrorAlertTitle),
-                isPresented: $viewModel.isErrorAlertPresented
-            ) {
-                Button(
-                    String(localized: .scanEnterErrorAlertButtonCancel),
-                    role: .cancel
-                ) {
-                    viewModel.tapCancelButton()
-                }
-            } message: {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(
-                        String(
-                            localized: LocalizedStringResource(
-                                stringLiteral: errorMessage
-                            )
-                        )
-                    )
-                } else {
-                    Text(.errorBaseMessage)
-                }
-            }
+                viewModel.alert?.title ?? "",
+                isPresented: Binding(
+                    get: { viewModel.alert != nil },
+                    set: { if !$0 { viewModel.alert = nil } },
+                ),
+                actions: { 
+                    Button(
+                        String(localized: .scanEnterErrorAlertButtonOkay),
+                        role: .cancel,
+                    ) {
+                        viewModel.resetState()
+                    }
+                },
+                message: {
+                    if let message = viewModel.alert?.message {
+                        Text(message)
+                    }
+                },
+            )
             .sheet(isPresented: $viewModel.isScannerPresented) {
                 QRScannerCameraView { code in
                     guard let code, !code.isEmpty else {
@@ -77,8 +75,9 @@ struct ScanToUseAppView: View {
                     if let data = try? await newItem.loadTransferable(type: Data.self) {
                         viewModel.handlePickedImageData(data)
                     } else {
-                        viewModel.errorMessage = "scan_enter_photo_invalid_image"
-                        viewModel.isErrorAlertPresented = true
+                        viewModel.alert = .photoInvalidImage(
+                            title: .scanEnterErrorAlertTitleDefault,
+                        )
                     }
                 }
             }
@@ -96,23 +95,35 @@ struct ScanToUseAppView: View {
     }
 
     private var contentView: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            qrCodeImage
-            titleLabel
-            subtitleLabel
-            emailLoginSectionView
-            Spacer()
-            openScannerButton
-            photoPickerButton
-            Spacer(minLength: 24)
+        ScrollView { 
+            VStack(spacing: 20) {
+                qrCodeImage
+                    .padding(.bottom, 8)
+
+                titleLabel
+                subtitleLabel
+
+                Spacer(minLength: 40)
+
+                inviteLinkTextField
+                emailLoginSectionView
+                openScannerButton
+                photoPickerButton
+
+                Spacer(minLength: 24)
+            }
+            .frame(maxWidth: 500)
+            .frame(maxWidth: .infinity)
         }
+        .onTapGesture { isLinkTextFieldFocused = false }
+        .scrollIndicators(.hidden)
+        .scrollBounceBehavior(.basedOnSize)
+        .padding(.top)
     }
 
     private var qrCodeImage: some View {
         Image(systemName: "qrcode.viewfinder")
             .font(.system(size: 56))
-            .padding(.bottom, 8)
     }
 
     private var titleLabel: some View {
@@ -128,6 +139,41 @@ struct ScanToUseAppView: View {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
+    }
+
+    private var inviteLinkTextField: some View {
+        HStack {
+            Image(systemName: "link")
+                .foregroundStyle(.secondary)
+
+            TextField(
+                .inviteLink,
+                text: $viewModel.inviteLinkText,
+            )
+            .focused($isLinkTextFieldFocused)
+            .font(.body)
+            .frame(maxWidth: .infinity)
+            .keyboardType(.URL)
+            .autocorrectionDisabled()
+            .autocapitalization(.none)
+            .onSubmit { viewModel.handleEnteredInviteLinkText() }
+            .overlay(alignment: .trailing) {
+                if viewModel.inviteLinkText.isEmpty {
+                    Button(.paste) {
+                        guard let text = UIPasteboard.general.string else {
+                            return
+                        }
+                        viewModel.inviteLinkText = text
+                        viewModel.handleEnteredInviteLinkText()
+                    }
+                    .padding(.trailing, 8)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                }
+            }
+        }
+        .padding()
+        .background(.regularMaterial, in: .rect(cornerRadius: 14))
+        .padding(.horizontal)
     }
 
     @ViewBuilder

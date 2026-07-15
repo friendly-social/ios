@@ -61,3 +61,7 @@ Derived/
 
 ### Tuist managed dependencies ###
 Tuist/.build
+
+## Alt editors
+buildServer.json
+.nvim/**

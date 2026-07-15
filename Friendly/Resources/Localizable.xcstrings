@@ -154,23 +154,6 @@
         }
       }
     },
-    "email_binding_error_used" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This email is already linked to another account."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Эта почта уже привязана к другому аккаунту."
-          }
-        }
-      }
-    },
     "email_binding_details" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -184,6 +167,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Код действителен 20 минут, доступно до 5 попыток подтверждения."
+          }
+        }
+      }
+    },
+    "email_binding_error_used" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This email is already linked to another account."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта почта уже привязана к другому аккаунту."
           }
         }
       }
@@ -290,23 +290,6 @@
         }
       }
     },
-    "email_login_error_unknown" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No account is linked to this email."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "К этой почте не привязан аккаунт."
-          }
-        }
-      }
-    },
     "email_login_details" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -320,6 +303,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Введите код из почты, чтобы войти в существующий аккаунт."
+          }
+        }
+      }
+    },
+    "email_login_error_unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No account is linked to this email."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "К этой почте не привязан аккаунт."
           }
         }
       }
@@ -437,6 +437,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ошибка"
+          }
+        }
+      }
+    },
+    "feed_empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're all caught up!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Больше тут никого нет"
+          }
+        }
+      }
+    },
+    "feed_empty_advice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now you can talk to the people you've met"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теперь время общаться с новыми знакомыми!"
+          }
+        }
+      }
+    },
+    "feed_expand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раскрыть"
+          }
+        }
+      }
+    },
+    "feed_extended_network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EXTENDED NETWORK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ДАЛЬНЕЕ РУКОПОЖАТИЕ"
+          }
+        }
+      }
+    },
+    "feed_liked_you" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FRIEND REQUEST"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ЗАПРОС В ДРУЗЬЯ"
           }
         }
       }
@@ -645,87 +730,37 @@
         }
       }
     },
-    "feed_empty" : {
+    "invalid_link" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You're all caught up!"
+            "value" : "Invalid link"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Больше тут никого нет"
+            "value" : "Недействительная ссылка"
           }
         }
       }
     },
-    "feed_empty_advice" : {
+    "invite_link" : {
+      "comment" : "Ссылка-приглашение",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Now you can talk to the people you've met"
+            "value" : "Invite link"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Теперь время общаться с новыми знакомыми!"
-          }
-        }
-      }
-    },
-    "feed_expand" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expand"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Раскрыть"
-          }
-        }
-      }
-    },
-    "feed_extended_network" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "EXTENDED NETWORK"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ДАЛЬНЕЕ РУКОПОЖАТИЕ"
-          }
-        }
-      }
-    },
-    "feed_liked_you" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FRIEND REQUEST"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ЗАПРОС В ДРУЗЬЯ"
+            "value" : "Ссылка-приглашение"
           }
         }
       }
@@ -947,6 +982,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Добавить друзей"
+          }
+        }
+      }
+    },
+    "paste" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставить"
           }
         }
       }
@@ -1495,19 +1547,36 @@
         }
       }
     },
-    "scan_enter_error_alert_button_close" : {
+    "scan_enter_error_alert_button_okay" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try again"
+            "value" : "Okay"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Повторить"
+            "value" : "Понятно"
+          }
+        }
+      }
+    },
+    "scan_enter_error_alert_description_default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please try again later"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пожалуйста, повторите попытку позже"
           }
         }
       }
@@ -1529,19 +1598,36 @@
         }
       }
     },
+    "scan_enter_error_alert_title_default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что-то пошло не так"
+          }
+        }
+      }
+    },
     "scan_enter_info_subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scanning is required to verify access and link the account."
+            "value" : "Scanning a QR code or entering an invite link is required to verify access and link the account."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Сканирование нужно, чтобы подтвердить доступ и связать аккаунт."
+            "state" : "translated",
+            "value" : "Для подтверждения доступа и привязки учетной записи требуется отсканировать QR-код или ввести ссылку для приглашения."
           }
         }
       }
@@ -1552,13 +1638,47 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To use the app, scan another user's QR code"
+            "value" : "To use the app, you need an invite link or QR code from an existing user"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Для использования приложения nотсканируйте qr код другого пользователя"
+            "state" : "translated",
+            "value" : "Для использования приложения вам нужна ссылка для приглашения или QR-код от существующего пользователя"
+          }
+        }
+      }
+    },
+    "scan_enter_invalid_link_from_qr" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This QR code doesn't contain a valid invite link. Try scanning another code."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот QR-код не содержит действительной пригласительной ссылки. Попробуйте отсканировать другой код."
+          }
+        }
+      }
+    },
+    "scan_enter_invalid_link_from_text_field" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid invite link. Please check the link and try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неверная пригласительная ссылка. Проверьте ссылку и попробуйте снова."
           }
         }
       }
@@ -1597,6 +1717,23 @@
         }
       }
     },
+    "scan_enter_photo_invalid_image" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected file couldn't be opened as an image. Please choose a different photo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранный файл не удалось открыть в виде изображения. Пожалуйста, выберите другую фотографию."
+          }
+        }
+      }
+    },
     "scan_enter_photo_qr_not_found" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1610,40 +1747,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не удалось найти QR-код на выбранном изображении"
-          }
-        }
-      }
-    },
-    "scan_enter_scanning_subtitle" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This may take a few seconds"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Это может занять пару секунд"
-          }
-        }
-      }
-    },
-    "scan_enter_scanning_title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking QR…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Проверяем QR…"
           }
         }
       }
@@ -1665,6 +1768,7 @@
       }
     },
     "scanner_qrcode_camera_permission_title" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1759,6 +1863,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Описание не может быть длиннее 1024 символов"
+          }
+        }
+      }
+    },
+    "sign_up_email_login" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in by email"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти по почте"
           }
         }
       }
@@ -1861,23 +1982,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Необходимо заполнить никнейм и описание"
-          }
-        }
-      }
-    },
-    "sign_up_email_login" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in by email"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Войти по почте"
           }
         }
       }
