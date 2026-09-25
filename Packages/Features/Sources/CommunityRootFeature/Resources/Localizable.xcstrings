@@ -1,0 +1,8 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.1",
+  "strings": {
+    "community.close": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Close"}},"ru":{"stringUnit":{"state":"translated","value":"Закрыть"}}}},
+    "community.signInRequired": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign in required"}},"ru":{"stringUnit":{"state":"translated","value":"Нужен вход"}}}}
+  }
+}

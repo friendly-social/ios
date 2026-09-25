@@ -1,0 +1,125 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.1",
+  "strings": {
+    "feed_empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're all caught up!"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Больше тут никого нет"
+          }
+        }
+      }
+    },
+    "feed_empty_advice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now you can talk to the people you've met"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Теперь время общаться с новыми знакомыми!"
+          }
+        }
+      }
+    },
+    "feed_expand": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expand"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Раскрыть"
+          }
+        }
+      }
+    },
+    "feed_extended_network": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EXTENDED NETWORK"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ДАЛЬНЕЕ РУКОПОЖАТИЕ"
+          }
+        }
+      }
+    },
+    "feed_liked_you": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FRIEND REQUEST"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ЗАПРОС В ДРУЗЬЯ"
+          }
+        }
+      }
+    },
+    "io_error_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looks like we can't reach our servers..."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мы не можем достучаться до наших серверов…"
+          }
+        }
+      }
+    },
+    "io_error_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection problem"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проблема соединения"
+          }
+        }
+      }
+    }
+  }
+}

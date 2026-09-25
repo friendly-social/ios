@@ -2,6 +2,11 @@ import ProjectDescription
 
 let project = Project(
     name: "Friendly",
+    packages: [
+        .local(path: "Packages/Domain"),
+        .local(path: "Packages/Features"),
+        .local(path: "Packages/Infrastructure"),
+    ],
     targets: [
         .target(
             name: "Friendly",
@@ -27,13 +32,22 @@ let project = Project(
                 ],
             ]),
             buildableFolders: [
-                "Friendly/Sources",
-                "Friendly/Resources",
+                "App/Sources",
+                "App/Resources",
             ],
             dependencies: [
-                .external(name: "Flow"),
-                .external(name: "QRCode"),
-                .external(name: "CachedAsyncImage"),
+                .package(product: "Dependencies"),
+                .package(product: "CommunityRootFeature"),
+                .package(product: "FeedFeature"),
+                .package(product: "FriendAccessService"),
+                .package(product: "ProfileFormService"),
+                .package(product: "FriendlyUIKit"),
+                .package(product: "LiveDependencies"),
+                .package(product: "Models"),
+                .package(product: "NetworkFeature"),
+                .package(product: "ProfileFeature"),
+                .package(product: "ScannerFeature"),
+                .package(product: "SignUpFeature"),
             ],
             settings: .settings(
                 base: [
@@ -43,6 +57,31 @@ let project = Project(
                     "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
                 ],
             )
+        ),
+        .target(
+            name: "CommunityTests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "me.y9san9.Friendly.CommunityTests",
+            deploymentTargets: .iOS("26.0"),
+            infoPlist: .default,
+            sources: ["Packages/Features/Tests/**"],
+            dependencies: [
+                .package(product: "CommunityApi"),
+                .package(product: "CommunityApiLive"),
+                .package(product: "CommunityDraftService"),
+                .package(product: "CommunityDraftServiceLive"),
+                .package(product: "CommunityDraftStorageServiceLive"),
+                .package(product: "CommunityEditorFeature"),
+                .package(product: "CommunityFeature"),
+                .package(product: "CommunityMarkdownFeature"),
+                .package(product: "CommunityMarkdownService"),
+                .package(product: "CommunityProfileService"),
+                .package(product: "CommunityService"),
+                .package(product: "CommunityServiceLive"),
+                .package(product: "Networking"),
+                .package(product: "Dependencies"),
+            ]
         ),
     ],
 )

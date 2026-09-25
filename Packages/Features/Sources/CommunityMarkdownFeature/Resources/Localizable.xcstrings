@@ -1,0 +1,112 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "markdown.openImage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Open full-screen image" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Открыть фото на весь экран" } }
+      }
+    },
+    "markdown.closeImage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Close photo" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Закрыть фото" } }
+      }
+    },
+    "markdown.toggleZoom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Toggle zoom" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Изменить масштаб" } }
+      }
+    },
+    "markdown.checked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выполнено"
+          }
+        }
+      }
+    },
+    "markdown.unchecked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not completed"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не выполнено"
+          }
+        }
+      }
+    },
+    "markdown.html": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTML source"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTML: исходный текст"
+          }
+        }
+      }
+    },
+    "markdown.imageUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image unavailable"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изображение недоступно"
+          }
+        }
+      }
+    },
+    "markdown.image": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изображение"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
