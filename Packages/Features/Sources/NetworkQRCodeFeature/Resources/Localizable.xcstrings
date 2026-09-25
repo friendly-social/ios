@@ -1,0 +1,108 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "network_qrcode_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add people"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить друзей"
+          }
+        }
+      }
+    },
+    "network_qrcode_description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is a single-time QR Code that may be used to add you as a friend"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это одноразовый QR-код, который может быть использован, чтобы добавить вас в друзья"
+          }
+        }
+      }
+    },
+    "network_qrcode_ok": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ок"
+          }
+        }
+      }
+    },
+    "network_qrcode_link": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Or share a link"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Или поделись ссылкой"
+          }
+        }
+      }
+    },
+    "io_error_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection problem"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проблема соединения"
+          }
+        }
+      }
+    },
+    "io_error_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looks like we can't reach our servers..."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мы не можем достучаться до наших серверов…"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.1"
+}

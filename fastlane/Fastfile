@@ -48,7 +48,7 @@ platform :ios do
       workspace: "Friendly.xcworkspace",
       scheme: "Friendly",
       export_method: "app-store",
-      xcargs: "CURRENT_PROJECT_VERSION='#{new_build_number}'",
+      xcargs: "CURRENT_PROJECT_VERSION='#{new_build_number}' -skipMacroValidation",
       export_options: {
         method: "app-store",
         provisioningProfiles: {

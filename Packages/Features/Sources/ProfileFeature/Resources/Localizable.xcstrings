@@ -1,0 +1,938 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.1",
+  "strings": {
+    "sign_up_description": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Description"}},"ru":{"stringUnit":{"state":"translated","value":"Описание"}}}},
+    "sign_up_description_max_length": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Description can't be longer than 1024 symbols"}},"ru":{"stringUnit":{"state":"translated","value":"Описание не может быть длиннее 1024 символов"}}}},
+    "sign_up_error": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Can't do that right now"}},"ru":{"stringUnit":{"state":"translated","value":"Не можем ничего сделать"}}}},
+    "sign_up_error_ok": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"OK"}},"ru":{"stringUnit":{"state":"translated","value":"Хорошо"}}}},
+    "sign_up_io_error": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"We are having a trouble reaching our servers"}},"ru":{"stringUnit":{"state":"translated","value":"Возникла проблема при попытке связаться с нашими серверами"}}}},
+    "sign_up_nickname": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Nickname"}},"ru":{"stringUnit":{"state":"translated","value":"Никнейм"}}}},
+    "sign_up_nickname_max_length": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Nickname can't be longer than 256 symbols"}},"ru":{"stringUnit":{"state":"translated","value":"Никнейм не может быть длиннее 256 символов"}}}},
+    "sign_up_required_fields": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Nickname and description fields are required"}},"ru":{"stringUnit":{"state":"translated","value":"Необходимо заполнить никнейм и описание"}}}},
+    "sign_up_email_login": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign in by email"}},"ru":{"stringUnit":{"state":"translated","value":"Войти по почте"}}}},
+    "sign_up_sign_up": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign Up"}},"ru":{"stringUnit":{"state":"translated","value":"Зарегистрироваться"}}}},
+    "sign_up_social_link": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Social link (Telegram, What’s App, etc.)"}},"ru":{"stringUnit":{"state":"translated","value":"Ссылка для связи (Telegram, What’s App, etc.)"}}}},
+    "sign_up_social_link_max_length": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Social links can't be longer than 2048 symbols"}},"ru":{"stringUnit":{"state":"translated","value":"Ссылка не может быть длиннее 2048 символов"}}}},
+    "sign_up_social_link_not_url": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Social link must be a valid url"}},"ru":{"stringUnit":{"state":"translated","value":"Неправильный формат ссылки"}}}},
+    "sign_up_upload": {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Upload"}},"ru":{"stringUnit":{"state":"translated","value":"Выбрать"}}}},
+    "auth_bindings_apple_button": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Apple"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить с Apple"
+          }
+        }
+      }
+    },
+    "auth_bindings_google_button": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with Google"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить с Google"
+          }
+        }
+      }
+    },
+    "auth_bindings_navigation_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authorization"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Авторизация"
+          }
+        }
+      }
+    },
+    "auth_bindings_provider_unavailable_message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This authorization method is not available yet."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Этот способ авторизации пока недоступен."
+          }
+        }
+      }
+    },
+    "auth_bindings_provider_unavailable_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coming soon"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скоро будет"
+          }
+        }
+      }
+    },
+    "auth_bindings_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a method to link your account."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите способ привязки аккаунта."
+          }
+        }
+      }
+    },
+    "auth_bindings_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link authorization"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Привязка авторизации"
+          }
+        }
+      }
+    },
+    "email_binding_error_used": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This email is already linked to another account."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта почта уже привязана к другому аккаунту."
+          }
+        }
+      }
+    },
+    "email_binding_details": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The code is valid for 20 minutes and up to 5 confirmation attempts."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Код действителен 20 минут, доступно до 5 попыток подтверждения."
+          }
+        }
+      }
+    },
+    "email_binding_resend_after": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can resend the code after:"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторно отправить код можно через:"
+          }
+        }
+      }
+    },
+    "email_change_address": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use another email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использовать другую почту"
+          }
+        }
+      }
+    },
+    "email_error_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a valid email address."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите корректный адрес почты."
+          }
+        }
+      }
+    },
+    "email_error_invalid_code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The code is invalid or has expired."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Код неверный или срок его действия истёк."
+          }
+        }
+      }
+    },
+    "email_error_unauthorized": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your session has expired. Sign in again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сессия истекла. Войдите снова."
+          }
+        }
+      }
+    },
+    "email_login_confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войти"
+          }
+        }
+      }
+    },
+    "email_login_error_unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account is linked to this email."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "К этой почте не привязан аккаунт."
+          }
+        }
+      }
+    },
+    "email_login_details": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the code from email to sign in to an existing account."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите код из почты, чтобы войти в существующий аккаунт."
+          }
+        }
+      }
+    },
+    "email_login_navigation_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in by email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вход по почте"
+          }
+        }
+      }
+    },
+    "email_login_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use your email to sign in"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Используйте почту для входа"
+          }
+        }
+      }
+    },
+    "email_login_success": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed in successfully."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы успешно вошли."
+          }
+        }
+      }
+    },
+    "email_login_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to your account"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вход в аккаунт"
+          }
+        }
+      }
+    },
+    "io_error_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looks like we can't reach our servers..."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мы не можем достучаться до наших серверов…"
+          }
+        }
+      }
+    },
+    "io_error_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection problem"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проблема соединения"
+          }
+        }
+      }
+    },
+    "profile_edit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Редактирование"
+          }
+        }
+      }
+    },
+    "profile_edit_auth_bindings_button": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authorization methods"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Способы авторизации"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_button": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Привязать почту"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_code_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code format: 7389 - 9399"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Формат кода: 7389 - 9399"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_code_placeholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verification code"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Код подтверждения"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подтвердить"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_email_example": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "jane.doe@example.com"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ivan.ivanov@example.com"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_email_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Почта"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_email_placeholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Почта"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_error": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong. Please try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что-то пошло не так. Попробуйте ещё раз."
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_resend_in": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resend in"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторно через"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_send_code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send code"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить код"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_sheet_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email binding"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Привязка почты"
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request a code and confirm email ownership."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запросите код и подтвердите владение почтой."
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_success": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email has been successfully linked."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Почта успешно привязана."
+          }
+        }
+      }
+    },
+    "profile_edit_bind_email_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind your email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Привяжите почту"
+          }
+        }
+      }
+    },
+    "profile_edit_button_save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить"
+          }
+        }
+      }
+    },
+    "profile_edit_email_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Почта"
+          }
+        }
+      }
+    },
+    "profile_edit_unlink_email_button": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlink email"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отвязать почту"
+          }
+        }
+      }
+    },
+    "profile_edit_unlink_email_confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlink"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отвязать"
+          }
+        }
+      }
+    },
+    "profile_edit_unlink_email_confirmation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without a linked email, you may not be able to sign back in to this account."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без привязанной почты вы можете потерять возможность снова войти в этот аккаунт."
+          }
+        }
+      }
+    },
+    "profile_error": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't do that right now"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не можем ничего сделать"
+          }
+        }
+      }
+    },
+    "profile_error_decline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We have a problem reaching our servers"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возникла проблема при попытке связаться с нашими серверами"
+          }
+        }
+      }
+    },
+    "profile_error_ok": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хорошо"
+          }
+        }
+      }
+    },
+    "profile_friends_decline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove friend"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить из друзей"
+          }
+        }
+      }
+    },
+    "profile_friends_decline_confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove anyways"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всё равно продолжить"
+          }
+        }
+      }
+    },
+    "profile_friends_decline_confirmation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You might not be able to add this person back"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возможно вы не сможете вернуть этого человека в друзья"
+          }
+        }
+      }
+    },
+    "profile_sign_out_confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign Out"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти"
+          }
+        }
+      }
+    },
+    "profile_sign_out_confirmation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Are you sure?\n\nNote: Currently it is not possible to log back"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы уверены?\n\nВ данный момент невозможно войти в аккаунт обратно!"
+          }
+        }
+      }
+    },
+    "sign_up_error": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't do that right now"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не можем ничего сделать"
+          }
+        }
+      }
+    },
+    "sign_up_error_ok": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хорошо"
+          }
+        }
+      }
+    }
+  }
+}
