@@ -8,6 +8,8 @@ let package = Package(
   products: [
     .library(name: "ActivityApi", targets: ["ActivityApi"]),
     .library(name: "ActivityApiLive", targets: ["ActivityApiLive"]),
+    .library(name: "ActivityDiscussionFeature", targets: ["ActivityDiscussionFeature"]),
+    .library(name: "ActivityFeature", targets: ["ActivityFeature"]),
     .library(name: "ActivityService", targets: ["ActivityService"]),
     .library(name: "ActivityServiceLive", targets: ["ActivityServiceLive"]),
     .library(name: "AddFriendService", targets: ["AddFriendService"]),
@@ -102,6 +104,35 @@ let package = Package(
         "CommunityMarkdownService",
         "CommunityProfileService",
         "CommunityService",
+      ]
+    ),
+    .target(
+      name: "ActivityFeature",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "ActivityService",
+        "CommunityProfileService",
+        "CommunityService",
+        "FriendlyUIKit",
+      ],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "ActivityDiscussionFeature",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "ActivityService",
+        "CommunityFeature",
+        "CommunityProfileService",
+        "CommunityService",
+      ],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "ActivityRootFeature",
+      dependencies: [
+        "ActivityDiscussionFeature",
+        "ActivityFeature",
       ]
     ),
     .target(
@@ -525,6 +556,7 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+        "ActivityRootFeature",
         "CommunityFeature",
         "CommunityService",
         "FriendlyUIKit",
@@ -700,6 +732,8 @@ let package = Package(
         .product(name: "Networking", package: "Infrastructure"),
         "ActivityApi",
         "ActivityApiLive",
+        "ActivityDiscussionFeature",
+        "ActivityFeature",
         "ActivityService",
         "ActivityServiceLive",
         "CommunityApi",

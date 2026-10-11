@@ -69,6 +69,8 @@ let project = Project(
             dependencies: [
                 .package(product: "ActivityApi"),
                 .package(product: "ActivityApiLive"),
+                .package(product: "ActivityDiscussionFeature"),
+                .package(product: "ActivityFeature"),
                 .package(product: "ActivityService"),
                 .package(product: "ActivityServiceLive"),
                 .package(product: "CommunityApi"),
