@@ -8,22 +8,26 @@ struct CommunityPostDetailView: View {
   @Environment(\.scenePhase) private var scenePhase
   @FocusState private var isReplyFocused: Bool
   @State private var didPosition = false
+  @State private var highlightedReplyID: Int64?
   private let avatarURL: (CommunityPost.Owner.Avatar) -> URL
   private let openAuthor: ((CommunityPost.Owner) -> Void)?
   private let currentUser: CommunityPost.Owner?
   private let focusReplyOnAppear: Bool
+  private let initialReplyID: Int64?
 
   init(
     model: CommunityPostDetailViewModel, currentUser: CommunityPost.Owner?,
     avatarURL: @escaping (CommunityPost.Owner.Avatar) -> URL,
     openAuthor: ((CommunityPost.Owner) -> Void)?,
-    focusReplyOnAppear: Bool = false
+    focusReplyOnAppear: Bool = false,
+    initialReplyID: Int64? = nil
   ) {
     self.model = model
     self.currentUser = currentUser
     self.avatarURL = avatarURL
     self.openAuthor = openAuthor
     self.focusReplyOnAppear = focusReplyOnAppear
+    self.initialReplyID = initialReplyID
   }
 
   var body: some View { contentView() }
@@ -39,6 +43,7 @@ private extension CommunityPostDetailView {
       .sheet(isPresented: $model.showsEditor) { CommunityReplyEditorView(model: model) }
       .sheet(item: $model.editingPost) { CommunityEditView(model: $0) }
       .task { await model.activate() }
+      .task(id: highlightedReplyID) { await clearHighlight() }
       .task {
         if focusReplyOnAppear {
           await Task.yield()
@@ -84,7 +89,11 @@ private extension CommunityPostDetailView {
       .onChange(of: model.loaded) {
         guard model.loaded, !didPosition else { return }
         didPosition = true
-        proxy.scrollTo(model.post.id, anchor: .top)
+        let target = initialReplyID.flatMap { id in
+          model.replies.contains(where: { $0.id == id }) ? id : nil
+        }
+        proxy.scrollTo(target ?? model.post.id, anchor: .top)
+        highlightedReplyID = target
       }
       .onChange(of: model.scrollToReplyID) {
         guard let id = model.scrollToReplyID else { return }
@@ -135,6 +144,7 @@ private extension CommunityPostDetailView {
     }
     ForEach(model.replyRows) { reply in
       postRow(reply)
+        .background(highlightedReplyID == reply.id ? Constants.highlight : .clear)
         .id(reply.id)
       Divider()
     }
@@ -193,6 +203,12 @@ private extension CommunityPostDetailView {
       if !model.loaded { await model.load() }
     }
     Task { await model.restore() }
+  }
+
+  private func clearHighlight() async {
+    guard highlightedReplyID != nil else { return }
+    do { try await Task.sleep(for: .seconds(Constants.highlightDuration)) } catch { return }
+    highlightedReplyID = nil
   }
 
   private func postLayout<Content: View>(
@@ -342,4 +358,6 @@ private enum Constants {
   static let expand = "arrow.up.left.and.arrow.down.right"
   static let send = "arrow.up"
   static let selectionDuration = 0.22
+  static let highlightDuration = 2.5
+  static let highlight = Color.accentColor.opacity(0.12)
 }
