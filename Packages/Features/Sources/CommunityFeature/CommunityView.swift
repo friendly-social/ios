@@ -3,23 +3,27 @@ import CommunityService
 import Foundation
 import SwiftUI
 
-public struct CommunityView: View {
+public struct CommunityView<ActivityDestination: View>: View {
   @Bindable private var model: CommunityViewModel
   @State private var detailPath: [CommunityPostDetailRoute] = []
   @State private var imageLayoutCache = MarkdownImageLayoutCache()
+  @State private var showsActivity = false
   @Binding private var hidesTabBar: Bool
   private let avatarURL: (CommunityPost.Owner.Avatar) -> URL
   private let openAuthor: ((CommunityPost.Owner) -> Void)?
+  private let activityDestination: () -> ActivityDestination
 
   public init(
     model: CommunityViewModel, avatarURL: @escaping (CommunityPost.Owner.Avatar) -> URL,
     hidesTabBar: Binding<Bool>,
-    openAuthor: ((CommunityPost.Owner) -> Void)? = nil
+    openAuthor: ((CommunityPost.Owner) -> Void)? = nil,
+    @ViewBuilder activityDestination: @escaping () -> ActivityDestination
   ) {
     self.model = model
     self.avatarURL = avatarURL
     self._hidesTabBar = hidesTabBar
     self.openAuthor = openAuthor
+    self.activityDestination = activityDestination
   }
 
   public var body: some View {
@@ -51,8 +55,8 @@ private extension CommunityView {
           if let error = model.mutationError { Text(error) }
         }
     }
-    .onChange(of: detailPath.isEmpty, initial: true) {
-      hidesTabBar = !detailPath.isEmpty
+    .onChange(of: detailPath.isEmpty && !showsActivity, initial: true) {
+      hidesTabBar = !detailPath.isEmpty || showsActivity
     }
     .markdownImageLayoutCache(imageLayoutCache)
   }
@@ -64,6 +68,8 @@ private extension CommunityView {
       .navigationTitle(Text(verbatim: "Friendly"))
       .navigationBarTitleDisplayMode(.inline)
       .navigationDestination(for: CommunityPostDetailRoute.self) { postDetails(for: $0) }
+      .navigationDestination(isPresented: $showsActivity, destination: activityDestination)
+      .toolbar { activityToolbar() }
       .refreshable { await model.load() }
       .task { await model.load() }
       .task { await model.loadProfile() }
@@ -78,6 +84,13 @@ private extension CommunityView {
       model: route.model,
       currentUser: model.currentUser, avatarURL: avatarURL, openAuthor: openAuthor,
       focusReplyOnAppear: route.focusReplyOnAppear)
+  }
+
+  private func activityToolbar() -> some ToolbarContent {
+    ToolbarItem(placement: .topBarTrailing) {
+      Button(.communityActivity, systemImage: Constants.activity) { showsActivity = true }
+        .labelStyle(.iconOnly)
+    }
   }
 
   private func deletePost(_ post: CommunityPost) {
@@ -189,4 +202,5 @@ private enum Constants {
   static let error = Color.red
   static let background = Color(uiColor: .systemBackground)
   static let empty = "text.bubble"
+  static let activity = "bell"
 }

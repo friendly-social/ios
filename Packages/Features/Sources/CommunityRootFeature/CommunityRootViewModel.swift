@@ -8,7 +8,7 @@ import ProfileFeature
 public final class CommunityRootViewModel {
   private(set) var feed: CommunityViewModel?
   var author: AuthorDestination?
-  private let onSessionExpired: () -> Void
+  let onSessionExpired: () -> Void
 
   public init(onSessionExpired: @escaping () -> Void) {
     self.onSessionExpired = onSessionExpired

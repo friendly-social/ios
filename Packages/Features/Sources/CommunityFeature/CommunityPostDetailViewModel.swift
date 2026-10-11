@@ -1,5 +1,5 @@
-import CommunityEditorFeature
 import CommunityDraftService
+import CommunityEditorFeature
 import CommunityMarkdownService
 import CommunityProfileService
 import CommunityService
@@ -51,17 +51,26 @@ final class CommunityPostDetailViewModel {
   private var saveTask: Task<Void, Never>?
   private var snapshots: [Int64: DiscussionSnapshot] = [:]
   private var initialOwner: CommunityPost.Owner?
+  private var initialDetails: CommunityPostDetails?
+  private let focusedReply: PostDescriptor?
+  private let focusedParent: PostDescriptor
+  private(set) var currentOwner: CommunityPost.Owner?
 
   init(
     post: CommunityPost,
     selectedRow: CommunityFeedPost? = nil,
     currentOwner: CommunityPost.Owner? = nil,
+    initialDetails: CommunityPostDetails? = nil,
+    focusedReply: PostDescriptor? = nil,
     onUnauthorized: @escaping () -> Void,
     onMutation: @escaping (CommunityPost) async -> Void = { _ in }
   ) {
     self.post = post
     self.selectedRow = selectedRow
     self.initialOwner = currentOwner
+    self.initialDetails = initialDetails
+    self.focusedReply = focusedReply
+    self.focusedParent = post.descriptor
     self.onMutation = onMutation
     self.onUnauthorized = onUnauthorized
   }
@@ -75,6 +84,7 @@ final class CommunityPostDetailViewModel {
     let isCurrent: @Sendable () -> Bool = { profile.isCurrentSession(session) }
     draftStore = { draftService.detailDrafts($0, session.accountID, session.sessionID, isCurrent) }
     accountID = session.accountID
+    currentOwner = initialOwner ?? profile.cachedOwner(session)
     let owner = initialOwner
     currentUser = {
       if let owner { return owner }
@@ -94,6 +104,10 @@ final class CommunityPostDetailViewModel {
     async let replies: Void = load()
     async let draft: Void = restore()
     _ = await (replies, draft)
+  }
+
+  func avatarURL(_ avatar: CommunityPost.Owner.Avatar) -> URL {
+    profileService.avatarURL(avatar)
   }
 
   var plainText: String {
@@ -173,42 +187,10 @@ final class CommunityPostDetailViewModel {
     loadError = nil
     defer { if generation == request { isLoading = false } }
     do {
-      let details = try await service.details(post.descriptor)
+      let details = try await fetchedDetails()
       guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
-      let directReplies = deduplicated(details.replies.data.compactMap(\.directPost))
-      let previousAncestors = ancestorRows
-      let previousReplies = replyRows
-      let previousSelected = selectedRow
-      post = details.post
-      if let previousSelected, previousSelected.content.source == details.post.text {
-        selectedRow = CommunityFeedPost(post: details.post, content: previousSelected.content)
-      } else {
-        selectedRow = CommunityFeedPost(
-          post: details.post, content: .init(source: details.post.text, excerpt: nil))
-      }
-      upstream = details.upstream
-      ancestorRows = details.upstream.map { item in
-        previousAncestors.first { $0.id == item.id && $0.content.source == item.text }
-          ?? CommunityFeedPost(post: item, content: .init(source: item.text, excerpt: nil))
-      }
-      replies = directReplies
-      replyRows = directReplies.map { item in
-        previousReplies.first { $0.id == item.id && $0.content.source == item.text }
-          ?? CommunityFeedPost(post: item, content: .init(source: item.text, excerpt: nil))
-      }
-      nextID = details.replies.nextId
-      loaded = true
-      snapshots[post.id] = snapshot()
-      let preparedAncestors = try await preparation.prepare(details.upstream, reusing: ancestorRows)
-      let preparedReplies = try await preparation.prepare(directReplies, reusing: replyRows)
-      let preparedSelected = await preparation.prepare(details.post)
-      guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
-      selectedRow = preparedSelected
-      ancestorRows = preparedAncestors
-      replyRows = preparedReplies
-      pendingReplies.removeAll { pending in replies.contains { $0.id == pending.id } }
-      pendingRows.removeAll { pending in replies.contains { $0.id == pending.id } }
-      snapshots[post.id] = snapshot()
+      applyDetails(details)
+      try await prepareDetails(details, generation: request)
     } catch CommunityError.unauthorized {
       if isCurrentSession() { onUnauthorized() }
     } catch is CancellationError {
@@ -352,6 +334,61 @@ final class CommunityPostDetailViewModel {
 }
 
 private extension CommunityPostDetailViewModel {
+  private func fetchedDetails() async throws -> CommunityPostDetails {
+    if let initialDetails, initialDetails.post.descriptor == post.descriptor {
+      self.initialDetails = nil
+      return initialDetails
+    }
+    initialDetails = nil
+    let details = try await service.details(post.descriptor)
+    return try await includingFocusedReply(in: details)
+  }
+
+  private func includingFocusedReply(in details: CommunityPostDetails) async throws -> CommunityPostDetails {
+    guard details.post.descriptor == focusedParent, let focusedReply,
+          !details.replies.data.contains(where: { $0.directPost?.id == focusedReply.id }) else { return details }
+    let target: CommunityPostDetails
+    do { target = try await service.details(focusedReply) }
+    catch CommunityError.rejected(404) { return details }
+    guard target.upstream.last?.descriptor == details.post.descriptor else { return details }
+    let replies = CommunityReplyPage(
+      data: details.replies.data + [.single(target.post)], nextId: details.replies.nextId)
+    return .init(post: details.post, upstream: details.upstream, replies: replies)
+  }
+
+  private func applyDetails(_ details: CommunityPostDetails) {
+    let previous = ancestorRows + replyRows + (selectedRow.map { [$0] } ?? [])
+    post = details.post
+    selectedRow = row(post, reusing: previous)
+    upstream = details.upstream
+    ancestorRows = upstream.map { row($0, reusing: previous) }
+    replies = deduplicated(details.replies.data.compactMap(\.directPost))
+    replyRows = replies.map { row($0, reusing: previous) }
+    nextID = details.replies.nextId
+  }
+
+  private func row(_ post: CommunityPost, reusing previous: [CommunityFeedPost]) -> CommunityFeedPost {
+    if let cached = previous.first(where: { $0.id == post.id && $0.content.source == post.text }) {
+      return CommunityFeedPost(post: post, content: cached.content)
+    }
+    return CommunityFeedPost(post: post, content: .init(source: post.text, excerpt: nil))
+  }
+
+  private func prepareDetails(_ details: CommunityPostDetails, generation request: Int) async throws {
+    let ancestors = try await preparation.prepare(details.upstream, reusing: ancestorRows)
+    let preparedReplies = try await preparation.prepare(replies, reusing: replyRows)
+    let selected = await preparation.prepare(details.post)
+    guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
+    selectedRow = selected
+    ancestorRows = ancestors
+    replyRows = preparedReplies
+    pendingReplies.removeAll { pending in replies.contains { $0.id == pending.id } }
+    pendingRows.removeAll { pending in replies.contains { $0.id == pending.id } }
+    initialDetails = nil
+    snapshots[post.id] = snapshot()
+    loaded = true
+  }
+
   private func markdown(for value: CommunityReplyDraft) -> String {
     switch value {
     case let .plainText(text): MarkdownLiteral.encode(text)

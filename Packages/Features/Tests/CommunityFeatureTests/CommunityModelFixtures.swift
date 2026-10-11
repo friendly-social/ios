@@ -81,6 +81,8 @@ func makeEditModel(
 func makeDetailModel(
   post: CommunityPost,
   service: CommunityService,
+  initialDetails: CommunityPostDetails? = nil,
+  focusedReply: PostDescriptor? = nil,
   preparation: CommunityFeedPreparationService = .fixture,
   drafts: @escaping (PostDescriptor) -> CommunityReplyDrafts = { _ in .empty },
   currentUser: @escaping () async -> CommunityPost.Owner? = { nil },
@@ -98,6 +100,8 @@ func makeDetailModel(
   } operation: {
     let model = CommunityPostDetailViewModel(
       post: post,
+      initialDetails: initialDetails,
+      focusedReply: focusedReply,
       onUnauthorized: onUnauthorized,
       onMutation: onMutation)
     _ = model.start()

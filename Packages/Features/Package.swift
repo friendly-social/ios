@@ -6,6 +6,12 @@ let package = Package(
   defaultLocalization: "en",
   platforms: [.iOS(.v26)],
   products: [
+    .library(name: "ActivityApi", targets: ["ActivityApi"]),
+    .library(name: "ActivityApiLive", targets: ["ActivityApiLive"]),
+    .library(name: "ActivityDiscussionFeature", targets: ["ActivityDiscussionFeature"]),
+    .library(name: "ActivityFeature", targets: ["ActivityFeature"]),
+    .library(name: "ActivityService", targets: ["ActivityService"]),
+    .library(name: "ActivityServiceLive", targets: ["ActivityServiceLive"]),
     .library(name: "AddFriendService", targets: ["AddFriendService"]),
     .library(name: "AuthApi", targets: ["AuthApi"]),
     .library(name: "AuthApiLive", targets: ["AuthApiLive"]),
@@ -61,6 +67,74 @@ let package = Package(
     .package(url: "https://github.com/tevelee/SwiftUI-Flow", exact: "3.1.0"),
   ],
   targets: [
+    .target(
+      name: "ActivityApi",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        "ActivityService",
+      ]
+    ),
+    .target(
+      name: "ActivityApiLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "ActivityApi",
+        "ActivityService",
+        "CommunityService",
+      ]
+    ),
+    .target(
+      name: "ActivityService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        "CommunityProfileService",
+        "CommunityService",
+      ]
+    ),
+    .target(
+      name: "ActivityServiceLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "ActivityApi",
+        "ActivityService",
+        "CommunityApi",
+        "CommunityMarkdownService",
+        "CommunityProfileService",
+        "CommunityService",
+      ]
+    ),
+    .target(
+      name: "ActivityFeature",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "ActivityService",
+        "CommunityProfileService",
+        "CommunityService",
+        "FriendlyUIKit",
+      ],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "ActivityDiscussionFeature",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "ActivityService",
+        "CommunityFeature",
+        "CommunityProfileService",
+        "CommunityService",
+      ],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "ActivityRootFeature",
+      dependencies: [
+        "ActivityDiscussionFeature",
+        "ActivityFeature",
+      ]
+    ),
     .target(
       name: "AddFriendService",
       dependencies: [
@@ -482,6 +556,7 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+        "ActivityRootFeature",
         "CommunityFeature",
         "CommunityService",
         "FriendlyUIKit",
@@ -625,6 +700,8 @@ let package = Package(
         .product(name: "StorageServiceLive", package: "Infrastructure"),
         .product(name: "AccountStorageServiceLive", package: "Infrastructure"),
         "AccountSessionServiceLive",
+        "ActivityApiLive",
+        "ActivityServiceLive",
         "AddFriendServiceLive",
         "AuthApiLive",
         "CommunityApiLive",
@@ -646,6 +723,22 @@ let package = Package(
         "CameraPermissionServiceLive",
         "QRPhotoImportServiceLive",
         "QRSessionServiceLive",
+      ]
+    ),
+    .testTarget(
+      name: "ActivityFeatureTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "ActivityApi",
+        "ActivityApiLive",
+        "ActivityDiscussionFeature",
+        "ActivityFeature",
+        "ActivityService",
+        "ActivityServiceLive",
+        "CommunityApi",
+        "CommunityProfileService",
+        "CommunityService",
       ]
     ),
     .testTarget(

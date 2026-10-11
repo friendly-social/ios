@@ -1,3 +1,4 @@
+import ActivityRootFeature
 import CommunityFeature
 import FriendlyUIKit
 import ProfileFeature
@@ -31,7 +32,10 @@ private extension CommunityRootView {
     if let feed = model.feed {
       CommunityView(
         model: feed, avatarURL: feed.avatarURL, hidesTabBar: $hidesTabBar,
-        openAuthor: model.openAuthor)
+        openAuthor: model.openAuthor
+      ) {
+        ActivityRootView(onUnauthorized: model.onSessionExpired)
+      }
     } else {
       ContentUnavailableView(.communitySignInRequired, systemImage: Constants.signIn)
     }
