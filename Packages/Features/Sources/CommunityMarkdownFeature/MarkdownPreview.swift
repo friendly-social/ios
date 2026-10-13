@@ -1,6 +1,6 @@
-import CachedAsyncImage
 import CommunityMarkdownService
 import Foundation
+import NukeUI
 import SwiftUI
 
 public struct MarkdownPreview: View {
@@ -217,8 +217,8 @@ private extension MarkdownImageView {
     Group {
       if let url {
         MarkdownImageLayout(ratio: layoutCache?.ratio(for: url), maximumHeight: Constants.imageHeight) {
-          CachedAsyncImage(url: url) { phase in
-            imagePhaseView(phase)
+          LazyImage(url: url) { state in
+            imagePhaseView(state)
           }
         }
         .frame(maxHeight: Constants.imageHeight)
@@ -237,9 +237,8 @@ private extension MarkdownImageView {
   }
 
   @ViewBuilder
-  private func imagePhaseView(_ phase: AsyncImagePhase) -> some View {
-    switch phase {
-    case let .success(image):
+  private func imagePhaseView(_ state: LazyImageState) -> some View {
+    if let image = state.image {
       if allowsImageViewing, let url {
         Button {
           var transaction = Transaction(animation: nil)
@@ -257,9 +256,9 @@ private extension MarkdownImageView {
       } else {
         loadedImageView(image)
       }
-    case .failure:
+    } else if state.error != nil {
       Label { alt.isEmpty ? Text(.markdownImageUnavailable) : Text(alt) } icon: { Image(systemName: Constants.imageError) }
-    default:
+    } else {
       ProgressView().frame(
         maxWidth: .infinity,
         minHeight: url.flatMap { layoutCache?.ratio(for: $0) } == nil ? Constants.loadingHeight : nil)

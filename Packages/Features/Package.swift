@@ -60,7 +60,7 @@ let package = Package(
     .package(path: "../Domain"),
     .package(path: "../Infrastructure"),
     .package(url: "https://github.com/dagronf/QRCode", exact: "27.12.0"),
-    .package(url: "https://github.com/lorenzofiamingo/swiftui-cached-async-image", exact: "2.1.1"),
+    .package(url: "https://github.com/kean/Nuke", exact: "13.2.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.12.0"),
     .package(url: "https://github.com/alex-npmn/URLMacro.git", from: "1.0.2"),
     .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
@@ -248,7 +248,7 @@ let package = Package(
     .target(
       name: "FriendlyUIKit",
       dependencies: [
-        .product(name: "CachedAsyncImage", package: "swiftui-cached-async-image"),
+        .product(name: "NukeUI", package: "Nuke"),
       ]
     ),
     .target(
@@ -301,10 +301,10 @@ let package = Package(
     .target(
       name: "FeedFeature",
       dependencies: [
-        .product(name: "CachedAsyncImage", package: "swiftui-cached-async-image"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Flow", package: "SwiftUI-Flow"),
         .product(name: "Models", package: "Domain"),
+        .product(name: "NukeUI", package: "Nuke"),
         "DiscoveryFeedService",
         "FriendlyUIKit",
         "ProfileFeature",
@@ -420,7 +420,7 @@ let package = Package(
     .target(
       name: "CommunityMarkdownFeature",
       dependencies: [
-        .product(name: "CachedAsyncImage", package: "swiftui-cached-async-image"),
+        .product(name: "NukeUI", package: "Nuke"),
         "CommunityMarkdownService",
       ],
       resources: [
@@ -528,9 +528,9 @@ let package = Package(
     .target(
       name: "CommunityFeature",
       dependencies: [
-        .product(name: "CachedAsyncImage", package: "swiftui-cached-async-image"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "NukeUI", package: "Nuke"),
         "CommunityDraftService",
         "CommunityEditorFeature",
         "CommunityMarkdownFeature",
@@ -696,9 +696,10 @@ let package = Package(
     .target(
       name: "LiveDependencies",
       dependencies: [
+        .product(name: "AccountStorageServiceLive", package: "Infrastructure"),
+        .product(name: "ImageServiceLive", package: "Infrastructure"),
         .product(name: "NetworkingLive", package: "Infrastructure"),
         .product(name: "StorageServiceLive", package: "Infrastructure"),
-        .product(name: "AccountStorageServiceLive", package: "Infrastructure"),
         "AccountSessionServiceLive",
         "ActivityApiLive",
         "ActivityServiceLive",

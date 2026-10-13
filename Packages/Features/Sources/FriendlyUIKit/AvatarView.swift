@@ -1,52 +1,56 @@
-import CachedAsyncImage
+import NukeUI
 import SwiftUI
 
 public struct AvatarView: View {
-    let url: URL?
-    let size: CGFloat
+  private let url: URL?
+  private let size: CGFloat
+  @Environment(\.colorScheme) private var colorScheme
 
-    public init(url: URL?, size: CGFloat) {
-        self.url = url
-        self.size = size
-    }
+  public init(url: URL?, size: CGFloat) {
+    self.url = url
+    self.size = size
+  }
 
-    @Environment(\.colorScheme) var colorScheme
+  public var body: some View { contentView() }
+}
 
-    public var body: some View {
-        VStack {
-            if let url = url {
-                CachedAsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: size, height: size)
-                        .clipShape(Circle())
-                } placeholder: {
-                    let opacity = colorScheme == .light ? 0.5 : 1
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: size, height: size)
-                        .background(.white)
-                        .foregroundStyle(.gray.gradient.opacity(opacity))
-                        .clipShape(Circle())
-                        .overlay {
-                            ZStack {
-                                Circle().fill(.ultraThinMaterial)
-                                ProgressView()
-                            }
-                        }
-                }
-            } else {
-                let opacity = colorScheme == .light ? 0.5 : 1
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: size, height: size)
-                    .background(.white)
-                    .foregroundStyle(.gray.gradient.opacity(opacity))
-                    .clipShape(Circle())
+private extension AvatarView {
+  @ViewBuilder
+  private func contentView() -> some View {
+    if let url {
+      LazyImage(url: url) { state in
+        if let image = state.image {
+          image.resizable().aspectRatio(contentMode: .fill)
+            .frame(width: size, height: size).clipShape(.circle)
+        } else {
+          placeholderView().overlay {
+            ZStack {
+              Circle().fill(.ultraThinMaterial)
+              ProgressView()
             }
+          }
         }
+      }
+    } else {
+      placeholderView()
     }
+  }
+
+  private func placeholderView() -> some View {
+    Image(systemName: Constants.person)
+      .resizable().scaledToFit()
+      .frame(width: size, height: size)
+      .background(Constants.background)
+      .foregroundStyle(Constants.foreground.gradient.opacity(
+        colorScheme == .light ? Constants.lightOpacity : Constants.darkOpacity))
+      .clipShape(.circle)
+  }
+}
+
+private enum Constants {
+  static let person = "person.circle.fill"
+  static let background = Color.white
+  static let foreground = Color.gray
+  static let lightOpacity = 0.5
+  static let darkOpacity = 1.0
 }

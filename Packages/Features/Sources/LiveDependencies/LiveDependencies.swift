@@ -15,6 +15,7 @@ import FeedApiLive
 import FilesApiLive
 import FriendAccessServiceLive
 import FriendsApiLive
+import ImageServiceLive
 import NetworkServiceLive
 import NetworkingLive
 import ProfileApiLive
