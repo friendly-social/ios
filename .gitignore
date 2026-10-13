@@ -62,3 +62,8 @@ Derived/
 
 ### Tuist managed dependencies ###
 Tuist/.build
+
+### Local development artifacts ###
+/.local/
+*.xcresult/
+*.log
