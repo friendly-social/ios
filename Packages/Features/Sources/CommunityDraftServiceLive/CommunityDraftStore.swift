@@ -13,7 +13,7 @@ actor CommunityDraftStore {
     let id = UUID()
     let (stream, continuation) = AsyncStream<String?>.makeStream(bufferingPolicy: .bufferingNewest(1))
     observers[id] = Observer(accountID: accountID, sessionID: sessionID, continuation: continuation)
-    continuation.yield(value)
+    continuation.yield(observedSource(value))
     continuation.onTermination = { [weak self] _ in
       Task { await self?.removeObserver(id) }
     }
@@ -99,9 +99,14 @@ private extension CommunityDraftStore {
 
   private func notify(accountID: Int64, sessionID: String, value: String?) {
     for observer in observers.values where observer.accountID == accountID {
-      observer.continuation.yield(observer.sessionID == sessionID ? value : nil)
+      observer.continuation.yield(observer.sessionID == sessionID ? observedSource(value) : nil)
     }
   }
+
+  private func observedSource(_ value: String?) -> String? {
+    value.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+  }
+
   private func check(_ sessionID: String) throws {
     if revokedSessions.contains(sessionID) { throw CancellationError() }
   }

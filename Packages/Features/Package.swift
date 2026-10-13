@@ -26,8 +26,6 @@ let package = Package(
     .library(name: "CommunityServiceLive", targets: ["CommunityServiceLive"]),
     .library(name: "CommunityDraftService", targets: ["CommunityDraftService"]),
     .library(name: "CommunityDraftServiceLive", targets: ["CommunityDraftServiceLive"]),
-    .library(name: "CommunityDraftStorageService", targets: ["CommunityDraftStorageService"]),
-    .library(name: "CommunityDraftStorageServiceLive", targets: ["CommunityDraftStorageServiceLive"]),
     .library(name: "CommunityProfileService", targets: ["CommunityProfileService"]),
     .library(name: "CommunityFeature", targets: ["CommunityFeature"]),
     .library(name: "CommunityRootFeature", targets: ["CommunityRootFeature"]),
@@ -483,25 +481,8 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         "CommunityDraftService",
-        "CommunityDraftStorageService",
         "CommunityMarkdownService",
         "CommunityService",
-      ]
-    ),
-    .target(
-      name: "CommunityDraftStorageService",
-      dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "DependenciesMacros", package: "swift-dependencies"),
-        "CommunityDraftService",
-      ]
-    ),
-    .target(
-      name: "CommunityDraftStorageServiceLive",
-      dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        "CommunityDraftService",
-        "CommunityDraftStorageService",
       ]
     ),
     .target(
@@ -707,7 +688,6 @@ let package = Package(
         "AuthApiLive",
         "CommunityApiLive",
         "CommunityDraftServiceLive",
-        "CommunityDraftStorageServiceLive",
         "CommunityFeatureLive",
         "CommunityProfileServiceLive",
         "CommunityServiceLive",

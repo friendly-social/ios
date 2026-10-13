@@ -78,7 +78,6 @@ let project = Project(
                 .package(product: "CommunityApiLive"),
                 .package(product: "CommunityDraftService"),
                 .package(product: "CommunityDraftServiceLive"),
-                .package(product: "CommunityDraftStorageServiceLive"),
                 .package(product: "CommunityEditorFeature"),
                 .package(product: "CommunityFeature"),
                 .package(product: "CommunityMarkdownFeature"),
