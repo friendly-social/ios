@@ -20,6 +20,7 @@ let package = Package(
     .library(name: "CommunityMarkdownFeature", targets: ["CommunityMarkdownFeature"]),
     .library(name: "CommunityMarkdownService", targets: ["CommunityMarkdownService"]),
     .library(name: "CommunityEditorFeature", targets: ["CommunityEditorFeature"]),
+    .library(name: "CommunityEditorFeatureLive", targets: ["CommunityEditorFeatureLive"]),
     .library(name: "CommunityService", targets: ["CommunityService"]),
     .library(name: "CommunityApi", targets: ["CommunityApi"]),
     .library(name: "CommunityApiLive", targets: ["CommunityApiLive"]),
@@ -60,6 +61,7 @@ let package = Package(
     .package(url: "https://github.com/dagronf/QRCode", exact: "27.12.0"),
     .package(url: "https://github.com/kean/Nuke", exact: "13.2.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.12.0"),
+    .package(url: "https://github.com/pointfreeco/swift-custom-dump", exact: "1.7.3"),
     .package(url: "https://github.com/alex-npmn/URLMacro.git", from: "1.0.2"),
     .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     .package(url: "https://github.com/tevelee/SwiftUI-Flow", exact: "3.1.0"),
@@ -428,11 +430,24 @@ let package = Package(
     .target(
       name: "CommunityEditorFeature",
       dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
         "CommunityMarkdownFeature",
         "CommunityMarkdownService",
+        "CommunityProfileService",
       ],
       resources: [
         .process("Resources"),
+      ]
+    ),
+    .target(
+      name: "CommunityEditorFeatureLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "ImageService", package: "Infrastructure"),
+        "CommunityEditorFeature",
+        "CommunityProfileService",
+        "FilesApi",
       ]
     ),
     .target(
@@ -688,6 +703,7 @@ let package = Package(
         "AuthApiLive",
         "CommunityApiLive",
         "CommunityDraftServiceLive",
+        "CommunityEditorFeatureLive",
         "CommunityFeatureLive",
         "CommunityProfileServiceLive",
         "CommunityServiceLive",
@@ -747,7 +763,18 @@ let package = Package(
     .testTarget(
       name: "CommunityEditorFeatureTests",
       dependencies: [
+        .product(name: "CustomDump", package: "swift-custom-dump"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "ImageService", package: "Infrastructure"),
+        .product(name: "ImageServiceLive", package: "Infrastructure"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "Networking", package: "Infrastructure"),
+        .product(name: "Nuke", package: "Nuke"),
         "CommunityEditorFeature",
+        "CommunityEditorFeatureLive",
+        "CommunityProfileService",
+        "FilesApi",
+        "FilesApiLive",
       ]
     ),
     .testTarget(

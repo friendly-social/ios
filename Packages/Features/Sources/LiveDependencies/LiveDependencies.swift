@@ -5,6 +5,7 @@ import AuthApiLive
 import CameraPermissionServiceLive
 import CommunityApiLive
 import CommunityDraftServiceLive
+import CommunityEditorFeatureLive
 import CommunityFeatureLive
 import CommunityProfileServiceLive
 import CommunityServiceLive
