@@ -60,8 +60,8 @@ private extension ActivityView {
   private func rowView(_ event: ActivityEvent) -> some View {
     Button { model.openButtonTapped(event) } label: {
       ActivityRowView(event: event, avatarURL: model.avatarURL(for: event))
+        .foregroundStyle(Constants.foreground)
     }
-    .buttonStyle(.plain)
     .listRowBackground(event.isRead ? Constants.rowBackground : Constants.unreadBackground)
   }
 
@@ -92,6 +92,7 @@ private extension ActivityView {
 private enum Constants {
   static let empty = "bell"
   static let error = "wifi.exclamationmark"
+  static let foreground = Color.primary
   static let rowBackground = Color(uiColor: .secondarySystemGroupedBackground)
   static let unreadBackground = Color.accentColor.opacity(0.08)
 }
