@@ -146,7 +146,6 @@ final class CommunityPostDetailViewModel {
     do {
       let details = try await fetchedDetails()
       guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
-      applyDetails(details)
       try await prepareDetails(details, generation: request)
     } catch CommunityError.unauthorized {
       if isCurrentSession() { handleUnauthorized() }
@@ -258,17 +257,6 @@ private extension CommunityPostDetailViewModel {
     return .init(post: details.post, upstream: details.upstream, replies: replies)
   }
 
-  private func applyDetails(_ details: CommunityPostDetails) {
-    let previous = ancestorRows + replyRows + (selectedRow.map { [$0] } ?? [])
-    post = details.post
-    selectedRow = row(post, reusing: previous)
-    upstream = details.upstream
-    ancestorRows = upstream.map { row($0, reusing: previous) }
-    replies = deduplicated(details.replies.data.compactMap(\.directPost))
-    replyRows = replies.map { row($0, reusing: previous) }
-    nextID = details.replies.nextId
-  }
-
   private func row(_ post: CommunityPost, reusing previous: [CommunityFeedPost]) -> CommunityFeedPost {
     if let cached = previous.first(where: { $0.id == post.id && $0.content.source == post.text }) {
       return CommunityFeedPost(post: post, content: cached.content)
@@ -277,18 +265,24 @@ private extension CommunityPostDetailViewModel {
   }
 
   private func prepareDetails(_ details: CommunityPostDetails, generation request: Int) async throws {
-    let ancestors = try await preparation.prepare(details.upstream, reusing: ancestorRows)
-    let preparedReplies = try await preparation.prepare(replies, reusing: replyRows)
+    let previous = ancestorRows + replyRows + (selectedRow.map { [$0] } ?? [])
+    let replies = deduplicated(details.replies.data.compactMap(\.directPost))
+    let ancestors = try await preparation.prepare(details.upstream, reusing: previous)
+    let preparedReplies = try await preparation.prepare(replies, reusing: previous)
     let selected = await preparation.prepare(details.post)
     guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
+    post = details.post
     selectedRow = selected
+    upstream = details.upstream
     ancestorRows = ancestors
+    self.replies = replies
     replyRows = preparedReplies
+    nextID = details.replies.nextId
     pendingReplies.removeAll { pending in replies.contains { $0.id == pending.id } }
     pendingRows.removeAll { pending in replies.contains { $0.id == pending.id } }
     initialDetails = nil
-    snapshots[post.id] = snapshot()
     loaded = true
+    snapshots[post.id] = snapshot()
   }
 
   private func makeReplyComposer(for item: CommunityPost, ignoringDraft: String? = nil) -> CommunityComposerViewModel? {
