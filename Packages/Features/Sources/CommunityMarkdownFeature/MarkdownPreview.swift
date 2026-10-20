@@ -1,4 +1,5 @@
 import CommunityMarkdownService
+import CoreText
 import Foundation
 import NukeUI
 import SwiftUI
@@ -163,7 +164,11 @@ private extension MarkdownBlockView {
 }
 
 private struct MarkdownInlineView: View {
-  let content: [MarkdownDocument.Inline]
+  @Environment(\.font) private var font
+  @Environment(\.fontResolutionContext) private var fontContext
+  private let content: [MarkdownInlineContent]
+
+  init(content: [MarkdownDocument.Inline]) { self.content = MarkdownInlineContent.make(content) }
 
   var body: some View {
     contentView()
@@ -179,16 +184,23 @@ private extension MarkdownInlineView {
         inlineView(inline)
       }
     }
+    .padding(.top, firstLineTopInset)
   }
 
   @ViewBuilder
-  private func inlineView(_ inline: MarkdownDocument.Inline) -> some View {
+  private func inlineView(_ inline: MarkdownInlineContent) -> some View {
     switch inline.kind {
     case let .text(text):
       Text(text).fixedSize(horizontal: false, vertical: true)
     case let .image(url, alt):
       MarkdownImageView(url: url, alt: alt)
     }
+  }
+
+  private var firstLineTopInset: CGFloat {
+    guard let first = content.first, case .image = first.kind else { return Constants.zero }
+    let resolved = (font ?? .body).resolve(in: fontContext).ctFont
+    return max(Constants.zero, CTFontGetAscent(resolved) - CTFontGetCapHeight(resolved))
   }
 }
 
@@ -229,8 +241,8 @@ private extension MarkdownImageView {
         .frame(maxWidth: .infinity, minHeight: Constants.emptyImageHeight)
       }
     }
-    .frame(maxWidth: .infinity)
     .background(.quaternary, in: .rect(cornerRadius: Constants.cornerRadius))
+    .clipShape(.rect(cornerRadius: Constants.cornerRadius))
     .fullScreenCover(item: $selectedImage) { selected in
       MarkdownPhotoViewer(image: selected.image, alt: alt, sourceFrame: selected.sourceFrame)
     }

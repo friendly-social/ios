@@ -44,7 +44,8 @@ struct MarkdownImageLayout: Layout {
       return subviews.first?.sizeThatFits(
         ProposedViewSize(width: proposal.width, height: maximumHeight)) ?? .zero
     }
-    return CGSize(width: width, height: min(width / ratio, maximumHeight))
+    let height = min(width / ratio, maximumHeight)
+    return CGSize(width: height * ratio, height: height)
   }
 
   func placeSubviews(
