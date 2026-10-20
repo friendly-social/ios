@@ -329,7 +329,7 @@ private extension CommunityPostDetailView {
       ProgressView().frame(maxWidth: .infinity, minHeight: Constants.controlHeight)
     } else if composer.plainText != nil {
       TextField(.postReplyPlaceholder, text: Binding(
-        get: { composer.plainText ?? "" }, set: composer.setPlainText), axis: .vertical)
+        get: { composer.plainText ?? "" }, set: { composer.setPlainText($0) }), axis: .vertical)
         .focused($isReplyFocused)
         .lineLimit(1...4)
         .frame(maxWidth: .infinity, minHeight: Constants.controlHeight, alignment: .leading)

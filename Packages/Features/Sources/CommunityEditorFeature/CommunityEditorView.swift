@@ -130,7 +130,7 @@ private extension CommunityEditorView {
         PhotoTextView(model: viewModel, autofocus: autofocus)
       }
     case .source:
-      TextEditor(text: Binding(get: { viewModel.markdown }, set: viewModel.loadSource))
+      TextEditor(text: Binding(get: { viewModel.markdown }, set: { viewModel.loadSource($0) }))
         .font(.body.monospaced())
         .autocorrectionDisabled()
         .textInputAutocapitalization(.never)
