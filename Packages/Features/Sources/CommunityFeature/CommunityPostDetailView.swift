@@ -35,12 +35,36 @@ struct CommunityPostDetailView: View {
 
 private extension CommunityPostDetailView {
   private func contentView() -> some View {
+    discussionView()
+      .alert(.postReplyUncertain, isPresented: replyRetryPresented) {
+        Button(.postRepliesRetry) { publishReply(confirmedRetry: true) }
+        Button(.commonCancel, role: .cancel) {}
+      }
+      .alert(.postReply, isPresented: Binding(
+        get: { model.composer == nil && replyError != nil && !replyRetryPresented.wrappedValue },
+        set: { if !$0 { model.sendError = nil; model.replyComposer?.dismissPublicationError() } }
+      )) {
+        Button(.commonOk, role: .cancel) { model.sendError = nil; model.replyComposer?.dismissPublicationError() }
+      } message: {
+        if let error = replyError { Text(error) }
+      }
+      .alert(.postDelete, isPresented: Binding(
+        get: { model.mutationError != nil },
+        set: { if !$0 { model.mutationError = nil } }
+      )) {
+        Button(.commonOk, role: .cancel) { model.mutationError = nil }
+      } message: {
+        if let error = model.mutationError { Text(error) }
+      }
+  }
+
+  private func discussionView() -> some View {
     scrollView()
       .background(Constants.background)
       .navigationTitle(.postTitle)
       .navigationBarTitleDisplayMode(.inline)
       .safeAreaBar(edge: .bottom) { replyBar() }
-      .sheet(isPresented: $model.showsEditor) { CommunityReplyEditorView(model: model) }
+      .sheet(item: $model.composer) { CommunityComposerView(model: $0) }
       .sheet(item: $model.editingPost) { CommunityEditView(model: $0) }
       .task { await model.activate() }
       .task(id: highlightedReplyID) { await clearHighlight() }
@@ -53,28 +77,23 @@ private extension CommunityPostDetailView {
       .refreshable { await model.load() }
       .onDisappear { model.stop() }
       .onChange(of: scenePhase) {
-        if scenePhase != .active { Task { await model.saveDraft() } }
+        if scenePhase != .active && model.composer == nil { Task { await model.saveDraft() } }
       }
-      .alert(.postReplyUncertain, isPresented: $model.needsRetryConfirmation) {
-        Button(.postRepliesRetry) { Task { await model.send(confirmedRetry: true) } }
-        Button(.commonCancel, role: .cancel) {}
-      }
-      .alert(.postReply, isPresented: Binding(
-        get: { model.sendError != nil && !model.needsRetryConfirmation },
-        set: { if !$0 { model.sendError = nil } }
-      )) {
-        Button(.commonOk, role: .cancel) { model.sendError = nil }
-      } message: {
-        if let error = model.sendError { Text(error) }
-      }
-      .alert(.postDelete, isPresented: Binding(
-        get: { model.mutationError != nil },
-        set: { if !$0 { model.mutationError = nil } }
-      )) {
-        Button(.commonOk, role: .cancel) { model.mutationError = nil }
-      } message: {
-        if let error = model.mutationError { Text(error) }
-      }
+  }
+
+  private var replyRetryPresented: Binding<Bool> {
+    Binding(
+      get: { model.composer == nil && model.replyComposer?.needsRetryConfirmation == true },
+      set: { model.replyComposer?.needsRetryConfirmation = $0 })
+  }
+
+  private var replyError: LocalizedStringResource? {
+    model.sendError ?? model.replyComposer?.publicationError
+  }
+
+  private func publishReply(confirmedRetry: Bool = false) {
+    guard let composer = model.replyComposer else { return }
+    composer.perform { await composer.publish(confirmedRetry: confirmedRetry) }
   }
 
   private func scrollView() -> some View {
@@ -290,23 +309,31 @@ private extension CommunityPostDetailView {
     .padding(.vertical, Constants.barPadding)
   }
 
+  @ViewBuilder
   private func replyControls() -> some View {
-    HStack(alignment: .bottom, spacing: Constants.replyControlSpacing) {
-      inputView()
-      expandButton()
-      if !model.payload.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { sendButton() }
+    if let composer = model.replyComposer {
+      HStack(alignment: .bottom, spacing: Constants.replyControlSpacing) {
+        inputView(composer)
+        expandButton()
+        if !composer.editor.markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+          sendButton(composer)
+        }
+      }
+      .disabled(!composer.isReady || composer.isPublishing || composer.isPerformingAction)
     }
   }
 
   @ViewBuilder
-  private func inputView() -> some View {
-    switch model.draft {
-    case .plainText:
-      TextField(.postReplyPlaceholder, text: $model.plainText, axis: .vertical)
+  private func inputView(_ composer: CommunityComposerViewModel) -> some View {
+    if !composer.isReady {
+      ProgressView().frame(maxWidth: .infinity, minHeight: Constants.controlHeight)
+    } else if composer.plainText != nil {
+      TextField(.postReplyPlaceholder, text: Binding(
+        get: { composer.plainText ?? "" }, set: composer.setPlainText), axis: .vertical)
         .focused($isReplyFocused)
         .lineLimit(1...4)
         .frame(maxWidth: .infinity, minHeight: Constants.controlHeight, alignment: .leading)
-    case .markdown:
+    } else {
       Button(.postReplyMarkdownDraft) { model.expandEditor() }
         .lineLimit(1)
         .frame(maxWidth: .infinity, minHeight: Constants.controlHeight, alignment: .leading)
@@ -321,16 +348,17 @@ private extension CommunityPostDetailView {
       .buttonStyle(.plain)
   }
 
-  private func sendButton() -> some View {
-    Button { Task { await model.send() } } label: {
-      if model.isSending { ProgressView() } else { Image(systemName: Constants.send) }
+  private func sendButton(_ composer: CommunityComposerViewModel) -> some View {
+    Button { publishReply() } label: {
+      if composer.isPublishing { ProgressView() } else { Image(systemName: Constants.send) }
     }
-      .accessibilityLabel(.composerPublish)
-      .buttonStyle(.glassProminent)
-      .buttonBorderShape(.circle)
-      .frame(width: Constants.controlHeight, height: Constants.controlHeight)
-      .disabled(!model.canSend)
+    .accessibilityLabel(.composerPublish)
+    .buttonStyle(.glassProminent)
+    .buttonBorderShape(.circle)
+    .frame(width: Constants.controlHeight, height: Constants.controlHeight)
+    .disabled(!composer.canPublish)
   }
+
 }
 
 private enum Constants {

@@ -22,15 +22,6 @@ public struct CommunityDraftService: Sendable {
       remove: { throw CommunityError.unavailable }
     )
   }
-  public var detailDrafts: @Sendable (
-    PostDescriptor, Int64, String, @escaping @Sendable () -> Bool
-  ) -> CommunityReplyDrafts = { _, _, _, _ in
-    .init(
-      load: { throw CommunityError.unavailable },
-      save: { _ in throw CommunityError.unavailable },
-      remove: { throw CommunityError.unavailable }
-    )
-  }
   public var replyDraft: @Sendable (String) -> CommunityReplyDraft = { .markdown($0) }
   public var revokePostDrafts: @Sendable (Int64, String) async throws -> Void
 }
@@ -52,7 +43,6 @@ public struct CommunityDraftHandle<Content> {
 }
 
 public typealias CommunityDrafts = CommunityDraftHandle<String>
-public typealias CommunityReplyDrafts = CommunityDraftHandle<CommunityReplyDraft>
 
 public enum CommunityReplyDraft: Sendable, Equatable, Codable {
   case plainText(String)

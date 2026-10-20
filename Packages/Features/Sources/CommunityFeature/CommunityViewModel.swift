@@ -18,7 +18,7 @@ public final class CommunityViewModel {
   public private(set) var error: LocalizedStringResource?
   public var notice: LocalizedStringResource?
   public var composer: CommunityComposerViewModel?
-  public private(set) var composerTitle: LocalizedStringResource = .composerTitle
+  public var composerTitle: LocalizedStringResource { composer?.title ?? .composerTitle }
   public private(set) var currentUser: CommunityPost.Owner?
   private var replyTarget: PostDescriptor?
   private var loadCurrentUser: (() async throws -> CommunityPost.Owner?)?
@@ -104,10 +104,10 @@ public final class CommunityViewModel {
   public func reply(to post: CommunityPost) {
     guard deletingID == nil, editingPost == nil, composer == nil, isCurrentSession() else { return }
     replyTarget = post.descriptor
-    composerTitle = .postReply
     withDependencies(from: self) {
       let model = CommunityComposerViewModel(
-        replyTo: post.descriptor, onUnauthorized: onUnauthorized)
+        replyTo: post.descriptor, onUnauthorized: onUnauthorized,
+        onPublished: { [weak self] in await self?.didPublish($0, text: $1, warning: $2) })
       if model.start() { composer = model }
     }
   }
@@ -115,12 +115,12 @@ public final class CommunityViewModel {
   public func compose() {
     guard deletingID == nil, editingPost == nil, composer == nil, isCurrentSession() else { return }
     replyTarget = nil
-    composerTitle = .composerTitle
     withDependencies(from: self) {
       let model = CommunityComposerViewModel(
         suppressDraft: { [weak self] in self?.publishedDrafts.contains($0) == true },
         didSaveDraft: { [weak self] in self?.publishedDrafts.remove($0) },
-        onUnauthorized: onUnauthorized)
+        onUnauthorized: onUnauthorized,
+        onPublished: { [weak self] in await self?.didPublish($0, text: $1, warning: $2) })
       if model.start() { composer = model }
     }
   }

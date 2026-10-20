@@ -92,13 +92,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The post was published, but its draft could not be removed. Do not send it again."
+            "value" : "Published, but the draft could not be removed. Do not send it again."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пост опубликован, но удалить черновик с устройства не удалось. Не отправляйте его повторно."
+            "value" : "Опубликовано, но удалить черновик с устройства не удалось. Не отправляйте его повторно."
           }
         }
       }
@@ -211,13 +211,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Could not restore the draft. You can write a new post."
+            "value" : "Could not restore the draft. You can start a new one."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось восстановить черновик. Можно написать новый пост."
+            "value" : "Не удалось восстановить черновик. Можно создать новый."
           }
         }
       }
@@ -347,13 +347,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The post may already be published"
+            "value" : "This may already be published"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пост уже мог быть опубликован"
+            "value" : "Возможно, это уже опубликовано"
           }
         }
       }
@@ -851,23 +851,6 @@
         }
       }
     },
-    "post.deleteTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete post?"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Удалить пост?"
-          }
-        }
-      }
-    },
     "post.deleteUnavailable" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1017,23 +1000,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Профиль: %@"
-          }
-        }
-      }
-    },
-    "post.published" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Post published"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пост опубликован"
           }
         }
       }
@@ -1208,23 +1174,6 @@
         }
       }
     },
-    "post.replyPublished" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reply published"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ответ опубликован"
-          }
-        }
-      }
-    },
     "post.replyRejected" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1259,23 +1208,6 @@
         }
       }
     },
-    "post.sending" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sending reply"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Отправка ответа"
-          }
-        }
-      }
-    },
     "post.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1289,23 +1221,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Пост"
-          }
-        }
-      }
-    },
-    "post.updated" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Post updated"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пост изменён"
           }
         }
       }

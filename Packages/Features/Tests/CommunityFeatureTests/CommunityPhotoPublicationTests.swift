@@ -24,15 +24,19 @@ import Testing
     model.stop()
   }
 
-  @Test func replyDoesNotSubmitPendingPhotoWithEditorClosed() async {
+  @Test func replyDoesNotSubmitPendingPhotoWithEditorClosed() async throws {
     var service = CommunityService()
     service.reply = { _, _ in Issue.record("Pending reply was submitted"); return .init(id: 2, accessHash: "b") }
     let post = CommunityPost.awaitingDetails(.init(descriptor: .init(id: 1, accessHash: "a"), text: "Post", owner: nil, date: .now))
-    let model = makeDetailModel(post: post, service: service)
-    model.draft = .markdown(pending)
-    #expect(!model.canSend)
-    await model.send()
-    #expect(!model.isSending)
+    let model = withDependencies {
+      $0[EditorPhotoService.self] = missingPhotoClient()
+    } operation: { makeDetailModel(post: post, service: service) }
+    let composer = try #require(model.replyComposer)
+    await composer.restore()
+    composer.editor.loadSource(pending)
+    #expect(!composer.canPublish)
+    await composer.publish()
+    #expect(!composer.isPublishing && model.composer == nil)
     model.stop()
   }
 

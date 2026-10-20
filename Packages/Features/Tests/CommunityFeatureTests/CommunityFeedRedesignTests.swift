@@ -1,6 +1,6 @@
 import CommunityApi
-import CommunityDraftService
 @testable import CommunityApiLive
+import CommunityDraftService
 @testable import CommunityFeature
 import CommunityService
 @testable import CommunityServiceLive
@@ -233,7 +233,6 @@ private extension CommunityFeedRedesignTests {
     await composer.restore()
     #expect(composer.editor.markdown == "Reply draft")
     await composer.publish()
-    let published = try #require(composer.published)
-    await model.didPublish(published, text: composer.editor.markdown, warning: nil)
+    #expect(composer.published != nil)
   }
 }

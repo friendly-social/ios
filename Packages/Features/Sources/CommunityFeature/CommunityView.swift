@@ -37,9 +37,7 @@ private extension CommunityView {
     NavigationStack(path: $detailPath) {
       feedNavigationContent()
         .sheet(item: $model.composer) { composer in
-          CommunityComposerView(
-            model: composer, title: model.composerTitle, onPublished: model.didPublish
-          )
+          CommunityComposerView(model: composer)
           .presentationDetents([.large])
         }
         .sheet(item: $model.editingPost) { editor in

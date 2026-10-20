@@ -49,13 +49,6 @@ actor CommunityDraftStore {
     return draft.sessionID == sessionID ? .markdown(draft.markdown) : nil
   }
 
-  func saveReply(_ content: CommunityReplyDraft, accountID: Int64, sessionID: String) throws {
-    try check(sessionID)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    let data = try JSONEncoder().encode(ReplyDraft(version: 2, sessionID: sessionID, content: content))
-    try data.write(to: url(accountID), options: .atomic)
-  }
-
   func remove(accountID: Int64, sessionID: String) throws {
     let file = url(accountID)
     guard FileManager.default.fileExists(atPath: file.path) else {
@@ -87,7 +80,7 @@ actor CommunityDraftStore {
     let continuation: AsyncStream<String?>.Continuation
   }
 
-  private struct ReplyDraft: Codable {
+  private struct ReplyDraft: Decodable {
     let version: Int
     let sessionID: String
     let content: CommunityReplyDraft

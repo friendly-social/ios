@@ -27,29 +27,19 @@ struct CommunityDraftServiceLive: Sendable {
     _ parent: PostDescriptor, _ accountID: Int64, _ sessionID: String,
     _ isCurrentSession: @escaping @Sendable () -> Bool
   ) -> CommunityDrafts {
-    drafts(
-      store: replyStore(parent), accountID: accountID, sessionID: sessionID,
-      isCurrentSession: isCurrentSession
-    )
-  }
-
-  func detailDrafts(
-    _ parent: PostDescriptor, _ accountID: Int64, _ sessionID: String,
-    _ isCurrentSession: @escaping @Sendable () -> Bool
-  ) -> CommunityReplyDrafts {
     let store = replyStore(parent)
-    return CommunityReplyDrafts(
-      load: {
-        guard isCurrentSession() else { throw CancellationError() }
-        guard let stored = try await store.loadReply(accountID: accountID, sessionID: sessionID) else { return nil }
-        return self.normalized(stored)
-      },
-      save: { content in
-        guard isCurrentSession() else { throw CancellationError() }
-        try await store.saveReply(self.normalized(content), accountID: accountID, sessionID: sessionID)
-      },
-      remove: { try await store.remove(accountID: accountID, sessionID: sessionID) }
-    )
+    var handle = drafts(store: store, accountID: accountID, sessionID: sessionID, isCurrentSession: isCurrentSession)
+    handle.load = {
+      guard isCurrentSession() else { throw CancellationError() }
+      guard let stored = try await store.loadReply(accountID: accountID, sessionID: sessionID) else { return nil }
+      let content: String
+      switch stored {
+      case let .plainText(text): content = MarkdownLiteral.encode(text)
+      case let .markdown(source): content = source
+      }
+      return content
+    }
+    return handle
   }
 
   func revokePostDrafts(_ accountID: Int64, _ sessionID: String) async throws {
@@ -68,11 +58,6 @@ struct CommunityDraftServiceLive: Sendable {
 }
 
 private extension CommunityDraftServiceLive {
-  private func normalized(_ draft: CommunityReplyDraft) -> CommunityReplyDraft {
-    guard case let .markdown(source) = draft else { return draft }
-    return replyDraft(source)
-  }
-
   private func drafts(
     store: CommunityDraftStore, accountID: Int64, sessionID: String,
     isCurrentSession: @escaping @Sendable () -> Bool

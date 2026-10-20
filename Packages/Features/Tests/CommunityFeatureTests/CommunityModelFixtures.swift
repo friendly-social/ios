@@ -15,7 +15,6 @@ func makeFeedModel(
   initialCurrentUser: CommunityPost.Owner? = nil,
   loadCurrentUser: @escaping () async throws -> CommunityPost.Owner? = { nil },
   replyDrafts: @escaping (PostDescriptor) -> CommunityDrafts = { _ in .empty },
-  detailDrafts: @escaping (PostDescriptor) -> CommunityReplyDrafts = { _ in .empty },
   isCurrentSession: @escaping () -> Bool = { true },
   onUnauthorized: @escaping () -> Void = {}
 ) -> CommunityViewModel {
@@ -29,8 +28,7 @@ func makeFeedModel(
       isCurrent: isCurrentSession)
     $0[CommunityDraftService.self] = draftService(
       post: drafts,
-      reply: replyDrafts,
-      detail: detailDrafts)
+      reply: replyDrafts)
   } operation: {
     let model = CommunityViewModel(onUnauthorized: onUnauthorized)
     _ = model.start()
@@ -42,15 +40,16 @@ func makeFeedModel(
 func makeComposerModel(
   service: CommunityService,
   drafts: CommunityDrafts,
+  replyTo: PostDescriptor? = nil,
   isCurrentSession: @escaping () -> Bool = { true },
   onUnauthorized: @escaping () -> Void = {}
 ) -> CommunityComposerViewModel {
   withDependencies {
     $0[CommunityService.self] = service
     $0[CommunityProfileService.self] = profile(isCurrent: isCurrentSession)
-    $0[CommunityDraftService.self] = draftService(post: drafts)
+    $0[CommunityDraftService.self] = draftService(post: drafts, reply: { _ in drafts })
   } operation: {
-    let model = CommunityComposerViewModel(onUnauthorized: onUnauthorized)
+    let model = CommunityComposerViewModel(replyTo: replyTo, onUnauthorized: onUnauthorized)
     _ = model.start()
     return model
   }
@@ -84,7 +83,7 @@ func makeDetailModel(
   initialDetails: CommunityPostDetails? = nil,
   focusedReply: PostDescriptor? = nil,
   preparation: CommunityFeedPreparationService = .fixture,
-  drafts: @escaping (PostDescriptor) -> CommunityReplyDrafts = { _ in .empty },
+  drafts: @escaping (PostDescriptor) -> CommunityDrafts = { _ in .empty },
   currentUser: @escaping () async -> CommunityPost.Owner? = { nil },
   isCurrentSession: @escaping () -> Bool = { true },
   onUnauthorized: @escaping () -> Void = {},
@@ -96,7 +95,7 @@ func makeDetailModel(
     $0[CommunityProfileService.self] = profile(
       loadOwner: currentUser,
       isCurrent: isCurrentSession)
-    $0[CommunityDraftService.self] = draftService(detail: drafts)
+    $0[CommunityDraftService.self] = draftService(reply: drafts)
   } operation: {
     let model = CommunityPostDetailViewModel(
       post: post,
@@ -130,14 +129,12 @@ private func profile(
 
 private func draftService(
   post: CommunityDrafts = .empty,
-  reply: @escaping (PostDescriptor) -> CommunityDrafts = { _ in .empty },
-  detail: @escaping (PostDescriptor) -> CommunityReplyDrafts = { _ in .empty }
+  reply: @escaping (PostDescriptor) -> CommunityDrafts = { _ in .empty }
 ) -> CommunityDraftService {
   var result = CommunityDraftService()
   let postFixture = MainActorDraftFixture(value: post)
   result.postDrafts = { _, _, _ in postFixture.value }
   result.replyDrafts = { descriptor, _, _, _ in reply(descriptor) }
-  result.detailDrafts = { descriptor, _, _, _ in detail(descriptor) }
   result.replyDraft = CommunityDraftService.live().replyDraft
   return result
 }
@@ -149,9 +146,5 @@ private struct MainActorDraftFixture: @unchecked Sendable {
 }
 
 private extension CommunityDraftHandle where Content == String {
-  static var empty: Self { .init(load: { nil }, save: { _ in }, remove: {}) }
-}
-
-private extension CommunityDraftHandle where Content == CommunityReplyDraft {
   static var empty: Self { .init(load: { nil }, save: { _ in }, remove: {}) }
 }
