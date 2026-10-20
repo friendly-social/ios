@@ -533,6 +533,7 @@ let package = Package(
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
         .product(name: "NukeUI", package: "Nuke"),
         .product(name: "SwiftNavigation", package: "swift-navigation"),
+        "ActivityService",
         "CommunityDraftService",
         "CommunityEditorFeature",
         "CommunityMarkdownFeature",
@@ -731,6 +732,7 @@ let package = Package(
     .testTarget(
       name: "ActivityFeatureTests",
       dependencies: [
+        .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Networking", package: "Infrastructure"),
         "ActivityApi",
@@ -759,6 +761,7 @@ let package = Package(
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Networking", package: "Infrastructure"),
+        "ActivityService",
         "CommunityApi",
         "CommunityApiLive",
         "CommunityDraftService",

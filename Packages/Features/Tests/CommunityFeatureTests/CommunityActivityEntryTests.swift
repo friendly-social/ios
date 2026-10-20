@@ -1,14 +1,50 @@
 @testable import CommunityFeature
 import CommunityMarkdownService
 import CommunityService
+import CustomDump
 import Foundation
+import Synchronization
 import Testing
 
 @MainActor
 struct CommunityActivityEntryTests {
+  @Test func loadedDiscussionMarksParentRead() async {
+    let reads = Mutex<[PostDescriptor]>([])
+    var service = CommunityService()
+    service.markRead = { descriptor in reads.withLock { $0.append(descriptor) } }
+    let model = makeDetailModel(post: post(2), service: service, initialDetails: details(post(2)))
+    await model.load()
+    expectNoDifference(reads.withLock { $0 }, [post(2).descriptor])
+    #expect(model.loaded)
+    #expect(model.loadError == nil)
+  }
+
+  @Test func failedDiscussionDoesNotMarkAnythingRead() async {
+    let reads = Mutex(0)
+    var service = CommunityService()
+    service.markRead = { _ in }
+    service.details = { _ in throw CommunityError.unavailable }
+    service.markRead = { _ in reads.withLock { $0 += 1 } }
+    let model = makeDetailModel(post: post(2), service: service)
+    await model.load()
+    expectNoDifference(reads.withLock { $0 }, 0)
+    #expect(model.loadError != nil)
+  }
+
+  @Test func failedReadDoesNotHideLoadedDiscussion() async {
+    var service = CommunityService()
+    service.markRead = { _ in throw CommunityError.unavailable }
+    let model = makeDetailModel(post: post(2), service: service, initialDetails: details(post(2)))
+    await model.load()
+    #expect(model.loaded)
+    #expect(model.loadError == nil)
+  }
+
   @Test func initialActivityDetailsKeepOurMessageAboveReceivedReply() async {
     let initial = details(post(2), upstream: [post(1)], replies: [post(3)])
-    let model = makeDetailModel(post: post(2), service: .init(), initialDetails: initial)
+    var service = CommunityService()
+    service.markRead = { _ in }
+    let model = makeDetailModel(post: post(2), service: service, initialDetails: initial)
     await model.load()
     #expect(model.loaded)
     #expect(model.post.id == 2)
@@ -18,9 +54,11 @@ struct CommunityActivityEntryTests {
 
   @Test func selectingReplyWhileInitialPreparationRunsDoesNotRestoreOriginalParent() async {
     let gate = PreparationGate()
+    let reads = Mutex<[PostDescriptor]>([])
     var preparation = CommunityFeedPreparationService()
     preparation.prepareExcerpt = { _ in await gate.prepare() }
     var service = CommunityService()
+    service.markRead = { descriptor in reads.withLock { $0.append(descriptor) } }
     service.details = { descriptor in details(post(descriptor.id), upstream: [post(1), post(2)]) }
     let initial = details(post(2), upstream: [post(1)], replies: [post(3)])
     let model = makeDetailModel(post: post(2), service: service,
@@ -34,11 +72,13 @@ struct CommunityActivityEntryTests {
     await firstLoad.value
     #expect(model.post.id == 3)
     #expect(model.upstream.map(\.id) == [1, 2])
+    expectNoDifference(reads.withLock { $0 }, [post(3).descriptor])
   }
 
   @Test func refreshKeepsReceivedReplyWhenParentPageOmitsIt() async {
     let reply = post(30)
     var service = CommunityService()
+    service.markRead = { _ in }
     service.details = { descriptor in
       descriptor.id == reply.id ? details(reply, upstream: [post(1), post(2)])
         : details(post(2), upstream: [post(1)], replies: [post(3)])
@@ -55,6 +95,7 @@ struct CommunityActivityEntryTests {
   @Test func deletedReceivedReplyDoesNotBlockRefreshingParent() async {
     let reply = post(30)
     var service = CommunityService()
+    service.markRead = { _ in }
     service.details = { descriptor in
       if descriptor.id == reply.id { throw CommunityError.rejected(404) }
       return details(post(2), upstream: [post(1)], replies: [post(3)])

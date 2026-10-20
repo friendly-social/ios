@@ -67,6 +67,11 @@ public struct CommunityApiLive: Sendable {
     return decoded.details
   }
 
+  public func markRead(_ descriptor: PostDescriptor, credentials: CommunityCredentials) async throws {
+    let path = "community/\(descriptor.id)/\(descriptor.accessHash)/read"
+    _ = try await perform(request(path: path, method: .post, credentials: credentials))
+  }
+
   public func replies(
     to descriptor: PostDescriptor, cursor: String, credentials: CommunityCredentials
   ) async throws -> CommunityReplyPage {

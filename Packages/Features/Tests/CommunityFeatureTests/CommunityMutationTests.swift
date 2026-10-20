@@ -4,11 +4,25 @@ import CommunityDraftService
 @testable import CommunityFeature
 import CommunityService
 import CommunityServiceLive
+import CustomDump
 import Foundation
 import Testing
 
 @MainActor
 struct CommunityMutationTests {
+  @Test func discussionReadUsesDescriptorAndSessionHeaders() async throws {
+    let api = makeCommunityApi { request in
+      expectNoDifference(request.httpMethod, "POST")
+      expectNoDifference(request.url?.path, "/community/42/post-hash/read")
+      expectNoDifference(request.value(forHTTPHeaderField: "X-User-Id"), "7")
+      expectNoDifference(request.value(forHTTPHeaderField: "X-Token"), "token")
+      #expect(request.httpBody == nil)
+      return (Data(), try makeHTTPResponse(for: request, statusCode: 200))
+    }
+    try await api.markRead(.init(id: 42, accessHash: "post-hash"),
+                           credentials: .init(accountID: 7, token: "token"))
+  }
+
   @Test func postActionVisibilityDoesNotValidateSession() throws {
     var checks = 0
     let model = makeFeedModel(

@@ -117,6 +117,7 @@ struct CommunityDiscussionTests {
       id: 7, accessHash: "owner", nickname: "Alex",
       avatar: .init(id: 8, accessHash: "avatar"))
     var service = CommunityService()
+    service.markRead = { _ in }
     service.reply = { _, _ in self.post(99).descriptor }
     service.details = { _ in .init(post: root, upstream: [], replies: .init(data: [], nextId: nil)) }
     let model = makeDetailModel(
@@ -159,6 +160,7 @@ struct CommunityDiscussionTests {
   @MainActor @Test func detailLoadsFirstPageThenPaginatesWithDeduplication() async {
     let root = post(1)
     var service = CommunityService()
+    service.markRead = { _ in }
     service.details = { _ in
       .init(post: root, upstream: [], replies: .init(data: [.single(post(2))], nextId: "next"))
     }
@@ -199,6 +201,7 @@ private extension CommunityDiscussionTests {
 
   @MainActor private func replyingModel(submission: DiscussionSubmission) -> CommunityPostDetailViewModel {
     var service = CommunityService()
+    service.markRead = { _ in }
     service.reply = { target, _ in
       await submission.record(targetID: target.id)
       return self.post(99).descriptor
@@ -216,6 +219,7 @@ private extension CommunityDiscussionTests {
 
   @MainActor private func makeModel() -> CommunityPostDetailViewModel {
     var service = CommunityService()
+    service.markRead = { _ in }
     service.details = { descriptor in
       .init(post: self.post(descriptor.id),
             upstream: (1..<descriptor.id).map(self.post),

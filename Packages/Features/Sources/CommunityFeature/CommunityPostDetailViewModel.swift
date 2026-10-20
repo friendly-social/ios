@@ -147,6 +147,9 @@ final class CommunityPostDetailViewModel {
       let details = try await fetchedDetails()
       guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
       try await prepareDetails(details, generation: request)
+      guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
+      isLoading = false
+      await markRead(details.post.descriptor, generation: request)
     } catch CommunityError.unauthorized {
       if isCurrentSession() { handleUnauthorized() }
     } catch is CancellationError {
@@ -235,6 +238,14 @@ final class CommunityPostDetailViewModel {
 }
 
 private extension CommunityPostDetailViewModel {
+  private func markRead(_ descriptor: PostDescriptor, generation request: Int) async {
+    do {
+      try await service.markRead(descriptor)
+    } catch CommunityError.unauthorized {
+      if generation == request, isCurrentSession(), !Task.isCancelled { handleUnauthorized() }
+    } catch { }
+  }
+
   private func fetchedDetails() async throws -> CommunityPostDetails {
     if let initialDetails, initialDetails.post.descriptor == post.descriptor {
       self.initialDetails = nil

@@ -90,6 +90,7 @@ import Testing
     let other = post(2)
     let reply = post(99)
     var service = CommunityService()
+    service.markRead = { _ in }
     service.reply = { _, _ in await submission.send() }
     service.details = { descriptor in
       let replies = await submission.sent ? [CommunityReply.single(reply)] : []
@@ -120,6 +121,7 @@ import Testing
     let root = post(1)
     let owner = SuspendedReplyOwner()
     var service = CommunityService()
+    service.markRead = { _ in }
     service.reply = { _, _ in .init(id: 99, accessHash: "reply") }
     service.details = { _ in .init(post: root, upstream: [], replies: .init(data: [], nextId: nil)) }
     let model = makeDetailModel(post: root, service: service, currentUser: owner.load)

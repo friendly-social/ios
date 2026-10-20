@@ -14,9 +14,24 @@ struct ActivityApiLive: Sendable {
     return .init(events: try decoded.events(), nextID: decoded.nextId)
   }
 
+  func hasNewUnreads(credentials: ActivityCredentials) async throws -> Bool {
+    let response = try await perform(path: "activity/unreads/new", credentials: credentials)
+    let decoded: UnreadsResponse = try client.decode(response)
+    return decoded.type == .some
+  }
+
+  func acknowledgeUnreads(credentials: ActivityCredentials) async throws {
+    _ = try await perform(path: "activity/unreads/acknowledge", method: .post, credentials: credentials)
+  }
+
   func markRead(id: Int64, credentials: ActivityCredentials) async throws {
     _ = try await perform(path: "activity/read/\(id)", method: .post, credentials: credentials)
   }
+}
+
+private struct UnreadsResponse: Decodable {
+  enum Kind: String, Decodable { case none, some }
+  let type: Kind
 }
 
 private extension ActivityApiLive {

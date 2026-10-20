@@ -1,3 +1,4 @@
+import ActivityService
 import CommunityDraftService
 import CommunityProfileService
 import CommunityService
@@ -13,6 +14,8 @@ public final class CommunityViewModel {
   private(set) var feedPosts: [CommunityFeedPost] = []
   public var posts: [CommunityPost] { feedPosts.map(\.post) }
   @ObservationIgnored @Dependency(CommunityFeedPreparationService.self) private var feedPreparation
+  private(set) var hasNewActivity = false
+  @ObservationIgnored @Dependency(ActivityService.self) private var activityService
   public private(set) var isLoading = false
   public private(set) var nextID: String?
   public private(set) var error: LocalizedStringResource?
@@ -50,6 +53,7 @@ public final class CommunityViewModel {
     guard let session = profileService.currentSession() else { return false }
     let profile = profileService
     let isCurrent: @Sendable () -> Bool = { profile.isCurrentSession(session) }
+    hasNewActivity = false
     accountID = session.accountID
     currentUser = profile.cachedOwner(session)
     loadCurrentUser = { try await profile.loadOwner(session) }
@@ -87,6 +91,18 @@ public final class CommunityViewModel {
     guard isCurrentSession() else { return }
     feedPosts = feedPosts.map { $0.id == updated.id ? prepared : $0 }
     pendingPosts = pendingPosts.map { $0.id == updated.id ? updated : $0 }
+  }
+
+  func refreshActivity() async {
+    guard isCurrentSession(), !Task.isCancelled,
+          let session = profileService.currentSession() else { return }
+    do {
+      let hasNew = try await activityService.hasNewUnreads(session)
+      guard profileService.isCurrentSession(session), !Task.isCancelled else { return }
+      hasNewActivity = hasNew
+    } catch CommunityError.unauthorized {
+      if profileService.isCurrentSession(session), !Task.isCancelled { onUnauthorized() }
+    } catch { }
   }
 
   public func loadProfile() async {

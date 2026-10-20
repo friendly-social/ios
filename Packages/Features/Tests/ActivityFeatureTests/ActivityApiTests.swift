@@ -3,6 +3,7 @@ import ActivityApi
 import ActivityService
 @testable import ActivityServiceLive
 import CommunityService
+import CustomDump
 import Dependencies
 import Foundation
 import Networking
@@ -23,6 +24,38 @@ struct ActivityApiTests {
     #expect(page.events.first?.reply.owner?.nickname == "Аня")
     #expect(page.events.first?.reply.owner?.avatar?.id == 90)
     #expect(page.events.first?.isRead == false)
+  }
+
+  @Test(arguments: [false, true])
+  func decodesNewUnreadIndicator(hasNew: Bool) async throws {
+    let api = makeAPI { request in
+      expectNoDifference(request.url?.path, "/activity/unreads/new")
+      expectNoDifference(request.httpMethod, "GET")
+      expectNoDifference(request.value(forHTTPHeaderField: "X-Token"), "token")
+      let body = hasNew ? #"{"type":"some","activityId":42}"# : #"{"type":"none"}"#
+      return .init(data: Data(body.utf8), statusCode: 200)
+    }
+    let result = try await api.hasNewUnreads(credentials)
+    expectNoDifference(result, hasNew)
+  }
+
+  @Test func acknowledgementAcceptsEmptyResponseAndSendsSessionHeaders() async throws {
+    let api = makeAPI { request in
+      expectNoDifference(request.url?.path, "/activity/unreads/acknowledge")
+      expectNoDifference(request.httpMethod, "POST")
+      expectNoDifference(request.value(forHTTPHeaderField: "X-User-Id"), "7")
+      expectNoDifference(request.value(forHTTPHeaderField: "X-Token"), "token")
+      #expect(request.httpBody == nil)
+      return .init(data: Data(), statusCode: 200)
+    }
+    try await api.acknowledgeUnreads(credentials)
+  }
+
+  @Test func unreadIndicatorRejectsUnknownResponseInsteadOfClearingBadge() async {
+    let api = makeAPI { _ in
+      .init(data: Data(#"{"type":"future"}"#.utf8), statusCode: 200)
+    }
+    await #expect(throws: (any Error).self) { try await api.hasNewUnreads(credentials) }
   }
 
   @Test func readAcceptsEmptySuccessfulResponse() async throws {

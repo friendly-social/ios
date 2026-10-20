@@ -55,6 +55,7 @@ private extension CommunityDiscussionLoadingTests {
     details: CommunityPostDetails, initial: CommunityPostDetails? = nil, gate: DiscussionPreparationGate
   ) -> CommunityPostDetailViewModel {
     var service = CommunityService()
+    service.markRead = { _ in }
     service.details = { _ in details }
     var preparation = CommunityFeedPreparationService()
     preparation.prepareExcerpt = { _ in await gate.prepare() }

@@ -9,6 +9,7 @@ public struct CommunityService: Sendable {
   public var delete: @Sendable (Int64) async throws -> Void = { _ in throw CommunityError.unavailable }
   public var reply: @Sendable (PostDescriptor, String) async throws -> PostDescriptor = { _, _ in throw CommunityError.unavailable }
   public var details: @Sendable (PostDescriptor) async throws -> CommunityPostDetails = { _ in throw CommunityError.unavailable }
+  public var markRead: @Sendable (PostDescriptor) async throws -> Void = { _ in throw CommunityError.unavailable }
   public var replies: @Sendable (PostDescriptor, String) async throws -> CommunityReplyPage = { _, _ in throw CommunityError.unavailable }
 }
 

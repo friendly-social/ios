@@ -31,6 +31,10 @@ struct CommunityServiceLive: Sendable {
     try await perform { try await api.details(descriptor, $0) }
   }
 
+  func markRead(_ descriptor: PostDescriptor) async throws {
+    try await perform { try await api.markRead(descriptor, $0) }
+  }
+
   func replies(_ descriptor: PostDescriptor, _ cursor: String) async throws -> CommunityReplyPage {
     try await perform { try await api.replies(descriptor, cursor, $0) }
   }
