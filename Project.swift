@@ -20,6 +20,11 @@ let project = Project(
                 "ITSAppUsesNonExemptEncryption": false,
                 "NSCameraUsageDescription": "Friendly needs access to your camera to scan QR codes and add friends.",
                 "NSPhotoLibraryUsageDescription": "Friendly needs access to your photo library to let you pick QR codes from your photos or upload a profile picture.",
+                "UTExportedTypeDeclarations": [[
+                    "UTTypeIdentifier": "ly.getfriend.editor.fragment.v1",
+                    "UTTypeConformsTo": ["public.data"],
+                    "UTTypeDescription": "Friendly editor fragment",
+                ]],
                 "UILaunchScreen": [
                     "UIColorName": "",
                     "UIImageName": "",
@@ -88,6 +93,7 @@ let project = Project(
                 .package(product: "CommunityServiceLive"),
                 .package(product: "CustomDump"),
                 .package(product: "Dependencies"),
+                .package(product: "DependenciesTestSupport"),
                 .package(product: "FilesApi"),
                 .package(product: "FilesApiLive"),
                 .package(product: "ImageService"),

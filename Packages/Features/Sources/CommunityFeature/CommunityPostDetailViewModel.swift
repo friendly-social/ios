@@ -79,6 +79,7 @@ final class CommunityPostDetailViewModel {
   func start() -> Bool {
     if accountID != nil { return true }
     guard let session = profileService.currentSession() else { return false }
+    editor.start(session: session)
     let profile = profileService
     let draftService = draftService
     let isCurrent: @Sendable () -> Bool = { profile.isCurrentSession(session) }
@@ -121,8 +122,8 @@ final class CommunityPostDetailViewModel {
 
   var canSend: Bool {
     let text = showsEditor ? markdown(for: editorDraft) : payload
-    return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-      && text.utf16.count <= Constants.limit && !isSending
+    return CommunityEditorViewModel.isPublishable(text) && !isSending
+      && (!showsEditor || editor.canPublish)
   }
 
   func canManage(_ item: CommunityPost) -> Bool {
@@ -465,6 +466,7 @@ private extension CommunityPostDetailViewModel {
   private func persist(_ value: CommunityReplyDraft, for descriptor: PostDescriptor) async {
     guard let draftStore else { return }
     do {
+      try await editor.prepareForSaving()
       let drafts = draftStore(descriptor)
       if value.text.isEmpty { try await drafts.remove() } else { try await drafts.save(value) }
     } catch { sendError = .postDraftError }
@@ -530,6 +532,5 @@ private struct DiscussionSnapshot {
 }
 
 private enum Constants {
-  static let limit = 4_096
   static let saveDelay = 800
 }

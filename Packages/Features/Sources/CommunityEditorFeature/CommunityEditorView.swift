@@ -1,21 +1,22 @@
 import CommunityMarkdownFeature
 import Foundation
+import PhotosUI
 import SwiftUI
 
 public struct CommunityEditorView: View {
   @Bindable private var viewModel: CommunityEditorViewModel
-  private let showsSamples: Bool
+  private let autofocus: Bool
   @State private var mode: Mode
-  @FocusState private var focused: Bool
-  @Environment(\.undoManager) private var undoManager
+  @Environment(\.openURL) private var openURL
+  @State private var pickedPhotos: [PhotosPickerItem] = []
   private enum Mode {
     case editor, source
   }
 
-  public init(viewModel: CommunityEditorViewModel, showsSamples: Bool = false) {
+  public init(viewModel: CommunityEditorViewModel, autofocus: Bool = true) {
     self.viewModel = viewModel
-    self.showsSamples = showsSamples
-    _mode = State(initialValue: showsSamples ? .editor : viewModel.sourceOnly ? .source : .editor)
+    self.autofocus = autofocus
+    _mode = State(initialValue: viewModel.sourceOnly ? .source : .editor)
   }
 
   public var body: some View {
@@ -24,32 +25,31 @@ public struct CommunityEditorView: View {
 }
 
 private extension CommunityEditorView {
-
   private func contentView() -> some View {
+    editorLifecycleView()
+      .task(id: pickedPhotos) {
+        guard !pickedPhotos.isEmpty else { return }
+        let items = pickedPhotos
+        await viewModel.importPhotos(items)
+        pickedPhotos = []
+      }
+      .alert(.editorPhotoImportError, isPresented: photoErrorPresented) {
+        Button(.commonOk, role: .cancel, action: viewModel.dismissPhotoError)
+      }
+      .alert(.editorLink, isPresented: linkEditorPresented, presenting: viewModel.linkEdit) { draft in
+        linkEditorActions(draft)
+      } message: { draft in
+        if draft.title.isEmpty { Text(.editorLinkHint) } else { Text(verbatim: draft.title) }
+      }
+  }
+
+  private func editorLifecycleView() -> some View {
     editorLayout()
       .safeAreaBar(edge: .bottom) {
         if mode == .editor && !viewModel.sourceOnly { formattingBar() }
       }
       .toolbar { toolbarContent() }
-      .onAppear { if !showsSamples { focused = true } }
-      .onChange(of: mode) { old, new in changeMode(from: old, to: new) }
-      .onChange(of: viewModel.source) {
-        if mode == .source { viewModel.loadSource(viewModel.source) }
-      }
-      .task(id: undoManager) {
-        viewModel.clearUndoHistory(undoManager)
-        await viewModel.observeUndoChanges(undoManager)
-      }
-      .onDisappear { viewModel.clearUndoHistory(undoManager) }
-      .onChange(of: viewModel.text) { viewModel.refreshUndoAvailability(undoManager) }
-      .onChange(of: viewModel.selection) {
-        viewModel.stopLinkAtBoundary()
-      }
-      .alert(.editorLink, isPresented: $viewModel.showsLinkEditor) {
-        linkEditorActions()
-      } message: {
-        Text(.editorLinkHint)
-      }
+      .onChange(of: mode) { viewModel.prepareForModeChange() }
   }
 
   private func editorLayout() -> some View {
@@ -64,42 +64,35 @@ private extension CommunityEditorView {
 
   @ViewBuilder
   private func characterCountView() -> some View {
-    if showsSamples || viewModel.utf16Count >= Constants.counterThreshold {
-      Text(.editorCharacterCount(viewModel.utf16Count, Constants.characterLimit))
+    if viewModel.utf16Count >= Constants.counterThreshold {
+      Text(.editorCharacterCount(viewModel.utf16Count, viewModel.characterLimit))
         .font(.caption.monospacedDigit())
         .foregroundStyle(
-          viewModel.utf16Count > Constants.characterLimit ? Constants.error : Constants.secondary)
+          viewModel.utf16Count > viewModel.characterLimit ? Constants.error : Constants.secondary)
     }
   }
 
-  private func changeMode(from old: Mode, to new: Mode) {
-    focused = false
-    if old == .source || new == .source {
-      viewModel.clearUndoHistory(undoManager)
-    }
-    if old == .source {
-      viewModel.loadSource(viewModel.source)
-    } else if new == .source {
-      viewModel.source = viewModel.markdown
-    }
+  private var photoErrorPresented: Binding<Bool> {
+    Binding(get: { viewModel.photoError != nil }, set: { if !$0 { viewModel.dismissPhotoError() } })
+  }
+
+  private var linkEditorPresented: Binding<Bool> {
+    Binding(get: { viewModel.linkEdit != nil }, set: { if !$0 { viewModel.cancelLinkEditing() } })
   }
 
   @ViewBuilder
-  private func linkEditorActions() -> some View {
+  private func linkEditorActions(_ draft: CommunityEditorViewModel.LinkEdit) -> some View {
     TextField(.editorLinkPlaceholder, text: $viewModel.linkAddress)
+      .keyboardType(.URL)
       .textInputAutocapitalization(.never)
-    Button(.editorApply) {
-      viewModel.applyLink(undoManager: undoManager)
-      focused = true
+      .autocorrectionDisabled()
+    Button(.editorApply) { viewModel.saveLink(draft) }
+      .disabled(!viewModel.canSaveLink)
+    if let url = draft.originalURL {
+      Button(.editorOpenLink) { openURL(url) }
+      Button(.editorRemoveLink, role: .destructive) { viewModel.removeLink(draft) }
     }
-    .disabled(viewModel.validLink == nil)
-    if viewModel.isEditingLink {
-      Button(.editorRemoveLink, role: .destructive) {
-        viewModel.removeLink(undoManager: undoManager)
-        focused = true
-      }
-    }
-    Button(.commonCancel, role: .cancel) { focused = true }
+    Button(.commonCancel, role: .cancel, action: viewModel.cancelLinkEditing)
   }
 
   private func formattingBar() -> some View {
@@ -113,14 +106,6 @@ private extension CommunityEditorView {
       .padding(.vertical, Constants.barInset)
   }
 
-  private func load(_ source: String) {
-    viewModel.clearUndoHistory(undoManager)
-    viewModel.loadSource(source)
-    mode = viewModel.sourceOnly ? .source : .editor
-  }
-
-
-  @ViewBuilder
   private func modePickerView() -> some View {
     Picker(
       .editorModeTitle,
@@ -142,13 +127,10 @@ private extension CommunityEditorView {
       if viewModel.sourceOnly {
         previewView()
       } else {
-        TextEditor(text: $viewModel.text, selection: $viewModel.selection)
-          .focused($focused)
-          .padding(.horizontal, Constants.contentSpacing)
-          .accessibilityIdentifier("community.richEditor")
+        PhotoTextView(model: viewModel, autofocus: autofocus)
       }
     case .source:
-      TextEditor(text: $viewModel.source)
+      TextEditor(text: Binding(get: { viewModel.markdown }, set: viewModel.loadSource))
         .font(.body.monospaced())
         .autocorrectionDisabled()
         .textInputAutocapitalization(.never)
@@ -165,18 +147,10 @@ private extension CommunityEditorView {
     }
   }
 
-  @ViewBuilder
   private func formattingButtonsView() -> some View {
     HStack(spacing: Constants.zero) {
       ForEach(CommunityEditorViewModel.Format.allCases) { format in
         formatButton(format)
-          .buttonStyle(.plain)
-          .background(
-            viewModel.state(for: format) == .on ? Constants.selectedBackground : .clear,
-            in: .capsule
-          )
-          .accessibilityLabel(format.title)
-          .accessibilityValue(viewModel.state(for: format).title)
       }
       linkButton()
         .background(
@@ -185,40 +159,87 @@ private extension CommunityEditorView {
         )
         .accessibilityLabel(
           .editorAddLink)
-      undoButton()
-        .accessibilityLabel(.editorUndo)
-        .disabled(!viewModel.canUndo)
-        .foregroundStyle(viewModel.canUndo ? Constants.primary : Constants.secondary)
-      redoButton()
-        .accessibilityLabel(.editorRedo)
-        .disabled(!viewModel.canRedo)
-        .foregroundStyle(viewModel.canRedo ? Constants.primary : Constants.secondary)
+      photoButton()
     }
   }
 
   @ToolbarContentBuilder
   private func toolbarContent() -> some ToolbarContent {
-    if showsSamples {
+    if mode == .editor && !viewModel.sourceOnly {
       ToolbarItem(placement: .topBarTrailing) {
-        Menu(.editorSamples, systemImage: Constants.samples) { sampleButtons() }
+        historyButtonsView()
       }
     }
   }
 
-  @ViewBuilder
-  private func sampleButtons() -> some View {
-    Button(.editorSampleFull) {
-      load(CommunityEditorSamples.completeSample)
-      mode = .editor
+  private func historyButtonsView() -> some View {
+    HStack(spacing: Constants.zero) {
+      undoButton()
+        .accessibilityLabel(.editorUndo)
+        .accessibilityIdentifier("community.editorUndo")
+        .disabled(!viewModel.canUndo)
+      Divider()
+        .frame(height: Constants.historyDividerHeight)
+        .accessibilityHidden(true)
+      redoButton()
+        .accessibilityLabel(.editorRedo)
+        .accessibilityIdentifier("community.editorRedo")
+        .disabled(!viewModel.canRedo)
     }
-    Button(.editorSampleShort) { load(CommunityEditorSamples.short) }
-    Button(.editorSampleBlocks) { load(CommunityEditorSamples.blockSample) }
-    Button(.editorSampleParagraphs) { load(CommunityEditorSamples.paragraphSample) }
-    Button(.editorSampleLists) { load(CommunityEditorSamples.listSample) }
-    Button(.editorSampleEmpty) { load("") }
+    .buttonStyle(.plain)
+  }
+
+  private func photoButton() -> some View {
+    let isImporting = viewModel.isImporting
+    return PhotosPicker(selection: $pickedPhotos, maxSelectionCount: Constants.maximumSelectedPhotos, matching: .images) {
+      Image(systemName: Constants.photo)
+        .opacity(isImporting ? Constants.zero : 1)
+        .overlay { if isImporting { ProgressView() } }
+        .frame(maxWidth: .infinity, minHeight: Constants.touchTarget)
+        .contentShape(.rect)
+    }
+    .disabled(!viewModel.canInsertPhoto)
+    .accessibilityLabel(.editorAddPhoto)
+    .accessibilityIdentifier("community.addPhoto")
+    .contextMenu { photoActions() }
   }
 
   @ViewBuilder
+  private func photoActions() -> some View {
+    if viewModel.selectedPhotoID != nil {
+      Button(.editorPhotoMoveStart) { viewModel.movePhoto(to: .start) }
+      Button(.editorPhotoMoveDown) { viewModel.movePhoto(to: .afterParagraph) }
+      Button(.editorPhotoMoveEnd) { viewModel.movePhoto(to: .end) }
+      Button(.editorPhotoRemove, role: .destructive, action: viewModel.removePhoto)
+    }
+  }
+
+  private func symbol(for format: CommunityEditorViewModel.Format) -> String {
+    switch format {
+    case .bold: Constants.bold
+    case .italic: Constants.italic
+    case .strike: Constants.strike
+    case .code: Constants.code
+    }
+  }
+
+  private func title(for format: CommunityEditorViewModel.Format) -> LocalizedStringResource {
+    switch format {
+    case .bold: .editorBold
+    case .italic: .editorItalic
+    case .strike: .editorStrike
+    case .code: .editorCode
+    }
+  }
+
+  private func stateTitle(_ state: CommunityEditorViewModel.FormatState) -> LocalizedStringResource {
+    switch state {
+    case .on: .editorOn
+    case .off: .editorOff
+    case .mixed: .editorMixed
+    }
+  }
+
   private func linkButton() -> some View {
     Button {
       viewModel.editLink()
@@ -229,48 +250,55 @@ private extension CommunityEditorView {
     }
   }
 
-  @ViewBuilder
   private func undoButton() -> some View {
     Button {
-      viewModel.undo(undoManager)
+      viewModel.undo()
     } label: {
       Image(systemName: Constants.undo)
-        .frame(maxWidth: .infinity, minHeight: Constants.touchTarget)
+        .frame(width: Constants.touchTarget, height: Constants.touchTarget)
         .contentShape(.rect)
     }
   }
 
-  @ViewBuilder
   private func redoButton() -> some View {
     Button {
-      viewModel.redo(undoManager)
+      viewModel.redo()
     } label: {
       Image(systemName: Constants.redo)
-        .frame(maxWidth: .infinity, minHeight: Constants.touchTarget)
+        .frame(width: Constants.touchTarget, height: Constants.touchTarget)
         .contentShape(.rect)
     }
   }
 
-  @ViewBuilder
   private func formatButton(_ format: CommunityEditorViewModel.Format) -> some View {
-    Button {
-      viewModel.toggle(format, undoManager: undoManager)
+    let state = viewModel.state(for: format)
+    return Button {
+      viewModel.toggle(format)
     } label: {
-      Image(systemName: format.symbol)
+      Image(systemName: symbol(for: format))
         .frame(maxWidth: .infinity, minHeight: Constants.touchTarget)
         .contentShape(.rect)
     }
+    .buttonStyle(.plain)
+    .background(state == .on ? Constants.selectedBackground : .clear, in: .capsule)
+    .accessibilityLabel(title(for: format))
+    .accessibilityValue(stateTitle(state))
   }
 }
 
-
 private enum Constants {
+  static let maximumSelectedPhotos = 10
+  static let photo = "photo.badge.plus"
+  static let bold = "bold"
+  static let italic = "italic"
+  static let strike = "strikethrough"
+  static let code = "chevron.left.forwardslash.chevron.right"
   static let zero: CGFloat = 0
   static let contentSpacing: CGFloat = 12
   static let touchTarget: CGFloat = 44
+  static let historyDividerHeight: CGFloat = 20
   static let barPadding: CGFloat = 6
   static let barInset: CGFloat = 8
-  // Match the editor's outer padding plus its native text-container insets.
   static let previewHorizontalInset: CGFloat = 17
   static let previewVerticalInset: CGFloat = 8
   static let selectedBackground = Color.primary.opacity(0.12)
@@ -278,9 +306,7 @@ private enum Constants {
   static let secondary = Color.secondary
   static let error = Color.red
   static let counterThreshold = 4000
-  static let characterLimit = 4096
   static let link = "link"
   static let undo = "arrow.uturn.backward"
   static let redo = "arrow.uturn.forward"
-  static let samples = "doc.on.doc"
 }

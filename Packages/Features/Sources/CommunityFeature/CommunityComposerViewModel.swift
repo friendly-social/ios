@@ -1,5 +1,5 @@
-import CommunityEditorFeature
 import CommunityDraftService
+import CommunityEditorFeature
 import CommunityProfileService
 import CommunityService
 import Dependencies
@@ -47,25 +47,14 @@ public final class CommunityComposerViewModel: Identifiable {
   @discardableResult
   public func start() -> Bool {
     guard let session = profileService.currentSession() else { return false }
+    editor.start(session: session)
     let profile = profileService
     let draftService = draftService
     let isCurrent: @Sendable () -> Bool = { profile.isCurrentSession(session) }
     var drafts = replyTarget.map {
       draftService.replyDrafts($0, session.accountID, session.sessionID, isCurrent)
     } ?? draftService.postDrafts(session.accountID, session.sessionID, isCurrent)
-    if replyTarget == nil {
-      let original = drafts
-      drafts.load = { [weak self] in
-        guard let source = try await original.load(), self?.suppressDraft(source) != true else {
-          return nil
-        }
-        return source
-      }
-      drafts.save = { [weak self] text in
-        try await original.save(text)
-        self?.didSaveDraft(text)
-      }
-    }
+    if replyTarget == nil { drafts = observingPostDrafts(drafts) }
     self.drafts = drafts
     isCurrentSession = isCurrent
     let callback = onUnauthorized
@@ -125,6 +114,10 @@ public final class CommunityComposerViewModel: Identifiable {
     await previous?.value
     saveTask = nil
     guard isReady, published == nil, isCurrentSession() else { return published != nil }
+    do { try await editor.prepareForSaving() } catch {
+      draftError = .composerSaveError
+      return false
+    }
     await save(editor.markdown)
     return draftError == nil
   }
@@ -196,6 +189,19 @@ public final class CommunityComposerViewModel: Identifiable {
 }
 
 private extension CommunityComposerViewModel {
+  private func observingPostDrafts(_ original: CommunityDrafts) -> CommunityDrafts {
+    var drafts = original
+    drafts.load = { [weak self] in
+      guard let source = try await original.load(), self?.suppressDraft(source) != true else { return nil }
+      return source
+    }
+    drafts.save = { [weak self] text in
+      try await original.save(text)
+      self?.didSaveDraft(text)
+    }
+    return drafts
+  }
+
   private func removePublishedDraft() async {
     guard let drafts else { return }
     do {

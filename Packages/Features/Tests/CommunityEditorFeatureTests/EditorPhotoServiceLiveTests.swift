@@ -71,6 +71,26 @@ import UIKit
     } catch EditorPhotoError.invalidImage {}
   }
 
+  @Test func uploadedImageIsAvailableInNewEditorBeforeMount() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(component: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let live = try liveClient(directory: directory, files: recordingFiles(UploadRecorder(file: try fileDescriptor())))
+    let id = UUID()
+    let content = try await live.restore(id, fallback: imageData(), session: session)
+    let uploaded = try await live.upload(id, session: session)
+    let service = photoClient(live)
+    let model = withDependencies { $0[EditorPhotoService.self] = service } operation: {
+      CommunityEditorViewModel(source: "![](\(uploaded))")
+    }
+    model.start(session: session)
+    let photo = try #require(model.text.attribute(.attachment, at: 0,
+      effectiveRange: nil) as? PhotoAttachment)
+    #expect(photo.hasLoadedPreview)
+    let image = try #require(UIImage(data: content.preview))
+    let bounds = photo.displayBounds(in: nil)
+    expectNoDifference(bounds.height / bounds.width, image.size.height / image.size.width)
+  }
+
   @Test func productionUploadSendsSessionAndOriginalFileSize() async throws {
     let directory = FileManager.default.temporaryDirectory.appending(component: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -155,6 +175,16 @@ import UIKit
 }
 
 private extension EditorPhotoServiceLiveTests {
+  private func photoClient(_ live: EditorPhotoServiceLive) -> EditorPhotoService {
+    .init(
+      selectionData: { try await live.selectionData($0) },
+      restore: { try await live.restore($0, fallback: $1, session: $2) },
+      upload: { try await live.upload($0, session: $1) },
+      preview: { try await live.preview($0) },
+      cachedPreview: { live.cachedPreview($0) }
+    )
+  }
+
   private func filesClient(_ transport: HTTPTransport) -> FilesApi {
     let client = HTTPClient(baseURL: URL(string: "https://example.com")!, transport: transport)
     return withDependencies { $0[HTTPClient.self] = client } operation: { FilesApi.liveValue }
@@ -224,6 +254,7 @@ private actor UploadRecorder {
   private(set) var values: [Data] = []
   private let file: FileDescriptor
   init(file: FileDescriptor) { self.file = file }
+
   func upload(_ data: Data) -> FileDescriptor { values.append(data); return file }
 }
 

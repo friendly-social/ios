@@ -34,6 +34,7 @@ public final class CommunityEditViewModel: Identifiable {
   func start() {
     let profile = profileService
     let session = profile.currentSession()
+    if let session { editor.start(session: session) }
     isCurrentSession = { session.map(profile.isCurrentSession) ?? false }
     let callback = onUnauthorized
     onUnauthorized = {
