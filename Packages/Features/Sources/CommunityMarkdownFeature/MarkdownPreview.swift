@@ -228,14 +228,7 @@ private extension MarkdownImageView {
   private func contentView() -> some View {
     Group {
       if let url {
-        MarkdownImageLayout(ratio: layoutCache?.ratio(for: url), maximumHeight: Constants.imageHeight) {
-          LazyImage(url: url) { state in
-            imagePhaseView(state)
-          }
-        }
-        .frame(maxHeight: Constants.imageHeight)
-        .accessibilityLabel(
-          alt.isEmpty ? Text(.markdownImage) : Text(alt))
+        remoteImageView(url)
       } else {
         Label { alt.isEmpty ? Text(.markdownImageUnavailable) : Text(alt) } icon: { Image(systemName: Constants.image) }
         .frame(maxWidth: .infinity, minHeight: Constants.emptyImageHeight)
@@ -246,6 +239,22 @@ private extension MarkdownImageView {
     .fullScreenCover(item: $selectedImage) { selected in
       MarkdownPhotoViewer(image: selected.image, alt: alt, sourceFrame: selected.sourceFrame)
     }
+  }
+
+  private func remoteImageView(_ url: URL) -> some View {
+    MarkdownImageLayout(ratio: layoutCache?.ratio(for: url), maximumHeight: Constants.imageHeight) {
+      LazyImage(url: url) { state in
+        imagePhaseView(state)
+          .onChange(of: state.imageContainer?.image.size, initial: true) {
+            if let size = state.imageContainer?.image.size {
+              // Rendered sizes would feed this cache back into its own layout.
+              layoutCache?.record(size: size, for: url)
+            }
+          }
+      }
+    }
+    .frame(maxHeight: Constants.imageHeight)
+    .accessibilityLabel(alt.isEmpty ? Text(.markdownImage) : Text(alt))
   }
 
   @ViewBuilder
@@ -279,11 +288,6 @@ private extension MarkdownImageView {
 
   private func loadedImageView(_ image: Image) -> some View {
     image.resizable().scaledToFit()
-      .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
-        if let url {
-          layoutCache?.record(size: size, for: url)
-        }
-      }
   }
 }
 
