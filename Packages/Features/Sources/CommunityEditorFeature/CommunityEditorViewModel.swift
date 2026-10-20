@@ -19,7 +19,7 @@ public final class CommunityEditorViewModel {
     let title: String
   }
 
-  public var source: String
+  public private(set) var markdown: String
   public private(set) var text = NSAttributedString(string: "")
   public private(set) var selection = NSRange(location: 0, length: 0)
   public private(set) var canUndo = false
@@ -36,43 +36,27 @@ public final class CommunityEditorViewModel {
   @ObservationIgnored private weak var textView: PhotoTextArea?
   @ObservationIgnored private var assets: [ObjectIdentifier: PhotoReference] = [:]
   @ObservationIgnored private var previewLoads: [URL: Task<Void, Never>] = [:]
-  @ObservationIgnored private var hasLoaded = false
   @ObservationIgnored private var isEditing = false
-  @ObservationIgnored private var cachedMarkdown = ""
   private var hasUnfinishedPhotos = false
-  private var documentVersion = 0
   private var selectionVersion = 0
-  @ObservationIgnored private var parsedSource: String?
-  @ObservationIgnored private var sourceRequiresEditing = false
-  @ObservationIgnored private var cachedVersion = -1
+  private var loadedSourceOnly: Bool?
   @ObservationIgnored private let fallbackHistory = UndoManager()
   @ObservationIgnored private var typingAttributes = EditorTextAttributes.make(formatBits: 0)
   var history: UndoManager { textView?.systemUndoManager ?? fallbackHistory }
 
-  public init(source: String = "") { self.source = source }
+  public init(source: String = "") { markdown = source }
 
   deinit { previewLoads.values.forEach { $0.cancel() } }
 
   public var sourceOnly: Bool {
-    if parsedSource != source {
-      sourceRequiresEditing = PhotoMarkdownCodec.requiresSourceEditing(source)
-      parsedSource = source
-    }
-    return sourceRequiresEditing
-  }
-  public var markdown: String {
-    guard hasLoaded, !sourceOnly else { return source }
-    guard cachedVersion != documentVersion else { return cachedMarkdown }
-    cachedMarkdown = PhotoMarkdownCodec.encode(text)
-    cachedVersion = documentVersion
-    return cachedMarkdown
+    loadedSourceOnly ?? PhotoMarkdownCodec.requiresSourceEditing(markdown)
   }
   public var utf16Count: Int { markdown.utf16.count }
   var characterLimit: Int { Constants.characterLimit }
   public var canPublish: Bool {
     guard !isImporting, !hasUnfinishedPhotos else { return false }
     let value = markdown
-    if hasLoaded, !sourceOnly { return Self.isValidPostText(value) }
+    if loadedSourceOnly == false { return Self.isValidPostText(value) }
     return Self.isPublishable(value)
   }
 
@@ -95,16 +79,10 @@ public final class CommunityEditorViewModel {
 
   public func loadSource(_ value: String) {
     cancelLinkEditing()
-    if hasLoaded, !sourceOnly, value == markdown {
-      source = value
-      return
-    }
-    source = value
+    if loadedSourceOnly == false, value == markdown { return }
     text = decodeSource(value)
-    hasLoaded = true
-    cachedMarkdown = value
-    documentVersion += 1
-    cachedVersion = documentVersion
+    loadedSourceOnly = PhotoMarkdownCodec.requiresSourceEditing(value)
+    markdown = value
     selection = NSRange(location: 0, length: 0)
     history.removeAllActions()
     synchronizeView()
@@ -148,7 +126,7 @@ public final class CommunityEditorViewModel {
   func refresh() {
     guard !isEditing else { return }
     if let view = textView { text = NSAttributedString(attributedString: view.textStorage) }
-    documentVersion += 1
+    if loadedSourceOnly == false { markdown = PhotoMarkdownCodec.encode(text) }
     assets = assets.filter { $0.value.photo != nil }
     updateStatus()
   }
@@ -385,7 +363,7 @@ private extension CommunityEditorViewModel {
     }
   }
 
-  private func ensureLoaded() { if !hasLoaded { loadSource(source) } }
+  private func ensureLoaded() { if loadedSourceOnly == nil { loadSource(markdown) } }
 
   private func synchronizeView() {
     guard let view = textView else { return }

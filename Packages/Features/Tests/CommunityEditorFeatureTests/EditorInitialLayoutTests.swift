@@ -88,7 +88,7 @@ private extension EditorInitialLayoutTests {
     let model = withDependencies { $0[EditorPhotoService.self] = .testValue } operation: {
       CommunityEditorViewModel(source: source ?? (0..<40).map { "Paragraph \($0).\n\n" }.joined() + "TARGET end")
     }
-    model.loadSource(model.source)
+    model.loadSource(model.markdown)
     model.restoreCursor(nil)
     let view = PhotoTextArea(usingTextLayoutManager: true)
     view.autofocus = autofocus

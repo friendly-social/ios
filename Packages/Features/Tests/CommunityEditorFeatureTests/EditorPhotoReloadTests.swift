@@ -32,8 +32,7 @@ import UIKit
       makeEditor("![](https://example.com/photo.jpg)")
     }
     await preview.waitUntilStarted()
-    editor.model.source += "\n\nAfter"
-    editor.model.loadSource(editor.model.source)
+    editor.model.loadSource(editor.model.markdown + "\n\nAfter")
     for _ in 0..<20 { await Task.yield() }
     let image = portraitImage()
     await preview.finish(try #require(image.pngData()))
@@ -60,7 +59,6 @@ import UIKit
     }
     editor.model.insertPhoto(photo)
     let source = editor.model.markdown + (changed ? "\n\n**After**" : "")
-    editor.model.source = source
     editor.model.loadSource(source)
     let restored = try #require(editor.model.text.attribute(.attachment, at: 0,
       effectiveRange: nil) as? PhotoAttachment)
