@@ -23,6 +23,7 @@ public final class CommunityComposerViewModel: Identifiable {
   @ObservationIgnored @Dependency(CommunityService.self) private var service
   @ObservationIgnored @Dependency(CommunityProfileService.self) private var profileService
   @ObservationIgnored @Dependency(CommunityDraftService.self) private var draftService
+  @ObservationIgnored @Dependency(\.continuousClock) private var clock
   private var operation = ComposerOperation.idle
   private var drafts: CommunityDrafts?
   private var isCurrentSession: () -> Bool = { false }
@@ -34,6 +35,7 @@ public final class CommunityComposerViewModel: Identifiable {
   @ObservationIgnored private var editorObservation: ObserveToken?
   private let onPublished: (PostDescriptor, String, LocalizedStringResource?) async -> Void
   @ObservationIgnored private var observedText = ""
+  @ObservationIgnored private var observedCursor: Int?
   private let replyTarget: PostDescriptor?
   private let suppressDraft: (String) -> Bool
   private let didSaveDraft: (String) -> Void
@@ -112,11 +114,16 @@ public final class CommunityComposerViewModel: Identifiable {
   public func textChanged() {
     guard isReady, operation == .idle, published == nil, isCurrentSession() else { return }
     let text = editor.markdown
-    guard text != observedText else { return }
+    let cursor = draftCursor
+    let contentChanged = text != observedText
+    guard contentChanged || cursor != observedCursor else { return }
     observedText = text
-    hideSavedNotice()
-    draftSaved = false
-    scheduleSave(text)
+    observedCursor = cursor
+    if contentChanged {
+      hideSavedNotice()
+      draftSaved = false
+    }
+    scheduleSave(text, cursor: cursor, showsNotice: contentChanged)
   }
 
   @discardableResult
@@ -171,6 +178,7 @@ public final class CommunityComposerViewModel: Identifiable {
       guard isCurrentSession() else { return false }
       editor.loadSource("")
       observedText = ""
+      observedCursor = draftCursor
       requiresRetryConfirmation = false
       needsRetryConfirmation = false
       draftSaved = false
@@ -201,11 +209,11 @@ public final class CommunityComposerViewModel: Identifiable {
 private extension CommunityComposerViewModel {
   private func restoreDraft(_ drafts: CommunityDrafts) async {
     do {
-      let source = try await drafts.load()
+      let snapshot = try await drafts.load()
       guard isCurrentSession(), !Task.isCancelled else { return }
-      if let source {
-        editor.loadSource(source)
-        editor.restoreCursor(nil)
+      if let snapshot {
+        editor.loadSource(snapshot.content)
+        editor.restoreCursor(snapshot.cursor)
         draftSaved = true
       }
     } catch {
@@ -213,6 +221,7 @@ private extension CommunityComposerViewModel {
       draftError = .composerRestoreError
     }
     observedText = editor.markdown
+    observedCursor = draftCursor
     isReady = true
   }
 
@@ -234,29 +243,32 @@ private extension CommunityComposerViewModel {
     }
   }
 
+  private var draftCursor: Int? { editor.sourceOnly ? nil : editor.selection.location }
+
   private func observingDrafts(_ original: CommunityDrafts) -> CommunityDrafts {
     var drafts = original
     drafts.load = { [weak self] in
-      guard let source = try await original.load(), self?.suppressDraft(source) != true else { return nil }
-      return source
+      guard let snapshot = try await original.load(), self?.suppressDraft(snapshot.content) != true else { return nil }
+      return snapshot
     }
-    drafts.save = { [weak self] text in
-      try await original.save(text)
-      self?.didSaveDraft(text)
+    drafts.save = { [weak self] snapshot in
+      try await original.save(snapshot)
+      self?.didSaveDraft(snapshot.content)
     }
     return drafts
   }
 
-  private func scheduleSave(_ text: String) {
+  private func scheduleSave(_ text: String, cursor: Int?, showsNotice: Bool) {
     let previous = saveTask
+    let clock = clock
     previous?.cancel()
     saveTask = Task { [weak self] in
       await previous?.value
-      do { try await Task.sleep(for: Constants.autosaveDelay) } catch { return }
+      do { try await clock.sleep(for: Constants.autosaveDelay) } catch { return }
       guard !Task.isCancelled else { return }
-      await self?.save(text)
+      await self?.save(text, cursor: cursor)
       guard !Task.isCancelled else { return }
-      self?.showSavedNotice(for: text)
+      if showsNotice { self?.showSavedNotice(for: text) }
     }
   }
 
@@ -266,7 +278,7 @@ private extension CommunityComposerViewModel {
       draftError = .composerSaveError
       return
     }
-    await save(editor.markdown)
+    await save(editor.markdown, cursor: draftCursor)
   }
 
   private func cancelPendingSave() async {
@@ -299,16 +311,17 @@ private extension CommunityComposerViewModel {
       !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
       isCurrentSession(), !isPublishing, published == nil else { return }
     showsSavedNotice = true
+    let clock = clock
     noticeTask = Task { [weak self] in
-      do { try await Task.sleep(for: Constants.noticeDuration) } catch { return }
+      do { try await clock.sleep(for: Constants.noticeDuration) } catch { return }
       self?.showsSavedNotice = false
     }
   }
 
-  private func save(_ text: String) async {
+  private func save(_ text: String, cursor: Int?) async {
     guard let drafts, published == nil, isCurrentSession() else { return }
     do {
-      try await drafts.save(text)
+      try await drafts.save(.init(content: text, cursor: cursor))
       guard isCurrentSession() else { return }
       draftError = nil
       draftSaved = editor.markdown == text

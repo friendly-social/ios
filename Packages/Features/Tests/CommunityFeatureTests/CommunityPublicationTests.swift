@@ -5,6 +5,7 @@ import CommunityDraftService
 import CommunityFeature
 import CommunityService
 @testable import CommunityServiceLive
+import Dependencies
 import Foundation
 import Testing
 
@@ -22,25 +23,26 @@ struct CommunityPublicationTests {
     model.stop()
   }
 
-  @Test func autosaveNoticeAppearsThenExpiresAndCanAppearAgain() async throws {
+  @Test func autosaveNoticeAppearsThenExpiresAndCanAppearAgain() async {
+    let clock = TestClock()
     let draft = MemoryDraft(nil)
-    let model = makeComposerModel(service: service { _ in descriptor }, drafts: draft.client)
+    let model = makeComposerModel(service: service { _ in descriptor }, drafts: draft.client, clock: clock)
     await model.restore()
     defer { model.stop() }
     model.editor.loadSource("First draft")
     model.textChanged()
     #expect(!model.showsSavedNotice)
-    try await Task.sleep(for: .milliseconds(500))
+    await clock.advance(by: .milliseconds(500))
     #expect(!model.showsSavedNotice)
-    try await Task.sleep(for: .seconds(1))
+    await clock.advance(by: .milliseconds(500))
     #expect(model.showsSavedNotice)
     #expect(draft.text == "First draft")
-    try await Task.sleep(for: .seconds(2))
+    await clock.advance(by: .seconds(2))
     #expect(!model.showsSavedNotice)
     model.editor.loadSource("Second draft")
     model.textChanged()
     #expect(!model.showsSavedNotice)
-    try await Task.sleep(for: .milliseconds(1500))
+    await clock.advance(by: .seconds(1))
     #expect(model.showsSavedNotice)
     #expect(draft.text == "Second draft")
   }
@@ -203,7 +205,7 @@ private final class MemoryDraft {
   var failRemove = false
   init(_ text: String?) { self.text = text }
   var client: CommunityDrafts {
-    CommunityDrafts(load: { self.text }, save: { self.text = $0 }, remove: {
+    CommunityDrafts(load: { self.text.map { .init(content: $0) } }, save: { self.text = $0.content }, remove: {
       if self.failRemove { throw CocoaError(.fileWriteUnknown) }
       self.text = nil
     })
@@ -261,14 +263,14 @@ struct CommunityLiveTests {
     let directory = FileManager.default.temporaryDirectory.appending(component: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
     let store = CommunityDraftStore(directory: directory)
-    try await store.save("**Текст**", accountID: 1, sessionID: "one")
+    try await store.save(.init(content: "**Текст**"), accountID: 1, sessionID: "one")
     let reopened = CommunityDraftStore(directory: directory)
-    #expect(try await reopened.load(accountID: 1, sessionID: "one") == "**Текст**")
+    #expect(try await reopened.load(accountID: 1, sessionID: "one")?.content == "**Текст**")
     #expect(try await store.load(accountID: 2, sessionID: "two") == nil)
     #expect(try await store.load(accountID: 1, sessionID: "new-session") == nil)
     try await store.revoke(accountID: 1, sessionID: "one")
     await #expect(throws: CancellationError.self) {
-      try await store.save("Поздняя запись", accountID: 1, sessionID: "one")
+      try await store.save(.init(content: "Поздняя запись"), accountID: 1, sessionID: "one")
     }
     #expect(try await reopened.load(accountID: 1, sessionID: "one") == nil)
   }
@@ -281,7 +283,7 @@ struct CommunityLiveTests {
     var iterator = stream.makeAsyncIterator()
     let initial = await iterator.next()
     #expect(initial == .some(nil))
-    try await store.save("draft", accountID: 1, sessionID: "one")
+    try await store.save(.init(content: "draft"), accountID: 1, sessionID: "one")
     #expect(await iterator.next() == .some("draft"))
     try await store.remove(accountID: 1, sessionID: "one")
     let removed = await iterator.next()

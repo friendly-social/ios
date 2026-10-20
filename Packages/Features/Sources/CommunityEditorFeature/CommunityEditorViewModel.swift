@@ -81,9 +81,9 @@ public final class CommunityEditorViewModel {
     cancelLinkEditing()
     if loadedSourceOnly == false, value == markdown { return }
     text = decodeSource(value)
+    selection = NSRange(location: loadedSourceOnly == nil ? 0 : text.length, length: 0)
     loadedSourceOnly = PhotoMarkdownCodec.requiresSourceEditing(value)
     markdown = value
-    selection = NSRange(location: 0, length: 0)
     history.removeAllActions()
     synchronizeView()
     restorePhotos()

@@ -12,6 +12,31 @@ import XCTest
     assertSourceSwitches(in: app, containing: "https://example.com/restart-uploaded.jpg")
   }
 
+  func testMarkdownEditRestoresCursorAtEndAfterReopening() {
+    let app = XCUIApplication()
+    app.launchArguments = ["--editor-restart-tests", "--editor-reopen-tests", "--cursor-tests",
+      "--restart-session=" + UUID().uuidString]
+    app.launch()
+    let open = app.buttons["editor.open"]
+    XCTAssertTrue(open.waitForExistence(timeout: 5))
+    open.tap()
+    XCTAssertTrue(app.textViews["community.richEditor"].waitForExistence(timeout: 5))
+    app.buttons["Markdown"].tap()
+    let source = app.textViews["community.markdownEditor"]
+    XCTAssertTrue(source.waitForExistence(timeout: 3))
+    source.tap()
+    source.typeText(" Markdown edit ")
+    app.buttons["community.closeComposer"].tap()
+    XCTAssertTrue(open.waitForExistence(timeout: 5))
+    open.tap()
+    let editor = app.textViews["community.richEditor"]
+    XCTAssertTrue(editor.waitForExistence(timeout: 5))
+    editor.typeText("CURSOREND")
+    app.buttons["Markdown"].tap()
+    XCTAssertTrue(source.waitForExistence(timeout: 3))
+    XCTAssertTrue((source.value as? String)?.hasSuffix("CURSOREND") == true, source.value as? String ?? "")
+  }
+
   func testReplyUsesComposerToolbarAndKeepsDraftWhenClosed() {
     let app = launchReplyEditor()
     let editor = app.textViews["community.richEditor"]

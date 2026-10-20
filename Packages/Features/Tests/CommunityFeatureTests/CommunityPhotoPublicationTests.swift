@@ -15,7 +15,7 @@ import Testing
     let model = withDependencies {
       $0[EditorPhotoService.self] = missingPhotoClient()
     } operation: {
-      makeComposerModel(service: service, drafts: .init(load: { pending }, save: { _ in }, remove: {}))
+      makeComposerModel(service: service, drafts: .init(load: { .init(content: pending) }, save: { _ in }, remove: {}))
     }
     await model.restore()
     #expect(!model.canPublish)

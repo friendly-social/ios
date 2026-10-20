@@ -2,6 +2,7 @@ import CommunityDraftService
 @testable import CommunityFeature
 import CommunityService
 import CustomDump
+import Dependencies
 import Synchronization
 import Testing
 
@@ -14,7 +15,7 @@ import Testing
     service.reply = { _, _ in calls.withLock { $0 += 1 }; throw CommunityError.outcomeUnknown }
     let model = makeComposerModel(
       service: service,
-      drafts: .init(load: { "Draft" }, save: { _ in }, remove: {}),
+      drafts: .init(load: { .init(content: "Draft") }, save: { _ in }, remove: {}),
       replyTo: reply ? .init(id: 1, accessHash: "parent") : nil)
     defer { model.stop() }
     await model.restore()
@@ -28,13 +29,14 @@ import Testing
   }
 
   @Test(arguments: [false, true])
-  func lateContentChangeDuringDiscardCannotResurrectTheDraft(reply: Bool) async throws {
+  func lateContentChangeDuringDiscardCannotResurrectTheDraft(reply: Bool) async {
     let removal = SuspendedDraftRemoval()
+    let clock = TestClock()
     var saved: [String] = []
     let model = makeComposerModel(
       service: .init(),
-      drafts: .init(load: { "Draft" }, save: { saved.append($0) }, remove: removal.remove),
-      replyTo: reply ? .init(id: 1, accessHash: "parent") : nil)
+      drafts: .init(load: { .init(content: "Draft") }, save: { saved.append($0.content) }, remove: removal.remove),
+      replyTo: reply ? .init(id: 1, accessHash: "parent") : nil, clock: clock)
     defer { model.stop() }
     await model.restore()
     let discard = Task { await model.discard() }
@@ -43,21 +45,22 @@ import Testing
     model.textChanged()
     removal.finish()
     #expect(await discard.value)
-    try await Task.sleep(for: .milliseconds(1200))
+    await clock.advance(by: .seconds(1))
     #expect(saved.isEmpty)
     expectNoDifference(model.editor.markdown, "")
   }
 
   @Test(arguments: [false, true])
-  func editorChangesAutosaveWithoutAView(reply: Bool) async throws {
+  func editorChangesAutosaveWithoutAView(reply: Bool) async {
+    let clock = TestClock()
     var saved: [String] = []
     let model = makeComposerModel(
-      service: .init(), drafts: .init(load: { nil }, save: { saved.append($0) }, remove: {}),
-      replyTo: reply ? .init(id: 1, accessHash: "parent") : nil)
+      service: .init(), drafts: .init(load: { nil }, save: { saved.append($0.content) }, remove: {}),
+      replyTo: reply ? .init(id: 1, accessHash: "parent") : nil, clock: clock)
     defer { model.stop() }
     await model.restore()
     model.editor.loadSource("Automatically saved")
-    try await Task.sleep(for: .milliseconds(1200))
+    await clock.advance(by: .seconds(1))
     expectNoDifference(saved, ["Automatically saved"])
   }
 
@@ -85,8 +88,8 @@ import Testing
   func discardWaitsForAnExplicitFlushBeforeRemovingItsFile(reply: Bool) async {
     let write = SuspendedDraftWrite()
     let model = makeComposerModel(
-      service: .init(), drafts: .init(load: { "Draft" },
-        save: { await write.save($0) }, remove: { write.remove() }),
+      service: .init(), drafts: .init(load: { .init(content: "Draft") },
+        save: { await write.save($0.content) }, remove: { write.remove() }),
       replyTo: reply ? .init(id: 1, accessHash: "parent") : nil)
     defer { model.stop() }
     await model.restore()
@@ -138,9 +141,9 @@ import Testing
 @MainActor private final class SuspendedDraftLoad {
   private(set) var calls = 0
   private var waiter: CheckedContinuation<Void, Never>?
-  private var completions: [CheckedContinuation<String?, Never>] = []
+  private var completions: [CheckedContinuation<CommunityDraftSnapshot<String>?, Never>] = []
 
-  func load() async -> String? {
+  func load() async -> CommunityDraftSnapshot<String>? {
     calls += 1
     return await withCheckedContinuation {
       completions.append($0)
@@ -155,7 +158,7 @@ import Testing
   }
 
   func finish() {
-    completions.forEach { $0.resume(returning: "Restored") }
+    completions.forEach { $0.resume(returning: .init(content: "Restored")) }
     completions.removeAll()
   }
 }

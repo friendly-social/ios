@@ -9,7 +9,7 @@ actor CommunityDraftStore {
   init(directory: URL) { self.directory = directory }
 
   func updates(accountID: Int64, sessionID: String) throws -> AsyncStream<String?> {
-    let value = try load(accountID: accountID, sessionID: sessionID)
+    let value = try load(accountID: accountID, sessionID: sessionID)?.content
     let id = UUID()
     let (stream, continuation) = AsyncStream<String?>.makeStream(bufferingPolicy: .bufferingNewest(1))
     observers[id] = Observer(accountID: accountID, sessionID: sessionID, continuation: continuation)
@@ -20,33 +20,34 @@ actor CommunityDraftStore {
     return stream
   }
 
-  func load(accountID: Int64, sessionID: String) throws -> String? {
+  func load(accountID: Int64, sessionID: String) throws -> CommunityDraftSnapshot<String>? {
     try check(sessionID)
     guard let draft = try read(accountID) else { return nil }
     guard draft.version == 1 else { throw CocoaError(.fileReadCorruptFile) }
-    return draft.sessionID == sessionID ? draft.markdown : nil
+    guard draft.sessionID == sessionID else { return nil }
+    return .init(content: draft.markdown, cursor: draft.cursor)
   }
 
-  func save(_ markdown: String, accountID: Int64, sessionID: String) throws {
+  func save(_ snapshot: CommunityDraftSnapshot<String>, accountID: Int64, sessionID: String) throws {
     try check(sessionID)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    let data = try JSONEncoder().encode(Draft(sessionID: sessionID, markdown: markdown))
+    let data = try JSONEncoder().encode(Draft(sessionID: sessionID, markdown: snapshot.content, cursor: snapshot.cursor))
     try data.write(to: url(accountID), options: .atomic)
-    notify(accountID: accountID, sessionID: sessionID, value: markdown)
+    notify(accountID: accountID, sessionID: sessionID, value: snapshot.content)
   }
 
-  func loadReply(accountID: Int64, sessionID: String) throws -> CommunityReplyDraft? {
+  func loadReply(accountID: Int64, sessionID: String) throws -> CommunityDraftSnapshot<CommunityReplyDraft>? {
     try check(sessionID)
     let file = url(accountID)
     guard FileManager.default.fileExists(atPath: file.path) else { return nil }
     let data = try Data(contentsOf: file)
     if let draft = try? JSONDecoder().decode(ReplyDraft.self, from: data) {
       guard draft.version == 2 else { throw CocoaError(.fileReadCorruptFile) }
-      return draft.sessionID == sessionID ? draft.content : nil
+      return draft.sessionID == sessionID ? .init(content: draft.content) : nil
     }
     let draft = try JSONDecoder().decode(Draft.self, from: data)
     guard draft.version == 1 else { throw CocoaError(.fileReadCorruptFile) }
-    return draft.sessionID == sessionID ? .markdown(draft.markdown) : nil
+    return draft.sessionID == sessionID ? .init(content: .markdown(draft.markdown), cursor: draft.cursor) : nil
   }
 
   func remove(accountID: Int64, sessionID: String) throws {
@@ -69,9 +70,29 @@ actor CommunityDraftStore {
   }
 
   private struct Draft: Codable {
-    var version = 1
+    let version: Int
     let sessionID: String
     let markdown: String
+    let cursor: Int?
+
+    init(sessionID: String, markdown: String, cursor: Int? = nil) {
+      self.version = 1
+      self.sessionID = sessionID
+      self.markdown = markdown
+      self.cursor = cursor
+    }
+
+    init(from decoder: any Decoder) throws {
+      let values = try decoder.container(keyedBy: CodingKeys.self)
+      version = try values.decode(Int.self, forKey: .version)
+      sessionID = try values.decode(String.self, forKey: .sessionID)
+      markdown = try values.decode(String.self, forKey: .markdown)
+      cursor = try? values.decode(Int.self, forKey: .cursor)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+      case version, sessionID, markdown, cursor
+    }
   }
 
   private struct Observer {

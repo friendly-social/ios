@@ -19,6 +19,7 @@ func makeFeedModel(
   onUnauthorized: @escaping () -> Void = {}
 ) -> CommunityViewModel {
   withDependencies {
+    $0.continuousClock = TestClock()
     $0[CommunityService.self] = service
     $0[CommunityFeedPreparationService.self] = feedPreparation
     $0[CommunityProfileService.self] = profile(
@@ -41,10 +42,12 @@ func makeComposerModel(
   service: CommunityService,
   drafts: CommunityDrafts,
   replyTo: PostDescriptor? = nil,
+  clock: any Clock<Duration> = TestClock(),
   isCurrentSession: @escaping () -> Bool = { true },
   onUnauthorized: @escaping () -> Void = {}
 ) -> CommunityComposerViewModel {
   withDependencies {
+    $0.continuousClock = clock
     $0[CommunityService.self] = service
     $0[CommunityProfileService.self] = profile(isCurrent: isCurrentSession)
     $0[CommunityDraftService.self] = draftService(post: drafts, reply: { _ in drafts })
@@ -90,6 +93,7 @@ func makeDetailModel(
   onMutation: @escaping (CommunityPost) async -> Void = { _ in }
 ) -> CommunityPostDetailViewModel {
   withDependencies {
+    $0.continuousClock = TestClock()
     $0[CommunityService.self] = service
     $0[CommunityFeedPreparationService.self] = preparation
     $0[CommunityProfileService.self] = profile(
@@ -145,6 +149,6 @@ private struct MainActorDraftFixture: @unchecked Sendable {
   let value: CommunityDrafts
 }
 
-private extension CommunityDraftHandle where Content == String {
+private extension CommunityDrafts {
   static var empty: Self { .init(load: { nil }, save: { _ in }, remove: {}) }
 }

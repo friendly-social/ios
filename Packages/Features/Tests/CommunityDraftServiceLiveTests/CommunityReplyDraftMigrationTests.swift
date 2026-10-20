@@ -20,7 +20,7 @@ import Testing
     let live = CommunityDraftServiceLive(directory: directory)
     let target = PostDescriptor(id: 42, accessHash: "parent")
     let restored = try await live.replyDrafts(target, 7, "session", { true }).load()
-    expectNoDifference(restored, expected)
+    expectNoDifference(restored?.content, expected)
     let anotherSession = try await live.replyDrafts(target, 7, "other", { true }).load()
     #expect(anotherSession == nil)
     try await live.replyDrafts(target, 7, "other", { true }).remove()
@@ -32,7 +32,7 @@ import Testing
     defer { try? FileManager.default.removeItem(at: directory) }
     let live = CommunityDraftServiceLive(directory: directory)
     let target = PostDescriptor(id: 42, accessHash: "parent")
-    try await live.replyDrafts(target, 7, "session", { true }).save("**Reply**")
+    try await live.replyDrafts(target, 7, "session", { true }).save(.init(content: "**Reply**", cursor: 3))
     let data = try Data(contentsOf: directory.appending(path: "Replies/42/7-new-post.json"))
     let oldReader = try JSONDecoder().decode(VersionOneDraft.self, from: data)
     expectNoDifference(oldReader.version, 1)

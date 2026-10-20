@@ -33,11 +33,11 @@ struct CommunityDraftServiceLive: Sendable {
       guard isCurrentSession() else { throw CancellationError() }
       guard let stored = try await store.loadReply(accountID: accountID, sessionID: sessionID) else { return nil }
       let content: String
-      switch stored {
+      switch stored.content {
       case let .plainText(text): content = MarkdownLiteral.encode(text)
       case let .markdown(source): content = source
       }
-      return content
+      return .init(content: content, cursor: stored.cursor)
     }
     return handle
   }
@@ -67,9 +67,9 @@ private extension CommunityDraftServiceLive {
         guard isCurrentSession() else { throw CancellationError() }
         return try await store.load(accountID: accountID, sessionID: sessionID)
       },
-      save: { text in
+      save: { snapshot in
         guard isCurrentSession() else { throw CancellationError() }
-        try await store.save(text, accountID: accountID, sessionID: sessionID)
+        try await store.save(snapshot, accountID: accountID, sessionID: sessionID)
       },
       remove: { try await store.remove(accountID: accountID, sessionID: sessionID) }
     )

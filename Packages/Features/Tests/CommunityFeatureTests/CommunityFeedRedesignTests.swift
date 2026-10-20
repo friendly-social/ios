@@ -159,9 +159,9 @@ struct CommunityFeedRedesignTests {
       await submission.record(descriptor: descriptor, text: text)
       return .init(id: 2, accessHash: "reply")
     }
-    let model = makeFeedModel(feedPreparation: .fixture, service: service, drafts: .init(load: { rootDraft }, save: { rootDraft = $0 }, remove: { rootDraft = "" }), replyDrafts: { descriptor in
+    let model = makeFeedModel(feedPreparation: .fixture, service: service, drafts: .init(load: { .init(content: rootDraft) }, save: { rootDraft = $0.content }, remove: { rootDraft = "" }), replyDrafts: { descriptor in
       #expect(descriptor == parent.descriptor)
-      return .init(load: { replyDraft }, save: { replyDraft = $0 }, remove: { replyDraft = nil })
+      return .init(load: { replyDraft.map { .init(content: $0) } }, save: { replyDraft = $0.content }, remove: { replyDraft = nil })
     })
     await model.load()
     let newPostTitle = model.composerTitle

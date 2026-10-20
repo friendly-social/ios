@@ -25,7 +25,7 @@ import Testing
     var saved: [String] = []
     var removed: [Int64] = []
     let model = makeDetailModel(post: post(1), service: .init(), drafts: { target in
-      .init(load: { nil }, save: { saved.append($0) }, remove: { removed.append(target.id) })
+      .init(load: { nil }, save: { saved.append($0.content) }, remove: { removed.append(target.id) })
     })
     model.expandEditor()
     let composer = try #require(model.composer)
