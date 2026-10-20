@@ -126,8 +126,11 @@ public final class CommunityViewModel {
   }
 
   public func canManage(_ post: CommunityPost) -> Bool {
+    showsPostActions(for: post) && isCurrentSession()
+  }
+
+  func showsPostActions(for post: CommunityPost) -> Bool {
     guard let accountID else { return false }
-    guard isCurrentSession() else { return false }
     switch post {
     case let .published(post): return post.owner.id == accountID
     case .awaitingDetails: return true

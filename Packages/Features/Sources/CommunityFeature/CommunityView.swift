@@ -111,7 +111,7 @@ private extension CommunityView {
       VStack(spacing: Constants.zero) {
         CommunityPostCard(
           post: post, content: item.content, avatarURL: avatarURL, openAuthor: openAuthor,
-          canManage: model.canManage(post), isDeleting: model.deletingID == post.id,
+          canManage: model.showsPostActions(for: post), isDeleting: model.deletingID == post.id,
           actionsDisabled: model.deletingID != nil,
           edit: { model.editButtonTapped(post) },
           delete: { deletePost(post) },
