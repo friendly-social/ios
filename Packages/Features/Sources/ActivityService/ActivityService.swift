@@ -7,6 +7,8 @@ import Foundation
 public struct ActivityService: Sendable {
   public var list: @Sendable (String?, CommunitySession) async throws -> ActivityPage
   public var openReply: @Sendable (PostDescriptor, CommunitySession) async throws -> ActivityDiscussion
+  public var hasNewUnreads: @Sendable (CommunitySession) async throws -> Bool
+  public var acknowledgeUnreads: @Sendable (CommunitySession) async throws -> Void
   public var markRead: @Sendable (Int64, CommunitySession) async throws -> Void
 }
 

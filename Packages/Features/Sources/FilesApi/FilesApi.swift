@@ -5,6 +5,7 @@ import Models
 @DependencyClient
 public struct FilesApi: Sendable {
   public var upload: @Sendable (Data) async throws -> FileDescriptor
+  public var uploadAuthorized: @Sendable (Data, UploadCredentials) async throws -> FileDescriptor
   public var downloadURL: @Sendable (DownloadRequest) -> URL = { _ in URL(fileURLWithPath: "/") }
 
   public enum Error: Swift.Error {
@@ -14,6 +15,16 @@ public struct FilesApi: Sendable {
 }
 
 extension FilesApi {
+  public struct UploadCredentials: Sendable, Equatable {
+    public let accountID: Int64
+    public let token: String
+
+    public init(accountID: Int64, token: String) {
+      self.accountID = accountID
+      self.token = token
+    }
+  }
+
   public struct DownloadRequest: Sendable {
     public let id: Int64
     public let accessHash: String

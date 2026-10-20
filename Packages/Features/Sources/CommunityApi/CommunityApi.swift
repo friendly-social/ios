@@ -8,6 +8,7 @@ public struct CommunityApi: Sendable {
   public var delete: @Sendable (Int64, CommunityCredentials) async throws -> Void
   public var list: @Sendable (String?, CommunityCredentials) async throws -> CommunityPage
   public var details: @Sendable (PostDescriptor, CommunityCredentials) async throws -> CommunityPostDetails
+  public var markRead: @Sendable (PostDescriptor, CommunityCredentials) async throws -> Void
   public var replies: @Sendable (PostDescriptor, String, CommunityCredentials) async throws -> CommunityReplyPage
 }
 

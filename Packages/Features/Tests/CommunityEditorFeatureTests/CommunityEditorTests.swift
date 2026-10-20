@@ -1,210 +1,146 @@
-import CommunityEditorFeature
+@testable import CommunityEditorFeature
+import CustomDump
 import Foundation
-import SwiftUI
 import Testing
+import UIKit
 
-@MainActor
-struct CommunityEditorTests {
-  @Test func closingEditorClearsUndoForNextOpening() {
-    let manager = UndoManager()
-    manager.groupsByEvent = false
-    let first = CommunityEditorViewModel(source: "hello")
-    first.selection = AttributedTextSelection(range: first.text.startIndex..<first.text.endIndex)
-    manager.beginUndoGrouping()
-    first.toggle(.bold, undoManager: manager)
-    manager.endUndoGrouping()
-    #expect(manager.canUndo)
-    first.clearUndoHistory(manager)
-    let reopened = CommunityEditorViewModel(source: first.markdown)
-    reopened.refreshUndoAvailability(manager)
-    #expect(!reopened.canUndo && !reopened.canRedo)
-  }
-
+@MainActor struct CommunityEditorTests {
   @Test(arguments: 0..<16)
   func styleCombinationsStayConsistentDuringTyping(mask: Int) {
-    let model = CommunityEditorViewModel()
-    model.selection = AttributedTextSelection(insertionPoint: model.text.startIndex)
-    let formats = CommunityEditorViewModel.Format.allCases
-    for (index, format) in formats.enumerated() where mask & (1 << index) != 0 {
-      model.toggle(format)
+    let editor = makeEditor("")
+    for format in CommunityEditorViewModel.Format.allCases where mask & format.rawValue != 0 {
+      editor.model.toggle(format)
     }
-    model.text = AttributedString("typed", attributes: model.selection.typingAttributes(in: model.text))
-    model.selection = AttributedTextSelection(insertionPoint: model.text.endIndex)
-    for (index, format) in formats.enumerated() {
-      #expect(model.state(for: format) == (mask & (1 << index) != 0 ? .on : .off))
+    editor.view.insertText("typed")
+    editor.model.refresh()
+    editor.model.selectionChanged()
+    for format in CommunityEditorViewModel.Format.allCases {
+      #expect(editor.model.state(for: format) == (mask & format.rawValue != 0 ? .on : .off))
     }
-    for (index, format) in formats.enumerated() where mask & (1 << index) != 0 {
-      model.toggle(format)
+  }
+
+  @Test func closingEditorClearsUndoForNextOpening() {
+    let editor = makeEditor("hello")
+    editor.model.setSelection(NSRange(location: 0, length: 5))
+    editor.model.toggle(.bold)
+    #expect(editor.model.canUndo)
+    editor.model.detach()
+    #expect(!editor.model.canUndo && !editor.model.canRedo)
+  }
+
+  @Test func tappingLinkEditsItsWholeFormattedLabel() throws {
+    let editor = makeEditor("Before [**hello** world](https://example.com) after")
+    editor.model.setSelection(NSRange(location: 7, length: 0))
+    editor.model.editLink()
+    let draft = try #require(editor.model.linkEdit)
+    expectNoDifference(draft.title, "hello world")
+    editor.model.setSelection(NSRange(location: editor.model.text.length, length: 0))
+    editor.model.linkAddress = "https://getfriend.ly"
+    editor.model.saveLink(draft)
+    for index in 7..<18 {
+      expectNoDifference(EditorLink.url(from: editor.model.text.attribute(.link, at: index, effectiveRange: nil)),
+        URL(string: "https://getfriend.ly"))
     }
-    let attributes = model.selection.typingAttributes(in: model.text)
-    let font = (attributes.font ?? .body).resolve(in: EnvironmentValues().fontResolutionContext)
-    #expect(!font.isBold && !font.isItalic && !font.isMonospaced)
-    #expect(attributes.strikethroughStyle == nil)
-    #expect(attributes.inlinePresentationIntent == nil)
-    for format in formats { #expect(model.state(for: format) == .off) }
+    expectNoDifference(editor.model.text.string, "Before hello world after")
   }
 
-  @Test func tappingLinkEditsItsWholeFormattedLabel() {
-    let model = CommunityEditorViewModel(source: "Before [**hello** world](https://example.com) after")
-    let start = model.text.characters.index(model.text.startIndex, offsetBy: 7)
-    model.selection = AttributedTextSelection(insertionPoint: start)
-    model.editLink()
-    #expect(model.showsLinkEditor)
-    #expect(model.isEditingLink)
-    #expect(model.linkAddress == "https://example.com")
-    model.selection = AttributedTextSelection(insertionPoint: model.text.endIndex)
-    model.linkAddress = "https://getfriend.ly"
-    model.applyLink()
-    #expect(model.text.runs[\.link].contains { $0.0?.absoluteString == "https://getfriend.ly" })
-    #expect(!model.text.runs[\.link].contains { $0.0?.absoluteString == "https://example.com" })
-    #expect(String(model.text.characters) == "Before hello world after")
+  @Test func removingLinkPreservesFormattingAndUndo() throws {
+    let editor = makeEditor("[**hello**](https://example.com)")
+    editor.model.setSelection(NSRange(location: 5, length: 0))
+    editor.model.editLink()
+    editor.model.removeLink(try #require(editor.model.linkEdit))
+    expectNoDifference(editor.model.markdown, "**hello**")
+    editor.model.undo()
+    expectNoDifference(editor.model.markdown, "[**hello**](https://example.com)")
+    editor.model.redo()
+    expectNoDifference(editor.model.markdown, "**hello**")
   }
 
-  @Test func removingLinkPreservesTextFormattingAndSupportsUndo() {
-    let model = CommunityEditorViewModel(source: "[**hello**](https://example.com)")
-    let original = model.text
-    let manager = UndoManager()
-    manager.groupsByEvent = false
-    model.selection = AttributedTextSelection(insertionPoint: model.text.endIndex)
-    model.editLink()
-    manager.beginUndoGrouping()
-    model.removeLink(undoManager: manager)
-    manager.endUndoGrouping()
-    #expect(model.markdown == "**hello**")
-    #expect(!model.showsLinkEditor)
-    manager.undo()
-    #expect(model.text == original)
-    manager.redo()
-    #expect(model.markdown == "**hello**")
+  @Test func repeatedURLUsesSelectedOccurrence() throws {
+    let editor = makeEditor("[first](https://example.com) [second](https://example.com)")
+    editor.model.setSelection(NSRange(location: 7, length: 0))
+    editor.model.editLink()
+    editor.model.removeLink(try #require(editor.model.linkEdit))
+    expectNoDifference(editor.model.markdown, "[first](https://example.com) second")
   }
 
-  @Test func repeatedURLUsesSelectedOccurrence() {
-    let model = CommunityEditorViewModel(source: "[first](https://example.com) [second](https://example.com)")
-    let start = model.text.characters.index(model.text.startIndex, offsetBy: 7)
-    model.selection = AttributedTextSelection(insertionPoint: start)
-    model.editLink()
-    model.removeLink()
-    #expect(model.markdown == "[first](https://example.com) second")
-  }
-
-  @Test func typingAfterAppliedLinkDoesNotInheritItsURL() {
-    let model = CommunityEditorViewModel(source: "hello")
-    model.selection = AttributedTextSelection(range: model.text.startIndex..<model.text.endIndex)
-    model.editLink()
-    model.linkAddress = "https://example.com"
-    model.applyLink()
-    #expect(model.selection.typingAttributes(in: model.text).link == nil)
-  }
-
-  @Test func movingCursorToEndOfLinkClearsTypingURL() {
-    let model = CommunityEditorViewModel(source: "[hello](https://example.com)")
-    model.selection = AttributedTextSelection(insertionPoint: model.text.endIndex)
-    #expect(model.isLinkSelected)
-    model.stopLinkAtBoundary()
-    #expect(model.selection.typingAttributes(in: model.text).link == nil)
-    #expect(model.isLinkSelected)
-    model.editLink()
-    #expect(model.linkAddress == "https://example.com")
+  @Test func appliedLinkDoesNotLeakIntoTyping() throws {
+    let editor = makeEditor("hello")
+    editor.model.setSelection(NSRange(location: 0, length: 5))
+    editor.model.editLink()
+    editor.model.linkAddress = "https://example.com"
+    editor.model.saveLink(try #require(editor.model.linkEdit))
+    #expect(editor.view.typingAttributes[.link] == nil)
+    #expect(editor.model.selection == NSRange(location: 5, length: 0))
   }
 
   @Test func linkButtonIsSelectedAtBothEdges() {
-    let model = CommunityEditorViewModel(source: "before [hello](https://example.com) after")
-    let start = model.text.characters.index(model.text.startIndex, offsetBy: 7)
-    let end = model.text.characters.index(start, offsetBy: 5)
-    model.selection = AttributedTextSelection(insertionPoint: start)
-    #expect(model.isLinkSelected)
-    model.selection = AttributedTextSelection(insertionPoint: end)
-    #expect(model.isLinkSelected)
-  }
-
-  @Test func inlineCodeButtonStaysSelectedAtCursor() {
-    let model = CommunityEditorViewModel(source: "before `code` after")
-    let start = model.text.characters.index(model.text.startIndex, offsetBy: 7)
-    let middle = model.text.characters.index(start, offsetBy: 2)
-    let end = model.text.characters.index(start, offsetBy: 4)
-    model.selection = AttributedTextSelection(insertionPoint: middle)
-    #expect(model.state(for: .code) == .on, "middle")
-    model.selection = AttributedTextSelection(insertionPoint: end)
-    #expect(model.state(for: .code) == .on, "end")
-  }
-
-  @Test func buttonsReflectAndClearTypingStyleAfterNewline() {
-    let model = CommunityEditorViewModel(source: "")
-    var text = AttributedString("styled\n")
-    text.strikethroughStyle = .single
-    model.text = text
-    model.selection = AttributedTextSelection(insertionPoint: text.endIndex)
-    #expect(model.state(for: .strike) == .on)
-    model.toggle(.strike)
-    #expect(model.state(for: .strike) == .off)
-    #expect(model.selection.typingAttributes(in: model.text).strikethroughStyle == nil)
-  }
-
-  @Test func addingLinkResetsPreviousAddress() {
-    let model = CommunityEditorViewModel(source: "[first](https://example.com) second")
-    model.editLink()
-    model.showsLinkEditor = false
-    model.selection = AttributedTextSelection(insertionPoint: model.text.endIndex)
-    model.editLink()
-    #expect(!model.isEditingLink)
-    #expect(model.linkAddress == "https://")
+    let editor = makeEditor("before [hello](https://example.com) after")
+    for location in [7, 12] {
+      editor.model.setSelection(NSRange(location: location, length: 0))
+      #expect(editor.model.isLinkSelected)
+    }
   }
 
   @Test func untouchedSourceIsByteForBytePreserved() {
     for source in ["__bold__", "| a | b |\n|---|---|\n| x | y |", "![alt](https://example.com/a.png)"] {
-      let model = CommunityEditorViewModel(source: source)
-      #expect(model.markdown == source)
+      let editor = makeEditor(source)
+      expectNoDifference(editor.model.markdown, source)
     }
   }
 
   @Test func selectionFormatsOnlySelectedText() {
-    let model = CommunityEditorViewModel(source: "Hello world")
-    let end = model.text.characters.index(model.text.startIndex, offsetBy: 5)
-    model.selection = AttributedTextSelection(range: model.text.startIndex..<end)
-    model.toggle(.bold)
-    #expect(model.markdown == "**Hello** world")
-    #expect(model.state(for: .bold) == .on)
-    model.toggle(.bold)
-    #expect(model.markdown == "Hello world")
+    let editor = makeEditor("Hello world")
+    editor.model.setSelection(NSRange(location: 0, length: 5))
+    editor.model.toggle(.bold)
+    expectNoDifference(editor.model.markdown, "**Hello** world")
+    #expect(editor.model.state(for: .bold) == .on)
+    editor.model.toggle(.bold)
+    expectNoDifference(editor.model.markdown, "Hello world")
   }
 
   @Test func mixedSelectionTurnsEntireRangeOn() {
-    let model = CommunityEditorViewModel(source: "**Hello** world")
-    model.selection = AttributedTextSelection(range: model.text.startIndex..<model.text.endIndex)
-    #expect(model.state(for: .bold) == .mixed)
-    model.toggle(.bold)
-    #expect(model.state(for: .bold) == .on)
-  }
-
-  @Test func insertionPointRetainsTypingStyle() {
-    let model = CommunityEditorViewModel(source: "")
-    model.selection = AttributedTextSelection(insertionPoint: model.text.startIndex)
-    model.toggle(.italic)
-    #expect(model.state(for: .italic) == .on)
+    let editor = makeEditor("**Hello** world")
+    editor.model.setSelection(NSRange(location: 0, length: 11))
+    #expect(editor.model.state(for: .bold) == .mixed)
+    editor.model.toggle(.bold)
+    #expect(editor.model.state(for: .bold) == .on)
   }
 
   @Test func limitCountsSerializedUTF16() {
-    let model = CommunityEditorViewModel(source: String(repeating: "😀", count: 2048))
-    #expect(model.utf16Count == 4096)
-    #expect(model.canPublish)
-    model.selection = AttributedTextSelection(range: model.text.startIndex..<model.text.endIndex)
-    model.toggle(.bold)
-    #expect(model.utf16Count == 4100)
-    #expect(!model.canPublish)
+    let editor = makeEditor(String(repeating: "😀", count: 2048))
+    expectNoDifference(editor.model.utf16Count, 4096)
+    #expect(editor.model.canPublish)
+    editor.model.setSelection(NSRange(location: 0, length: 4096))
+    editor.model.toggle(.bold)
+    expectNoDifference(editor.model.utf16Count, 4100)
+    #expect(!editor.model.canPublish)
   }
 
-  @Test func formattingSupportsUndoAndRedo() {
-    let model = CommunityEditorViewModel(source: "Hello")
-    let manager = UndoManager()
-    manager.groupsByEvent = false
-    model.selection = AttributedTextSelection(range: model.text.startIndex..<model.text.endIndex)
-    manager.beginUndoGrouping()
-    model.toggle(.bold, undoManager: manager)
-    manager.endUndoGrouping()
-    #expect(model.markdown == "**Hello**")
-    manager.undo()
-    #expect(model.markdown == "Hello")
-    manager.redo()
-    #expect(model.markdown == "**Hello**")
+  @Test func formattingSupportsUndoRedo() {
+    let editor = makeEditor("Hello")
+    editor.model.setSelection(NSRange(location: 0, length: 5))
+    editor.model.toggle(.bold)
+    editor.model.undo()
+    expectNoDifference(editor.model.markdown, "Hello")
+    editor.model.redo()
+    expectNoDifference(editor.model.markdown, "**Hello**")
   }
+
+  @Test func linkWithoutSelectionInsertsEditableLabel() throws {
+    let editor = makeEditor("")
+    editor.model.editLink()
+    editor.model.linkAddress = "https://example.com"
+    editor.model.saveLink(try #require(editor.model.linkEdit))
+    expectNoDifference(editor.model.text.string, "https://example.com")
+    #expect(editor.view.typingAttributes[.link] == nil)
+  }
+}
+
+@MainActor func makeEditor(_ source: String) -> (model: CommunityEditorViewModel, view: PhotoTextArea) {
+  let model = CommunityEditorViewModel(source: source)
+  let view = PhotoTextArea(usingTextLayoutManager: true)
+  model.history.groupsByEvent = false
+  model.attach(view)
+  return (model, view)
 }

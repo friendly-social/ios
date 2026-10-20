@@ -2,6 +2,7 @@
 import ActivityService
 import CommunityProfileService
 import CommunityService
+import CustomDump
 import Dependencies
 import Foundation
 import Synchronization
@@ -9,8 +10,45 @@ import Testing
 
 @MainActor
 struct ActivityViewModelTests {
+  @Test func openingListAcknowledgesBadgeWithoutMarkingRowsRead() async {
+    let calls = Mutex(0)
+    var service = ActivityService()
+    service.list = { _, _ in .init(events: [event(1)], nextID: nil) }
+    service.acknowledgeUnreads = { session in
+      expectNoDifference(session.accountID, 7)
+      calls.withLock { $0 += 1 }
+    }
+    let model = makeModel(service)
+    await model.start()
+    expectNoDifference(calls.withLock { $0 }, 1)
+    expectNoDifference(model.events.first?.isRead, false)
+  }
+
+  @Test func failedListDoesNotAcknowledgeBadge() async {
+    let calls = Mutex(0)
+    var service = ActivityService()
+    service.list = { _, _ in throw ActivityError.unavailable }
+    service.acknowledgeUnreads = { _ in calls.withLock { $0 += 1 } }
+    let model = makeModel(service)
+    await model.start()
+    expectNoDifference(calls.withLock { $0 }, 0)
+    #expect(model.error != nil)
+  }
+
+  @Test func failedAcknowledgementKeepsLoadedListUsable() async {
+    var service = ActivityService()
+    service.list = { _, _ in .init(events: [event(1)], nextID: nil) }
+    service.acknowledgeUnreads = { _ in throw ActivityError.unavailable }
+    let model = makeModel(service)
+    await model.start()
+    expectNoDifference(model.events.count, 1)
+    #expect(model.error == nil)
+    #expect(!model.isLoading)
+  }
+
   @Test func listDeduplicatesPagesAndPreservesReadStatusOnRefresh() async {
     var service = ActivityService()
+    service.acknowledgeUnreads = { _ in }
     service.list = { cursor, _ in
       .init(events: cursor == nil ? [event(1)] : [event(1), event(2)], nextID: cursor == nil ? "next" : nil)
     }
@@ -29,6 +67,7 @@ struct ActivityViewModelTests {
   @Test func tappingNotificationNavigatesImmediatelyWithoutLoadingDiscussion() async {
     let calls = Mutex(0)
     var service = ActivityService()
+    service.acknowledgeUnreads = { _ in }
     service.list = { _, _ in .init(events: [event(1)], nextID: nil) }
     service.openReply = { _, _ in
       calls.withLock { $0 += 1 }
@@ -46,6 +85,7 @@ struct ActivityViewModelTests {
   @Test func staleSessionDoesNotNavigateOrAcceptReadCallback() async {
     let state = SessionState()
     var service = ActivityService()
+    service.acknowledgeUnreads = { _ in }
     service.list = { _, _ in .init(events: [event(1)], nextID: nil) }
     let model = makeModel(service, current: { state.current })
     await model.start()
@@ -59,6 +99,7 @@ struct ActivityViewModelTests {
   @Test func listIsNotReloadedWhenReturningFromDiscussion() async {
     let ledger = ActivityLedger()
     var service = ActivityService()
+    service.acknowledgeUnreads = { _ in }
     service.list = { _, _ in
       await ledger.recordList()
       return .init(events: [event(1)], nextID: nil)
@@ -72,6 +113,7 @@ struct ActivityViewModelTests {
   @Test func oldPaginationFailureDoesNotPolluteRefreshedList() async {
     let gate = ActivityPageGate()
     var service = ActivityService()
+    service.acknowledgeUnreads = { _ in }
     service.list = { cursor, _ in
       if cursor != nil { return try await gate.request() }
       return .init(events: [event(1)], nextID: "next")

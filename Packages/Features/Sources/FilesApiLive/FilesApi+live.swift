@@ -6,6 +6,7 @@ extension FilesApi {
     let live = FilesApiLive()
     return .init(
       upload: { try await live.upload($0) },
+      uploadAuthorized: { try await live.upload($0, credentials: $1) },
       downloadURL: { live.downloadURL(for: $0) })
   }
 }

@@ -7,12 +7,12 @@ import Networking
 struct FilesApiLive: Sendable {
   @Dependency(HTTPClient.self) private var client
 
-  func upload(_ data: Data) async throws -> FileDescriptor {
+  func upload(_ data: Data, credentials: FilesApi.UploadCredentials? = nil) async throws -> FileDescriptor {
     let boundary = "Boundary-\(UUID().uuidString)"
     let request = HTTPClient.Request(
       path: "files/upload",
       method: .post,
-      headers: ["Content-Type": "multipart/form-data; boundary=\(boundary)"])
+      headers: uploadHeaders(size: data.count, boundary: boundary, credentials: credentials))
     do {
       let response = try await client.upload(request, data: multipart(data, boundary: boundary))
       guard response.statusCode == 200 else {
@@ -34,6 +34,20 @@ struct FilesApiLive: Sendable {
 }
 
 private extension FilesApiLive {
+  private func uploadHeaders(
+    size: Int, boundary: String, credentials: FilesApi.UploadCredentials?
+  ) -> [String: String] {
+    var headers = [
+      "Content-Type": "multipart/form-data; boundary=\(boundary)",
+      "X-File-Size": String(size),
+    ]
+    if let credentials {
+      headers["X-User-Id"] = String(credentials.accountID)
+      headers["X-Token"] = credentials.token
+    }
+    return headers
+  }
+
   private func multipart(_ data: Data, boundary: String) -> Data {
     var body = Data()
     body.append(Data("--\(boundary)\r\n".utf8))

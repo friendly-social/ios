@@ -21,24 +21,28 @@ struct CommunityDiscussionTests {
         == .markdown("![image](https://example.com/a.png)"))
   }
 
-  @MainActor @Test func clearingFullScreenEditorRestoresPlainMiniComposer() {
+  @MainActor @Test func clearingFullScreenEditorRestoresPlainMiniComposer() async throws {
     let model = makeModel()
     model.expandEditor()
-    model.editor.loadSource("**bold**")
-    model.editorChanged()
-    model.editor.loadSource("")
-    model.editorChanged()
-    model.collapseEditor()
-    #expect(model.draft == .plainText(""))
+    let composer = try #require(model.composer)
+    await composer.restore()
+    composer.editor.loadSource("**bold**")
+    composer.textChanged()
+    composer.editor.loadSource("")
+    composer.textChanged()
+    model.composer = nil
+    #expect(model.replyComposer?.plainText == "")
   }
 
-  @MainActor @Test func plainFullScreenReplyReturnsToMiniComposer() {
+  @MainActor @Test func plainFullScreenReplyReturnsToMiniComposer() async throws {
     let model = makeModel()
     model.expandEditor()
-    model.editor.loadSource("просто текст")
-    model.editorChanged()
-    model.collapseEditor()
-    #expect(model.draft == .plainText("просто текст"))
+    let composer = try #require(model.composer)
+    await composer.restore()
+    composer.editor.loadSource("просто текст")
+    composer.textChanged()
+    model.composer = nil
+    #expect(model.replyComposer?.plainText == "просто текст")
   }
 
   @MainActor @Test func selectingReplyMovesItAboveRepliesOnTheSameDetail() async {
@@ -66,77 +70,54 @@ struct CommunityDiscussionTests {
     #expect(model.replies.map(\.id) == [2])
   }
 
-  @MainActor @Test func replyingToAncestorOpensEditorWithoutSelectingAndThenTruncatesChain() async {
+  @MainActor @Test func replyingToAncestorOpensEditorWithoutSelectingAndThenTruncatesChain() async throws {
     let root = post(1)
     let child = post(2)
     let submission = DiscussionSubmission()
-    var service = CommunityService()
-    service.reply = { target, _ in
-      await submission.record(targetID: target.id)
-      return self.post(99).descriptor
-    }
-    service.details = { descriptor in
-      if descriptor.id == child.id {
-        return .init(post: child, upstream: [root], replies: .init(data: [], nextId: nil))
-      }
-      let replies = await submission.sent ? [self.post(3), self.post(99), self.post(4)] : [child]
-      return .init(post: root, upstream: [], replies: .init(data: replies.map(CommunityReply.single), nextId: nil))
-    }
-    let model = makeDetailModel(
-      post: root, service: service, preparation: .fixture,
-      drafts: { _ in .init(load: { nil }, save: { _ in }, remove: {}) },
-      isCurrentSession: { true }, onUnauthorized: {})
+    let model = replyingModel(submission: submission)
     await model.load()
     model.select(child)
     await model.load()
     model.reply(to: root)
-    #expect(model.post.id == child.id && model.showsEditor)
-    model.editor.loadSource("Reply")
-    model.editorChanged()
-    await model.send()
+    let composer = try #require(model.composer)
+    await composer.restore()
+    #expect(model.post.id == child.id && model.composer != nil)
+    composer.editor.loadSource("Reply")
+    composer.textChanged()
+    await composer.publish()
+    await model.load()
     #expect(await submission.targetID == root.id && model.post.id == root.id)
     #expect(model.upstream.isEmpty && model.replies.map(\.id) == [3, 99, 4])
     #expect(model.pendingReplies.isEmpty)
   }
 
-  @MainActor @Test func replyingToListedReplyMovesItAboveServerOrderedReplies() async {
+  @MainActor @Test func replyingToListedReplyMovesItAboveServerOrderedReplies() async throws {
     let root = post(1)
     let target = post(2)
     let submission = DiscussionSubmission()
-    var service = CommunityService()
-    service.reply = { descriptor, _ in
-      #expect(descriptor.id == target.id)
-      await submission.record(targetID: descriptor.id)
-      return self.post(99).descriptor
-    }
-    service.details = { descriptor in
-      if descriptor.id == root.id {
-        return .init(post: root, upstream: [], replies: .init(data: [.single(target)], nextId: nil))
-      }
-      let replies = await submission.sent ? [self.post(3), self.post(99), self.post(4)] : []
-      return .init(post: target, upstream: [root], replies: .init(data: replies.map(CommunityReply.single), nextId: nil))
-    }
-    let model = makeDetailModel(
-      post: root, service: service, preparation: .fixture,
-      drafts: { _ in .init(load: { nil }, save: { _ in }, remove: {}) },
-      isCurrentSession: { true }, onUnauthorized: {})
+    let model = replyingModel(submission: submission)
     await model.load()
     model.reply(to: target)
-    #expect(model.post.id == root.id && model.showsEditor)
-    model.editor.loadSource("Reply")
-    model.editorChanged()
-    await model.send()
+    let composer = try #require(model.composer)
+    await composer.restore()
+    #expect(model.post.id == root.id && model.composer != nil)
+    composer.editor.loadSource("Reply")
+    composer.textChanged()
+    await composer.publish()
+    await model.load()
+    #expect(await submission.targetID == target.id)
     #expect(model.post.id == target.id && model.upstream.map(\.id) == [root.id])
     #expect(model.replies.map(\.id) == [3, 99, 4])
     #expect(model.scrollToReplyID == 99)
   }
 
-  @MainActor @Test func pendingReplyUsesCurrentAuthorUntilServerDetailsArrive() async {
+  @MainActor @Test func pendingReplyUsesCurrentAuthorUntilServerDetailsArrive() async throws {
     let root = post(1)
     let owner = CommunityPost.Owner(
       id: 7, accessHash: "owner", nickname: "Alex",
       avatar: .init(id: 8, accessHash: "avatar"))
     var service = CommunityService()
+    service.markRead = { _ in }
     service.reply = { _, _ in self.post(99).descriptor }
     service.details = { _ in .init(post: root, upstream: [], replies: .init(data: [], nextId: nil)) }
     let model = makeDetailModel(
@@ -144,9 +125,13 @@ struct CommunityDiscussionTests {
       preparation: .fixture,
       drafts: { _ in .init(load: { nil }, save: { _ in }, remove: {}) },
       currentUser: { owner }, isCurrentSession: { true }, onUnauthorized: {})
-    model.plainText = "Reply"
-    await model.send()
+    let composer = try #require(model.replyComposer)
+    await composer.restore()
+    composer.setPlainText("Reply")
+    await composer.publish()
+    await model.load()
     #expect(model.pendingReplies.map(\.id) == [99])
+    await waitForOwner(owner, in: model)
     #expect(model.pendingReplies.first?.owner == owner)
     #expect(model.pendingReplies.first?.date != nil)
   }
@@ -175,6 +160,7 @@ struct CommunityDiscussionTests {
   @MainActor @Test func detailLoadsFirstPageThenPaginatesWithDeduplication() async {
     let root = post(1)
     var service = CommunityService()
+    service.markRead = { _ in }
     service.details = { _ in
       .init(post: root, upstream: [], replies: .init(data: [.single(post(2))], nextId: "next"))
     }
@@ -197,18 +183,43 @@ struct CommunityDiscussionTests {
 }
 
 private actor DiscussionSubmission {
-  private(set) var sent = false
   private(set) var targetID: Int64?
 
   func record(targetID: Int64) {
     self.targetID = targetID
-    sent = true
   }
 }
 
 private extension CommunityDiscussionTests {
+  @MainActor private func waitForOwner(_ owner: CommunityPost.Owner, in model: CommunityPostDetailViewModel) async {
+    for _ in 0..<Constants.maximumActorTurns {
+      if model.pendingReplies.first?.owner == owner { return }
+      await Task.yield()
+    }
+    Issue.record("Pending reply owner did not load")
+  }
+
+  @MainActor private func replyingModel(submission: DiscussionSubmission) -> CommunityPostDetailViewModel {
+    var service = CommunityService()
+    service.markRead = { _ in }
+    service.reply = { target, _ in
+      await submission.record(targetID: target.id)
+      return self.post(99).descriptor
+    }
+    service.details = { descriptor in
+      let sent = await submission.targetID == descriptor.id
+      let replies = sent ? [self.post(3), self.post(99), self.post(4)]
+        : descriptor.id == 1 ? [self.post(2)] : []
+      return .init(
+        post: self.post(descriptor.id), upstream: descriptor.id == 1 ? [] : [self.post(1)],
+        replies: .init(data: replies.map(CommunityReply.single), nextId: nil))
+    }
+    return makeDetailModel(post: post(1), service: service, preparation: .fixture)
+  }
+
   @MainActor private func makeModel() -> CommunityPostDetailViewModel {
     var service = CommunityService()
+    service.markRead = { _ in }
     service.details = { descriptor in
       .init(post: self.post(descriptor.id),
             upstream: (1..<descriptor.id).map(self.post),
@@ -225,4 +236,8 @@ private extension CommunityDiscussionTests {
   private func post(_ id: Int64) -> CommunityPost {
     .awaitingDetails(.init(descriptor: .init(id: id, accessHash: "hash"), text: "Post"))
   }
+}
+
+private enum Constants {
+  static let maximumActorTurns = 1000
 }

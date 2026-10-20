@@ -1,14 +1,52 @@
 import CommunityApi
-import CommunityDraftService
 @testable import CommunityApiLive
+import CommunityDraftService
 @testable import CommunityFeature
 import CommunityService
 import CommunityServiceLive
+import CustomDump
 import Foundation
 import Testing
 
 @MainActor
 struct CommunityMutationTests {
+  @Test func discussionReadUsesDescriptorAndSessionHeaders() async throws {
+    let api = makeCommunityApi { request in
+      expectNoDifference(request.httpMethod, "POST")
+      expectNoDifference(request.url?.path, "/community/42/post-hash/read")
+      expectNoDifference(request.value(forHTTPHeaderField: "X-User-Id"), "7")
+      expectNoDifference(request.value(forHTTPHeaderField: "X-Token"), "token")
+      #expect(request.httpBody == nil)
+      return (Data(), try makeHTTPResponse(for: request, statusCode: 200))
+    }
+    try await api.markRead(.init(id: 42, accessHash: "post-hash"),
+                           credentials: .init(accountID: 7, token: "token"))
+  }
+
+  @Test func postActionVisibilityDoesNotValidateSession() throws {
+    var checks = 0
+    let model = makeFeedModel(
+      service: service(),
+      drafts: drafts, isCurrentSession: { checks += 1; return true })
+    #expect(model.showsPostActions(for: try post()))
+    #expect(!model.showsPostActions(for: try post(ownerID: 8)))
+    #expect(checks == 0)
+  }
+
+  @Test func staleSessionRejectsPostActions() async throws {
+    let original = try post()
+    let state = MutationTestState()
+    let model = makeFeedModel(
+      service: service(delete: { _ in await state.incrementCalls() }),
+      drafts: drafts, isCurrentSession: { state.current })
+    state.current = false
+    #expect(!model.canManage(original))
+    model.editButtonTapped(original)
+    await model.deleteConfirmed(original)
+    #expect(model.editingPost == nil)
+    #expect(state.calls == 0)
+  }
+
   @Test func editPreservesMetadataAndExactMarkdown() async throws {
     let original = try post()
     let source = "  # План\n\n| A | B |\n|---|---|\n| 1 | 2 |\n"

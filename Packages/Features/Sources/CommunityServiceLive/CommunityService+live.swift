@@ -11,6 +11,7 @@ extension CommunityService {
       delete: { try await live.delete($0) },
       reply: { try await live.reply($0, $1) },
       details: { try await live.details($0) },
+      markRead: { try await live.markRead($0) },
       replies: { try await live.replies($0, $1) }
     )
   }

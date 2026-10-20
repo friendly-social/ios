@@ -1,6 +1,3 @@
-import CommunityDraftService
-import CommunityEditorFeature
-import CommunityMarkdownService
 import CommunityProfileService
 import CommunityService
 import Dependencies
@@ -21,35 +18,26 @@ final class CommunityPostDetailViewModel {
   private(set) var nextID: String?
   private(set) var isLoading = false
   private(set) var isLoadingMore = false
-  private(set) var isSending = false
   private(set) var loaded = false
   var loadError: LocalizedStringResource?
   var pageError: LocalizedStringResource?
   var sendError: LocalizedStringResource?
   var mutationError: LocalizedStringResource?
   var editingPost: CommunityEditViewModel?
+  private(set) var replyComposer: CommunityComposerViewModel?
+  var composer: CommunityComposerViewModel?
   private(set) var deletingID: Int64?
-  var draft: CommunityReplyDraft = .plainText("")
-  var editor = CommunityEditorViewModel()
-  var showsEditor = false
-  private var editorTarget: CommunityPost?
-  private var editorDraft: CommunityReplyDraft = .plainText("")
-  var needsRetryConfirmation = false
-  private(set) var requiresRetryConfirmation = false
   @ObservationIgnored @Dependency(CommunityService.self) private var service
   @ObservationIgnored @Dependency(CommunityProfileService.self) private var profileService
-  @ObservationIgnored @Dependency(CommunityDraftService.self) private var draftService
   @ObservationIgnored @Dependency(CommunityFeedPreparationService.self) private var preparation
   private var accountID: Int64?
   private let onMutation: (CommunityPost) async -> Void
-  private var draftStore: ((PostDescriptor) -> CommunityReplyDrafts)?
   private var currentUser: () async -> CommunityPost.Owner? = { nil }
   private var isCurrentSession: () -> Bool = { false }
-  private var onUnauthorized: () -> Void
+  private let onUnauthorized: () -> Void
   private var generation = 0
-  private var hasRestored = false
-  private var saveTask: Task<Void, Never>?
   private var snapshots: [Int64: DiscussionSnapshot] = [:]
+  @ObservationIgnored private var replyUpdateTask: Task<Void, Never>?
   private var initialOwner: CommunityPost.Owner?
   private var initialDetails: CommunityPostDetails?
   private let focusedReply: PostDescriptor?
@@ -80,9 +68,7 @@ final class CommunityPostDetailViewModel {
     if accountID != nil { return true }
     guard let session = profileService.currentSession() else { return false }
     let profile = profileService
-    let draftService = draftService
     let isCurrent: @Sendable () -> Bool = { profile.isCurrentSession(session) }
-    draftStore = { draftService.detailDrafts($0, session.accountID, session.sessionID, isCurrent) }
     accountID = session.accountID
     currentOwner = initialOwner ?? profile.cachedOwner(session)
     let owner = initialOwner
@@ -91,11 +77,7 @@ final class CommunityPostDetailViewModel {
       return try? await profile.loadOwner(session)
     }
     isCurrentSession = isCurrent
-    let callback = onUnauthorized
-    onUnauthorized = {
-      profile.clearSession()
-      callback()
-    }
+    replyComposer = makeReplyComposer(for: post)
     return true
   }
 
@@ -108,21 +90,6 @@ final class CommunityPostDetailViewModel {
 
   func avatarURL(_ avatar: CommunityPost.Owner.Avatar) -> URL {
     profileService.avatarURL(avatar)
-  }
-
-  var plainText: String {
-    get { if case let .plainText(text) = draft { return text }; return "" }
-    set { changeDraft(.plainText(newValue)) }
-  }
-
-  var payload: String {
-    markdown(for: draft)
-  }
-
-  var canSend: Bool {
-    let text = showsEditor ? markdown(for: editorDraft) : payload
-    return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-      && text.utf16.count <= Constants.limit && !isSending
   }
 
   func canManage(_ item: CommunityPost) -> Bool {
@@ -159,7 +126,7 @@ final class CommunityPostDetailViewModel {
         replyPreviews: item.replyPreviews))
       await replace(deleted)
     } catch CommunityError.unauthorized {
-      if isCurrentSession() { onUnauthorized() }
+      if isCurrentSession() { handleUnauthorized() }
     } catch CommunityError.rejected(let status) {
       mutationError = status == 404 ? .postDeleteUnavailable : .postDeleteRejected(status)
     } catch {
@@ -167,17 +134,7 @@ final class CommunityPostDetailViewModel {
     }
   }
 
-  func restore() async {
-    guard !hasRestored, let draftStore else { return }
-    hasRestored = true
-    let descriptor = post.descriptor
-    do {
-      if let restored = try await draftStore(descriptor).load(), isCurrentSession(),
-         post.id == descriptor.id, draft.text.isEmpty {
-        draft = restored
-      }
-    } catch { sendError = .postDraftError }
-  }
+  func restore() async { await replyComposer?.restore() }
 
   func load() async {
     guard !isLoading, isCurrentSession() else { return }
@@ -189,21 +146,24 @@ final class CommunityPostDetailViewModel {
     do {
       let details = try await fetchedDetails()
       guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
-      applyDetails(details)
       try await prepareDetails(details, generation: request)
+      guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
+      isLoading = false
+      await markRead(details.post.descriptor, generation: request)
     } catch CommunityError.unauthorized {
-      if isCurrentSession() { onUnauthorized() }
+      if isCurrentSession() { handleUnauthorized() }
     } catch is CancellationError {
     } catch {
       if isCurrentSession() { loadError = .postRepliesLoadError }
     }
   }
 
-  func select(_ item: CommunityPost) {
+  func select(_ item: CommunityPost, ignoringDraft: String? = nil) {
     guard item.id != post.id else { return }
-    let previousDescriptor = post.descriptor
-    let previousDraft = draft
-    Task { await persist(previousDraft, for: previousDescriptor) }
+    replyUpdateTask?.cancel()
+    let previous = replyComposer
+    if previous?.isPublishing != true { previous?.stop() }
+    Task { _ = await previous?.flushDraft() }
     let lineage = upstream + [post]
     if loaded { snapshots[post.id] = snapshot() }
     let cached = snapshots[item.id]
@@ -218,7 +178,7 @@ final class CommunityPostDetailViewModel {
     }
     post = item
     selectedRow = nextRow
-    resetSelection()
+    resetSelection(ignoringDraft: ignoringDraft)
     if let cached { restore(cached) }
   }
 
@@ -240,7 +200,7 @@ final class CommunityPostDetailViewModel {
       pendingRows.removeAll { pending in replies.contains { $0.id == pending.id } }
       nextID = page.nextId
     } catch CommunityError.unauthorized {
-      if isCurrentSession() { onUnauthorized() }
+      if isCurrentSession() { handleUnauthorized() }
     } catch is CancellationError {
     } catch {
       if isCurrentSession() { pageError = .postRepliesLoadError }
@@ -248,92 +208,44 @@ final class CommunityPostDetailViewModel {
   }
 
   func expandEditor() {
-    openEditor(for: post, draft: draft)
+    guard composer == nil, let replyComposer, !replyComposer.isPublishing else { return }
+    composer = replyComposer
   }
 
   func reply(to item: CommunityPost) {
-    guard !showsEditor, !isSending else { return }
-    if item.id == post.id {
-      expandEditor()
-      return
+    guard composer == nil, replyComposer?.isPublishing != true else { return }
+    if item.id == post.id { expandEditor() }
+    else {
+      let current = replyComposer
+      Task { _ = await current?.flushDraft() }
+      composer = makeReplyComposer(for: item)
     }
-    saveTask?.cancel()
-    let currentDraft = draft
-    let currentDescriptor = post.descriptor
-    Task { await persist(currentDraft, for: currentDescriptor) }
-    openEditor(for: item, draft: .plainText(""))
-    Task { await restoreEditorDraft(for: item.descriptor) }
-  }
-
-  func collapseEditor() {
-    guard showsEditor else { return }
-    editorChanged()
-    guard let target = editorTarget else { return }
-    if target.id == post.id { draft = editorDraft }
-    Task { await persist(editorDraft, for: target.descriptor) }
-    editorTarget = nil
-    showsEditor = false
-  }
-
-  func editorChanged() {
-    guard showsEditor, let target = editorTarget,
-          editor.markdown != markdown(for: editorDraft) else { return }
-    editorDraft = draftService.replyDraft(editor.markdown)
-    scheduleSave(editorDraft, for: target.descriptor)
-  }
-
-  func changeDraft(_ value: CommunityReplyDraft) {
-    draft = value
-    sendError = nil
-    requiresRetryConfirmation = false
-    scheduleSave(value, for: post.descriptor)
   }
 
   func saveDraft() async {
-    if showsEditor, let editorTarget {
-      await persist(editorDraft, for: editorTarget.descriptor)
-    } else {
-      await persist(draft, for: post.descriptor)
-    }
-  }
-
-  func send(confirmedRetry: Bool = false) async {
-    guard canSend, isCurrentSession(), let draftStore else { return }
-    if requiresRetryConfirmation && !confirmedRetry {
-      needsRetryConfirmation = true
-      return
-    }
-    let targetPost = showsEditor ? (editorTarget ?? post) : post
-    let target = targetPost.descriptor
-    let text = showsEditor ? markdown(for: editorDraft) : payload
-    isSending = true
-    sendError = nil
-    defer { isSending = false }
-    do {
-      let descriptor = try await service.reply(target, text)
-      guard isCurrentSession() else { return }
-      showsEditor = false
-      do { try await draftStore(target).remove() } catch { sendError = .postDraftError }
-      await showSentReply(descriptor, text: text, to: targetPost)
-    } catch CommunityError.unauthorized {
-      if isCurrentSession() { onUnauthorized() }
-    } catch CommunityError.rejected(let status) {
-      sendError = .postReplyRejected(status)
-    } catch {
-      requiresRetryConfirmation = true
-      needsRetryConfirmation = true
-      sendError = .postReplyUncertain
-    }
+    _ = await replyComposer?.flushDraft()
+    if let composer, composer !== replyComposer { _ = await composer.flushDraft() }
   }
 
   func stop() {
     generation += 1
-    saveTask?.cancel()
+    replyUpdateTask?.cancel()
+    replyComposer?.stop()
+    if let composer, composer !== replyComposer { composer.stop() }
     Task { await saveDraft() }
   }
+
 }
 
 private extension CommunityPostDetailViewModel {
+  private func markRead(_ descriptor: PostDescriptor, generation request: Int) async {
+    do {
+      try await service.markRead(descriptor)
+    } catch CommunityError.unauthorized {
+      if generation == request, isCurrentSession(), !Task.isCancelled { handleUnauthorized() }
+    } catch { }
+  }
+
   private func fetchedDetails() async throws -> CommunityPostDetails {
     if let initialDetails, initialDetails.post.descriptor == post.descriptor {
       self.initialDetails = nil
@@ -356,17 +268,6 @@ private extension CommunityPostDetailViewModel {
     return .init(post: details.post, upstream: details.upstream, replies: replies)
   }
 
-  private func applyDetails(_ details: CommunityPostDetails) {
-    let previous = ancestorRows + replyRows + (selectedRow.map { [$0] } ?? [])
-    post = details.post
-    selectedRow = row(post, reusing: previous)
-    upstream = details.upstream
-    ancestorRows = upstream.map { row($0, reusing: previous) }
-    replies = deduplicated(details.replies.data.compactMap(\.directPost))
-    replyRows = replies.map { row($0, reusing: previous) }
-    nextID = details.replies.nextId
-  }
-
   private func row(_ post: CommunityPost, reusing previous: [CommunityFeedPost]) -> CommunityFeedPost {
     if let cached = previous.first(where: { $0.id == post.id && $0.content.source == post.text }) {
       return CommunityFeedPost(post: post, content: cached.content)
@@ -375,71 +276,98 @@ private extension CommunityPostDetailViewModel {
   }
 
   private func prepareDetails(_ details: CommunityPostDetails, generation request: Int) async throws {
-    let ancestors = try await preparation.prepare(details.upstream, reusing: ancestorRows)
-    let preparedReplies = try await preparation.prepare(replies, reusing: replyRows)
+    let previous = ancestorRows + replyRows + (selectedRow.map { [$0] } ?? [])
+    let replies = deduplicated(details.replies.data.compactMap(\.directPost))
+    let ancestors = try await preparation.prepare(details.upstream, reusing: previous)
+    let preparedReplies = try await preparation.prepare(replies, reusing: previous)
     let selected = await preparation.prepare(details.post)
     guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
+    post = details.post
     selectedRow = selected
+    upstream = details.upstream
     ancestorRows = ancestors
+    self.replies = replies
     replyRows = preparedReplies
+    nextID = details.replies.nextId
     pendingReplies.removeAll { pending in replies.contains { $0.id == pending.id } }
     pendingRows.removeAll { pending in replies.contains { $0.id == pending.id } }
     initialDetails = nil
-    snapshots[post.id] = snapshot()
     loaded = true
+    snapshots[post.id] = snapshot()
   }
 
-  private func markdown(for value: CommunityReplyDraft) -> String {
-    switch value {
-    case let .plainText(text): MarkdownLiteral.encode(text)
-    case let .markdown(source): source
+  private func makeReplyComposer(for item: CommunityPost, ignoringDraft: String? = nil) -> CommunityComposerViewModel? {
+    let originID = post.id
+    return withDependencies(from: self) {
+      let model = CommunityComposerViewModel(
+        replyTo: item.descriptor, suppressDraft: { $0 == ignoringDraft },
+        onUnauthorized: onUnauthorized,
+        onPublished: { [weak self] descriptor, text, warning in
+          self?.didPublishReply(descriptor, text: text, to: item, originID: originID, warning: warning)
+        })
+      return model.start() ? model : nil
     }
   }
 
-  private func openEditor(for item: CommunityPost, draft value: CommunityReplyDraft) {
-    editorTarget = item
-    editorDraft = value
-    editor.loadSource(markdown(for: value))
-    showsEditor = true
+  private func handleUnauthorized() {
+    profileService.clearSession()
+    onUnauthorized()
   }
 
-  private func restoreEditorDraft(for descriptor: PostDescriptor) async {
-    guard let draftStore else { return }
-    do {
-      guard let restored = try await draftStore(descriptor).load(),
-            showsEditor, editorTarget?.id == descriptor.id,
-            editorDraft.text.isEmpty, editor.markdown.isEmpty else { return }
-      editorDraft = restored
-      editor.loadSource(markdown(for: restored))
-    } catch { sendError = .postDraftError }
-  }
-
-  private func scheduleSave(_ value: CommunityReplyDraft, for descriptor: PostDescriptor) {
-    saveTask?.cancel()
-    saveTask = Task { [weak self] in
-      try? await Task.sleep(for: .milliseconds(Constants.saveDelay))
-      guard !Task.isCancelled else { return }
-      await self?.persist(value, for: descriptor)
-    }
-  }
-
-  private func showSentReply(
-    _ descriptor: PostDescriptor, text: String, to target: CommunityPost
-  ) async {
-    let owner = await currentUser()
+  private func didPublishReply(
+    _ descriptor: PostDescriptor, text: String, to target: CommunityPost,
+    originID: Int64, warning: LocalizedStringResource?
+  ) {
+    guard isCurrentSession() else { return }
     let reply = CommunityPost.awaitingDetails(.init(
-      descriptor: descriptor, text: text, owner: owner, date: .now))
-    editorTarget = nil
-    editorDraft = .plainText("")
-    showsEditor = false
-    requiresRetryConfirmation = false
-    saveTask?.cancel()
-    if target.id != post.id { select(target) } else { draft = .plainText("") }
-    pendingReplies.append(reply)
-    pendingRows.append(await preparation.prepare(reply))
+      descriptor: descriptor, text: text, owner: currentOwner, date: .now))
+    cacheSentReply(reply, parentID: target.id)
+    guard post.id == originID else { return }
+    if target.id != post.id { select(target, ignoringDraft: text) }
+    else { replyComposer = makeReplyComposer(for: post, ignoringDraft: text) }
+    sendError = warning
+    if !replies.contains(where: { $0.id == reply.id }), !pendingReplies.contains(where: { $0.id == reply.id }) {
+      pendingReplies.append(reply)
+      pendingRows.append(row(reply, reusing: []))
+    }
+    replyUpdateTask?.cancel()
+    replyUpdateTask = Task { [weak self] in
+      guard let self else { return }
+      await refreshSentReplies(descriptor, parentID: target.id)
+    }
+  }
+
+  private func refreshSentReplies(_ descriptor: PostDescriptor, parentID: Int64) async {
+    await restore()
+    let owner: CommunityPost.Owner?
+    if let currentOwner { owner = currentOwner } else { owner = await currentUser() }
+    guard isCurrentSession(), !Task.isCancelled, post.id == parentID else { return }
+    let authored = pendingReplies.map { authoredReply($0, owner: owner) }
+    let prepared = try? await preparation.prepare(authored, reusing: pendingRows)
+    guard isCurrentSession(), !Task.isCancelled, post.id == parentID else { return }
+    currentOwner = owner
+    pendingReplies = pendingReplies.map { authoredReply($0, owner: owner) }
+    if let prepared { pendingRows = pendingReplies.map { row($0, reusing: prepared) } }
     await load()
+    guard isCurrentSession(), !Task.isCancelled, post.id == parentID else { return }
     snapshots[post.id] = snapshot()
     scrollToReplyID = descriptor.id
+  }
+
+  private func authoredReply(_ reply: CommunityPost, owner: CommunityPost.Owner?) -> CommunityPost {
+    guard case let .awaitingDetails(value) = reply, value.owner == nil else { return reply }
+    return .awaitingDetails(.init(
+      descriptor: value.descriptor, text: value.text, edited: value.edited, owner: owner, date: value.date))
+  }
+
+  private func cacheSentReply(_ reply: CommunityPost, parentID: Int64) {
+    guard var cached = snapshots[parentID] else { return }
+    if !cached.replies.contains(where: { $0.id == reply.id }),
+       !cached.pendingReplies.contains(where: { $0.id == reply.id }) {
+      cached.pendingReplies.append(reply)
+      cached.pendingRows.append(row(reply, reusing: []))
+    }
+    snapshots[parentID] = cached
   }
 
   private func snapshot() -> DiscussionSnapshot {
@@ -459,18 +387,10 @@ private extension CommunityPostDetailViewModel {
     pendingReplies = snapshot.pendingReplies
     pendingRows = snapshot.pendingRows
     nextID = snapshot.nextID
-    loaded = true
+    loaded = snapshot.pendingReplies.isEmpty
   }
 
-  private func persist(_ value: CommunityReplyDraft, for descriptor: PostDescriptor) async {
-    guard let draftStore else { return }
-    do {
-      let drafts = draftStore(descriptor)
-      if value.text.isEmpty { try await drafts.remove() } else { try await drafts.save(value) }
-    } catch { sendError = .postDraftError }
-  }
-
-  private func resetSelection() {
+  private func resetSelection(ignoringDraft: String?) {
     generation += 1
     isLoading = false
     isLoadingMore = false
@@ -482,9 +402,7 @@ private extension CommunityPostDetailViewModel {
     pendingReplies = []
     pendingRows = []
     nextID = nil
-    draft = .plainText("")
-    hasRestored = false
-    saveTask?.cancel()
+    replyComposer = makeReplyComposer(for: post, ignoringDraft: ignoringDraft)
   }
 
   private func replace(_ updated: CommunityPost) async {
@@ -524,12 +442,7 @@ private struct DiscussionSnapshot {
   let ancestorRows: [CommunityFeedPost]
   let replies: [CommunityPost]
   let replyRows: [CommunityFeedPost]
-  let pendingReplies: [CommunityPost]
-  let pendingRows: [CommunityFeedPost]
+  var pendingReplies: [CommunityPost]
+  var pendingRows: [CommunityFeedPost]
   let nextID: String?
-}
-
-private enum Constants {
-  static let limit = 4_096
-  static let saveDelay = 800
 }

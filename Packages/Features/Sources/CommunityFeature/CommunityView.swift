@@ -4,6 +4,7 @@ import Foundation
 import SwiftUI
 
 public struct CommunityView<ActivityDestination: View>: View {
+  @Environment(\.scenePhase) private var scenePhase
   @Bindable private var model: CommunityViewModel
   @State private var detailPath: [CommunityPostDetailRoute] = []
   @State private var imageLayoutCache = MarkdownImageLayoutCache()
@@ -37,9 +38,7 @@ private extension CommunityView {
     NavigationStack(path: $detailPath) {
       feedNavigationContent()
         .sheet(item: $model.composer) { composer in
-          CommunityComposerView(
-            model: composer, title: model.composerTitle, onPublished: model.didPublish
-          )
+          CommunityComposerView(model: composer)
           .presentationDetents([.large])
         }
         .sheet(item: $model.editingPost) { editor in
@@ -70,7 +69,13 @@ private extension CommunityView {
       .navigationDestination(for: CommunityPostDetailRoute.self) { postDetails(for: $0) }
       .navigationDestination(isPresented: $showsActivity, destination: activityDestination)
       .toolbar { activityToolbar() }
-      .refreshable { await model.load() }
+      .refreshable {
+        await model.load()
+        await model.refreshActivity()
+      }
+      .task(id: scenePhase == .active && detailPath.isEmpty && !showsActivity) {
+        if scenePhase == .active && detailPath.isEmpty && !showsActivity { await model.refreshActivity() }
+      }
       .task { await model.load() }
       .task { await model.loadProfile() }
       .task { await model.observeDraft() }
@@ -88,8 +93,12 @@ private extension CommunityView {
 
   private func activityToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .topBarTrailing) {
-      Button(.communityActivity, systemImage: Constants.activity) { showsActivity = true }
-        .labelStyle(.iconOnly)
+      Button(.communityActivity, systemImage: Constants.activity) {
+        showsActivity = true
+      }
+      .labelStyle(.iconOnly)
+      .badge(model.hasNewActivity ? Text(verbatim: "") : nil)
+      .accessibilityLabel(Text(model.hasNewActivity ? .communityActivityNew : .communityActivity))
     }
   }
 
@@ -113,7 +122,7 @@ private extension CommunityView {
       VStack(spacing: Constants.zero) {
         CommunityPostCard(
           post: post, content: item.content, avatarURL: avatarURL, openAuthor: openAuthor,
-          canManage: model.canManage(post), isDeleting: model.deletingID == post.id,
+          canManage: model.showsPostActions(for: post), isDeleting: model.deletingID == post.id,
           actionsDisabled: model.deletingID != nil,
           edit: { model.editButtonTapped(post) },
           delete: { deletePost(post) },

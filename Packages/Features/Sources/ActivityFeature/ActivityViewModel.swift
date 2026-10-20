@@ -31,6 +31,7 @@ public final class ActivityViewModel {
     guard let current = profile.currentSession() else { onUnauthorized(); return }
     if session != current { reset(for: current) }
     if !hasLoaded { await load() }
+    else if let session { await acknowledgeUnreads(session) }
   }
 
   public func load() async {
@@ -48,6 +49,8 @@ public final class ActivityViewModel {
       events = merged(page.events)
       nextID = page.nextID
       hasLoaded = true
+      isLoading = false
+      await acknowledgeUnreads(session)
     } catch {
       guard generation == request else { return }
       handle(error, session: session) { self.error = .activityLoadError }
@@ -93,6 +96,15 @@ public final class ActivityViewModel {
 }
 
 private extension ActivityViewModel {
+  private func acknowledgeUnreads(_ session: CommunitySession) async {
+    guard profile.isCurrentSession(session), !Task.isCancelled else { return }
+    do {
+      try await service.acknowledgeUnreads(session)
+    } catch {
+      handle(error, session: session) {}
+    }
+  }
+
   private func merged(_ source: [ActivityEvent]) -> [ActivityEvent] {
     var seen: Set<Int64> = []
     return source.compactMap { event in

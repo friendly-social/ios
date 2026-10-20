@@ -20,6 +20,19 @@ struct ActivityServiceLive: Sendable {
     }, nextID: result.nextID)
   }
 
+  func hasNewUnreads(session: CommunitySession) async throws -> Bool {
+    try validate(session)
+    let result = try await api.hasNewUnreads(credentials(session))
+    try validate(session)
+    return result
+  }
+
+  func acknowledgeUnreads(session: CommunitySession) async throws {
+    try validate(session)
+    try await api.acknowledgeUnreads(credentials(session))
+    try validate(session)
+  }
+
   func markRead(_ id: Int64, session: CommunitySession) async throws {
     try validate(session)
     try await api.markRead(id, credentials(session))

@@ -1,8 +1,8 @@
+import Flow
 import FriendlyUIKit
 import Models
+import NukeUI
 import SwiftUI
-import CachedAsyncImage
-import Flow
 
 struct FeedSwipeCardView: View {
     @State private var translation: CGSize = .zero
@@ -259,53 +259,47 @@ private enum LikeDislike: Int {
 }
 
 private struct Avatar: View {
-    let url: URL?
+  let url: URL?
 
-    var body: some View {
-        Group {
-            if let url = url {
-                CachedAsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(1 / 1, contentMode: .fit)
-                } placeholder: {
-                    Image(systemName: "person.fill")
-                        .resizable()
-                        .aspectRatio(1 / 1, contentMode: .fit)
-                        .background(.gray)
-                        .foregroundStyle(.white)
-                        .overlay {
-                            ZStack {
-                                Rectangle().fill(.ultraThinMaterial)
-                                ProgressView()
-                            }
-                        }
-                }
-            } else {
-                Image(systemName: "person.fill")
-                    .resizable()
-                    .aspectRatio(1 / 1, contentMode: .fit)
-                    .background(.gray)
-                    .foregroundStyle(.white)
+  var body: some View { imageView().overlay { bottomGradientView() } }
+}
+
+private extension Avatar {
+  @ViewBuilder
+  private func imageView() -> some View {
+    if let url {
+      LazyImage(url: url) { state in
+        if let image = state.image {
+          image.resizable().aspectRatio(Constants.avatarRatio, contentMode: .fit)
+        } else {
+          placeholderView().overlay {
+            ZStack {
+              Rectangle().fill(.ultraThinMaterial)
+              ProgressView()
             }
+          }
         }
-        .overlay {
-            let gradient = LinearGradient(
-                gradient: Gradient(
-                    colors: [.clear, .black],
-                ),
-                startPoint: .top,
-                endPoint: .bottom,
-            )
-            VStack {
-                Spacer()
-                Color(.clear)
-                    .background(.ultraThinMaterial)
-                    .frame(height: 100)
-                    .mask(gradient)
-            }
-        }
+      }
+    } else {
+      placeholderView()
     }
+  }
+
+  private func placeholderView() -> some View {
+    Image(systemName: Constants.avatarSymbol)
+      .resizable().aspectRatio(Constants.avatarRatio, contentMode: .fit)
+      .background(Constants.avatarBackground)
+      .foregroundStyle(Constants.avatarForeground)
+  }
+
+  private func bottomGradientView() -> some View {
+    VStack {
+      Spacer()
+      Color.clear.background(.ultraThinMaterial)
+        .frame(height: Constants.avatarGradientHeight)
+        .mask(LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom))
+    }
+  }
 }
 
 private struct Interests: View {
@@ -386,4 +380,12 @@ private struct BlurView: View {
                 .mask(gradient)
         }
     }
+}
+
+private enum Constants {
+  static let avatarSymbol = "person.fill"
+  static let avatarRatio: CGFloat = 1
+  static let avatarBackground = Color.gray
+  static let avatarForeground = Color.white
+  static let avatarGradientHeight: CGFloat = 100
 }

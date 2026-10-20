@@ -1,69 +1,49 @@
 import CommunityDraftService
-import CommunityDraftStorageService
 import CommunityMarkdownService
 import CommunityService
-import Dependencies
 import Foundation
 
 struct CommunityDraftServiceLive: Sendable {
-  @Dependency(CommunityDraftStorageService.self) private var storage
+  private let directory: URL
+  private let postStore: CommunityDraftStore
+
+  init(directory: URL = URL.applicationSupportDirectory.appending(path: "CommunityDrafts", directoryHint: .isDirectory)) {
+    self.directory = directory
+    postStore = CommunityDraftStore(directory: directory)
+  }
 
   func postDraftUpdates(_ accountID: Int64, _ sessionID: String) async throws -> AsyncStream<String?> {
-    let updates = try await storage.postDraftUpdates(.init(accountID: accountID, sessionID: sessionID))
-    return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
-      let task = Task {
-        for await source in updates {
-          guard !Task.isCancelled else { break }
-          continuation.yield(source.flatMap {
-            $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0
-          })
-        }
-        continuation.finish()
-      }
-      continuation.onTermination = { _ in task.cancel() }
-    }
+    try await postStore.updates(accountID: accountID, sessionID: sessionID)
   }
 
   func postDrafts(
     _ accountID: Int64, _ sessionID: String,
     _ isCurrentSession: @escaping @Sendable () -> Bool
   ) -> CommunityDrafts {
-    drafts(key: .init(accountID: accountID, sessionID: sessionID), isCurrentSession: isCurrentSession)
+    drafts(store: postStore, accountID: accountID, sessionID: sessionID, isCurrentSession: isCurrentSession)
   }
 
   func replyDrafts(
     _ parent: PostDescriptor, _ accountID: Int64, _ sessionID: String,
     _ isCurrentSession: @escaping @Sendable () -> Bool
   ) -> CommunityDrafts {
-    drafts(
-      key: .init(accountID: accountID, sessionID: sessionID, parentID: parent.id),
-      isCurrentSession: isCurrentSession
-    )
-  }
-
-  func detailDrafts(
-    _ parent: PostDescriptor, _ accountID: Int64, _ sessionID: String,
-    _ isCurrentSession: @escaping @Sendable () -> Bool
-  ) -> CommunityReplyDrafts {
-    let key = CommunityDraftStorageService.Key(
-      accountID: accountID, sessionID: sessionID, parentID: parent.id
-    )
-    return CommunityReplyDrafts(
-      load: {
-        guard isCurrentSession() else { throw CancellationError() }
-        guard let stored = try await self.storage.loadReply(key) else { return nil }
-        return self.normalized(stored)
-      },
-      save: { content in
-        guard isCurrentSession() else { throw CancellationError() }
-        try await self.storage.saveReply(key, self.normalized(content))
-      },
-      remove: { try await self.storage.remove(key) }
-    )
+    let store = replyStore(parent)
+    var handle = drafts(store: store, accountID: accountID, sessionID: sessionID, isCurrentSession: isCurrentSession)
+    handle.load = {
+      guard isCurrentSession() else { throw CancellationError() }
+      guard let stored = try await store.loadReply(accountID: accountID, sessionID: sessionID) else { return nil }
+      let content: String
+      switch stored.content {
+      case let .plainText(text): content = MarkdownLiteral.encode(text)
+      case let .markdown(source): content = source
+      }
+      return .init(content: content, cursor: stored.cursor)
+    }
+    return handle
   }
 
   func revokePostDrafts(_ accountID: Int64, _ sessionID: String) async throws {
-    try await storage.revokePost(.init(accountID: accountID, sessionID: sessionID))
+    try await postStore.revoke(accountID: accountID, sessionID: sessionID)
   }
 
   func replyDraft(_ source: String) -> CommunityReplyDraft {
@@ -78,25 +58,25 @@ struct CommunityDraftServiceLive: Sendable {
 }
 
 private extension CommunityDraftServiceLive {
-  private func normalized(_ draft: CommunityReplyDraft) -> CommunityReplyDraft {
-    guard case let .markdown(source) = draft else { return draft }
-    return replyDraft(source)
-  }
-
   private func drafts(
-    key: CommunityDraftStorageService.Key,
+    store: CommunityDraftStore, accountID: Int64, sessionID: String,
     isCurrentSession: @escaping @Sendable () -> Bool
   ) -> CommunityDrafts {
     CommunityDrafts(
       load: {
         guard isCurrentSession() else { throw CancellationError() }
-        return try await self.storage.loadPost(key)
+        return try await store.load(accountID: accountID, sessionID: sessionID)
       },
-      save: { text in
+      save: { snapshot in
         guard isCurrentSession() else { throw CancellationError() }
-        try await self.storage.savePost(key, text)
+        try await store.save(snapshot, accountID: accountID, sessionID: sessionID)
       },
-      remove: { try await self.storage.remove(key) }
+      remove: { try await store.remove(accountID: accountID, sessionID: sessionID) }
     )
+  }
+
+  private func replyStore(_ parent: PostDescriptor) -> CommunityDraftStore {
+    CommunityDraftStore(directory: directory.appending(path: "Replies", directoryHint: .isDirectory)
+      .appending(component: String(parent.id)))
   }
 }

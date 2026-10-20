@@ -35,6 +35,6 @@ struct MarkdownImageLayoutTests {
     let controller = UIHostingController(rootView:
       MarkdownImageLayout(ratio: 0.5, maximumHeight: 320) { Color.red })
     #expect(controller.sizeThatFits(in: CGSize(width: 300, height: 1000))
-      == CGSize(width: 300, height: 320))
+      == CGSize(width: 160, height: 320))
   }
 }

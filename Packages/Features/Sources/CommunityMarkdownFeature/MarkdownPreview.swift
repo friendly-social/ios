@@ -1,6 +1,7 @@
-import CachedAsyncImage
 import CommunityMarkdownService
+import CoreText
 import Foundation
+import NukeUI
 import SwiftUI
 
 public struct MarkdownPreview: View {
@@ -163,7 +164,11 @@ private extension MarkdownBlockView {
 }
 
 private struct MarkdownInlineView: View {
-  let content: [MarkdownDocument.Inline]
+  @Environment(\.font) private var font
+  @Environment(\.fontResolutionContext) private var fontContext
+  private let content: [MarkdownInlineContent]
+
+  init(content: [MarkdownDocument.Inline]) { self.content = MarkdownInlineContent.make(content) }
 
   var body: some View {
     contentView()
@@ -179,16 +184,23 @@ private extension MarkdownInlineView {
         inlineView(inline)
       }
     }
+    .padding(.top, firstLineTopInset)
   }
 
   @ViewBuilder
-  private func inlineView(_ inline: MarkdownDocument.Inline) -> some View {
+  private func inlineView(_ inline: MarkdownInlineContent) -> some View {
     switch inline.kind {
     case let .text(text):
       Text(text).fixedSize(horizontal: false, vertical: true)
     case let .image(url, alt):
       MarkdownImageView(url: url, alt: alt)
     }
+  }
+
+  private var firstLineTopInset: CGFloat {
+    guard let first = content.first, case .image = first.kind else { return Constants.zero }
+    let resolved = (font ?? .body).resolve(in: fontContext).ctFont
+    return max(Constants.zero, CTFontGetAscent(resolved) - CTFontGetCapHeight(resolved))
   }
 }
 
@@ -216,30 +228,38 @@ private extension MarkdownImageView {
   private func contentView() -> some View {
     Group {
       if let url {
-        MarkdownImageLayout(ratio: layoutCache?.ratio(for: url), maximumHeight: Constants.imageHeight) {
-          CachedAsyncImage(url: url) { phase in
-            imagePhaseView(phase)
-          }
-        }
-        .frame(maxHeight: Constants.imageHeight)
-        .accessibilityLabel(
-          alt.isEmpty ? Text(.markdownImage) : Text(alt))
+        remoteImageView(url)
       } else {
         Label { alt.isEmpty ? Text(.markdownImageUnavailable) : Text(alt) } icon: { Image(systemName: Constants.image) }
         .frame(maxWidth: .infinity, minHeight: Constants.emptyImageHeight)
       }
     }
-    .frame(maxWidth: .infinity)
     .background(.quaternary, in: .rect(cornerRadius: Constants.cornerRadius))
+    .clipShape(.rect(cornerRadius: Constants.cornerRadius))
     .fullScreenCover(item: $selectedImage) { selected in
       MarkdownPhotoViewer(image: selected.image, alt: alt, sourceFrame: selected.sourceFrame)
     }
   }
 
+  private func remoteImageView(_ url: URL) -> some View {
+    MarkdownImageLayout(ratio: layoutCache?.ratio(for: url), maximumHeight: Constants.imageHeight) {
+      LazyImage(url: url) { state in
+        imagePhaseView(state)
+          .onChange(of: state.imageContainer?.image.size, initial: true) {
+            if let size = state.imageContainer?.image.size {
+              // Rendered sizes would feed this cache back into its own layout.
+              layoutCache?.record(size: size, for: url)
+            }
+          }
+      }
+    }
+    .frame(maxHeight: Constants.imageHeight)
+    .accessibilityLabel(alt.isEmpty ? Text(.markdownImage) : Text(alt))
+  }
+
   @ViewBuilder
-  private func imagePhaseView(_ phase: AsyncImagePhase) -> some View {
-    switch phase {
-    case let .success(image):
+  private func imagePhaseView(_ state: LazyImageState) -> some View {
+    if let image = state.image {
       if allowsImageViewing, let url {
         Button {
           var transaction = Transaction(animation: nil)
@@ -257,9 +277,9 @@ private extension MarkdownImageView {
       } else {
         loadedImageView(image)
       }
-    case .failure:
+    } else if state.error != nil {
       Label { alt.isEmpty ? Text(.markdownImageUnavailable) : Text(alt) } icon: { Image(systemName: Constants.imageError) }
-    default:
+    } else {
       ProgressView().frame(
         maxWidth: .infinity,
         minHeight: url.flatMap { layoutCache?.ratio(for: $0) } == nil ? Constants.loadingHeight : nil)
@@ -268,11 +288,6 @@ private extension MarkdownImageView {
 
   private func loadedImageView(_ image: Image) -> some View {
     image.resizable().scaledToFit()
-      .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
-        if let url {
-          layoutCache?.record(size: size, for: url)
-        }
-      }
   }
 }
 

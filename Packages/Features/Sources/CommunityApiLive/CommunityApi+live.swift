@@ -10,6 +10,7 @@ extension CommunityApi {
       delete: { try await live.delete(id: $0, credentials: $1) },
       list: { try await live.list(cursor: $0, credentials: $1) },
       details: { try await live.details($0, credentials: $1) },
+      markRead: { try await live.markRead($0, credentials: $1) },
       replies: { try await live.replies(to: $0, cursor: $1, credentials: $2) }
     )
   }

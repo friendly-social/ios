@@ -1,3 +1,4 @@
+import ActivityService
 import CommunityDraftService
 import CommunityProfileService
 import CommunityService
@@ -13,12 +14,14 @@ public final class CommunityViewModel {
   private(set) var feedPosts: [CommunityFeedPost] = []
   public var posts: [CommunityPost] { feedPosts.map(\.post) }
   @ObservationIgnored @Dependency(CommunityFeedPreparationService.self) private var feedPreparation
+  private(set) var hasNewActivity = false
+  @ObservationIgnored @Dependency(ActivityService.self) private var activityService
   public private(set) var isLoading = false
   public private(set) var nextID: String?
   public private(set) var error: LocalizedStringResource?
   public var notice: LocalizedStringResource?
   public var composer: CommunityComposerViewModel?
-  public private(set) var composerTitle: LocalizedStringResource = .composerTitle
+  public var composerTitle: LocalizedStringResource { composer?.title ?? .composerTitle }
   public private(set) var currentUser: CommunityPost.Owner?
   private var replyTarget: PostDescriptor?
   private var loadCurrentUser: (() async throws -> CommunityPost.Owner?)?
@@ -50,6 +53,7 @@ public final class CommunityViewModel {
     guard let session = profileService.currentSession() else { return false }
     let profile = profileService
     let isCurrent: @Sendable () -> Bool = { profile.isCurrentSession(session) }
+    hasNewActivity = false
     accountID = session.accountID
     currentUser = profile.cachedOwner(session)
     loadCurrentUser = { try await profile.loadOwner(session) }
@@ -89,6 +93,18 @@ public final class CommunityViewModel {
     pendingPosts = pendingPosts.map { $0.id == updated.id ? updated : $0 }
   }
 
+  func refreshActivity() async {
+    guard isCurrentSession(), !Task.isCancelled,
+          let session = profileService.currentSession() else { return }
+    do {
+      let hasNew = try await activityService.hasNewUnreads(session)
+      guard profileService.isCurrentSession(session), !Task.isCancelled else { return }
+      hasNewActivity = hasNew
+    } catch CommunityError.unauthorized {
+      if profileService.isCurrentSession(session), !Task.isCancelled { onUnauthorized() }
+    } catch { }
+  }
+
   public func loadProfile() async {
     guard let loadCurrentUser, isCurrentSession(), !Task.isCancelled else { return }
     do {
@@ -104,10 +120,10 @@ public final class CommunityViewModel {
   public func reply(to post: CommunityPost) {
     guard deletingID == nil, editingPost == nil, composer == nil, isCurrentSession() else { return }
     replyTarget = post.descriptor
-    composerTitle = .postReply
     withDependencies(from: self) {
       let model = CommunityComposerViewModel(
-        replyTo: post.descriptor, onUnauthorized: onUnauthorized)
+        replyTo: post.descriptor, onUnauthorized: onUnauthorized,
+        onPublished: { [weak self] in await self?.didPublish($0, text: $1, warning: $2) })
       if model.start() { composer = model }
     }
   }
@@ -115,19 +131,22 @@ public final class CommunityViewModel {
   public func compose() {
     guard deletingID == nil, editingPost == nil, composer == nil, isCurrentSession() else { return }
     replyTarget = nil
-    composerTitle = .composerTitle
     withDependencies(from: self) {
       let model = CommunityComposerViewModel(
         suppressDraft: { [weak self] in self?.publishedDrafts.contains($0) == true },
         didSaveDraft: { [weak self] in self?.publishedDrafts.remove($0) },
-        onUnauthorized: onUnauthorized)
+        onUnauthorized: onUnauthorized,
+        onPublished: { [weak self] in await self?.didPublish($0, text: $1, warning: $2) })
       if model.start() { composer = model }
     }
   }
 
   public func canManage(_ post: CommunityPost) -> Bool {
+    showsPostActions(for: post) && isCurrentSession()
+  }
+
+  func showsPostActions(for post: CommunityPost) -> Bool {
     guard let accountID else { return false }
-    guard isCurrentSession() else { return false }
     switch post {
     case let .published(post): return post.owner.id == accountID
     case .awaitingDetails: return true

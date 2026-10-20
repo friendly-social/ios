@@ -1,5 +1,5 @@
-import CachedAsyncImage
 import CommunityService
+import NukeUI
 import SwiftUI
 
 struct CommunityAvatar: View {
@@ -14,11 +14,13 @@ struct CommunityAvatar: View {
 private extension CommunityAvatar {
   @ViewBuilder
   private func contentView() -> some View {
-    CachedAsyncImage(url: owner?.avatar.map(avatarURL)) { image in
-      image.resizable().scaledToFill()
-    } placeholder: {
-      placeholderView()
-        .foregroundStyle(Constants.foreground)
+    LazyImage(url: owner?.avatar.map(avatarURL)) { state in
+      if let image = state.image {
+        image.resizable().scaledToFill()
+      } else {
+        placeholderView()
+          .foregroundStyle(Constants.foreground)
+      }
     }
     .clipShape(.circle)
     .accessibilityHidden(true)

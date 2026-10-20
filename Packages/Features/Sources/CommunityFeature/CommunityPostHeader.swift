@@ -21,19 +21,26 @@ private extension CommunityPostHeader {
 
   @ViewBuilder
   private func contentView() -> some View {
-    HStack(alignment: .firstTextBaseline, spacing: Constants.spacing) {
-      metadataView()
-      Spacer(minLength: Constants.zero)
-      if isDeleting {
-        ProgressView().accessibilityLabel(
-          .postDeleting)
-      } else if canManage {
-        actionsMenu()
-          .padding(.vertical, -Constants.menuInset)
-          .disabled(actionsDisabled)
-          .accessibilityLabel(
-            .postActions)
-      }
+    metadataView()
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.trailing, controlsWidth)
+      .overlay(alignment: .trailing) { controlsView() }
+  }
+
+  private var controlsWidth: CGFloat {
+    canManage || isDeleting ? Constants.touchTarget + Constants.spacing : Constants.zero
+  }
+
+  @ViewBuilder
+  private func controlsView() -> some View {
+    if isDeleting {
+      ProgressView()
+        .frame(width: Constants.touchTarget, height: Constants.touchTarget)
+        .accessibilityLabel(.postDeleting)
+    } else if canManage {
+      actionsMenu()
+        .disabled(actionsDisabled)
+        .accessibilityLabel(.postActions)
     }
   }
 
@@ -126,7 +133,6 @@ private enum Constants {
   static let spacing: CGFloat = 6
   static let compactSpacing: CGFloat = 2
   static let touchTarget: CGFloat = 44
-  static let menuInset: CGFloat = 12
   static let dateRefreshInterval: TimeInterval = 60
   static let primary = Color.primary
   static let secondary = Color.secondary

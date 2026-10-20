@@ -1,21 +1,14 @@
-import Foundation
+import Dependencies
+import ImageService
 import SwiftUI
 
 @main
 struct FriendlyApp: App {
-    init() {
-        URLCache.shared.memoryCapacity = Constants.imageCacheMemoryCapacity
-        URLCache.shared.diskCapacity = Constants.imageCacheDiskCapacity
-    }
+  @Dependency(ImageService.self) private var images
 
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-    }
-}
+  init() { images.prepare() }
 
-private enum Constants {
-    static let imageCacheMemoryCapacity = 32 * 1024 * 1024
-    static let imageCacheDiskCapacity = 200 * 1024 * 1024
+  var body: some Scene {
+    WindowGroup { ContentView() }
+  }
 }

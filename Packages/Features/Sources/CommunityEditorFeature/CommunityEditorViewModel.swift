@@ -1,234 +1,579 @@
-import CommunityMarkdownService
+import CommunityProfileService
+import Dependencies
 import Foundation
 import Observation
+import PhotosUI
+import Sharing
+import SwiftNavigation
 import SwiftUI
+import UIKit
 
 @MainActor @Observable
 public final class CommunityEditorViewModel {
-  public enum Format: String, CaseIterable, Identifiable {
-    case bold, italic, strike, code
-    public var id: Self { self }
-    var intent: InlinePresentationIntent {
-      switch self {
-      case .bold: .stronglyEmphasized
-      case .italic: .emphasized
-      case .strike: .strikethrough
-      case .code: .code
-      }
-    }
-    var symbol: String {
-      switch self {
-      case .bold: Constants.bold
-      case .italic: Constants.italic
-      case .strike: Constants.strike
-      case .code: Constants.code
-      }
-    }
-    var title: LocalizedStringResource {
-      switch self {
-      case .bold: .editorBold
-      case .italic: .editorItalic
-      case .strike:
-        .editorStrike
-      case .code: .editorCode
-      }
-    }
+  public typealias Format = EditorTextFormat
+  public enum FormatState { case on, off, mixed }
+  enum PhotoPosition { case start, afterParagraph, end }
+  struct LinkEdit {
+    let range: NSRange
+    let originalURL: URL?
+    let title: String
   }
 
-  public var text: AttributedString
-  public var selection = AttributedTextSelection()
-  public var source: String
-  public private(set) var sourceOnly: Bool
-  public var linkAddress = "https://"
-  public var showsLinkEditor = false
-  public private(set) var isEditingLink = false
+  public private(set) var markdown: String
+  public private(set) var text = NSAttributedString(string: "")
+  public private(set) var selection = NSRange(location: 0, length: 0)
   public private(set) var canUndo = false
   public private(set) var canRedo = false
-  private let codec: MarkdownCodec
-  private var originalText: AttributedString
-  private var linkSelection: AttributedTextSelection?
+  public private(set) var selectedPhotoID: UUID?
+  public private(set) var isImporting = false
+  public private(set) var photoError: LocalizedStringResource?
+  var linkAddress = "https://"
+  private(set) var linkEdit: LinkEdit?
+  @ObservationIgnored @Dependency(EditorPhotoService.self) private var photoService
+  @ObservationIgnored private let uploads = EditorPhotoUploads()
+  @ObservationIgnored private var uploadObservation: ObserveToken?
+  @ObservationIgnored private var session: CommunitySession?
+  @ObservationIgnored private weak var textView: PhotoTextArea?
+  @ObservationIgnored private var assets: [ObjectIdentifier: PhotoReference] = [:]
+  @ObservationIgnored private var previewLoads: [URL: Task<Void, Never>] = [:]
+  @ObservationIgnored private var isEditing = false
+  private var hasUnfinishedPhotos = false
+  private var selectionVersion = 0
+  private var loadedSourceOnly: Bool?
+  @ObservationIgnored private let fallbackHistory = UndoManager()
+  @ObservationIgnored private var typingAttributes = EditorTextAttributes.make(formatBits: 0)
+  var history: UndoManager { textView?.systemUndoManager ?? fallbackHistory }
 
-  public init(
-    source: String = "", codec: MarkdownCodec = .init()
-  ) {
-    self.codec = codec
-    self.source = source
-    let text = EditorTextFormatting.editable((try? codec.decode(source)) ?? AttributedString(source))
-    self.text = text
-    self.originalText = text
-    self.sourceOnly = codec.requiresSourceEditing(source)
-  }
+  public init(source: String = "") { markdown = source }
 
-  public var markdown: String {
-    sourceOnly || text == originalText ? source : codec.encode(EditorTextFormatting.serializable(text))
+  deinit { previewLoads.values.forEach { $0.cancel() } }
+
+  public var sourceOnly: Bool {
+    loadedSourceOnly ?? PhotoMarkdownCodec.requiresSourceEditing(markdown)
   }
   public var utf16Count: Int { markdown.utf16.count }
+  var characterLimit: Int { Constants.characterLimit }
   public var canPublish: Bool {
-    !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && utf16Count <= Constants.characterLimit
+    guard !isImporting, !hasUnfinishedPhotos else { return false }
+    let value = markdown
+    if loadedSourceOnly == false { return Self.isValidPostText(value) }
+    return Self.isPublishable(value)
+  }
+
+  public static func isPublishable(_ source: String) -> Bool {
+    isValidPostText(source) && !PhotoMarkdownCodec.containsPendingPhotos(source)
+  }
+
+  var canInsertPhoto: Bool { session != nil && !isImporting && !sourceOnly }
+  var canSaveLink: Bool { EditorLink.url(from: linkAddress.trimmingCharacters(in: .whitespacesAndNewlines)) != nil }
+  var isLinkSelected: Bool {
+    _ = selectionVersion
+    return selectedLink != nil
+  }
+
+  public func start(session: CommunitySession) {
+    self.session = session
+    ensureLoaded()
+    restorePhotos()
   }
 
   public func loadSource(_ value: String) {
-    source = value
-    text = EditorTextFormatting.editable((try? codec.decode(value)) ?? AttributedString(value))
-    originalText = text
-    sourceOnly = codec.requiresSourceEditing(value)
-    selection = AttributedTextSelection()
+    cancelLinkEditing()
+    if loadedSourceOnly == false, value == markdown { return }
+    text = decodeSource(value)
+    selection = NSRange(location: loadedSourceOnly == nil ? 0 : text.length, length: 0)
+    loadedSourceOnly = PhotoMarkdownCodec.requiresSourceEditing(value)
+    markdown = value
+    history.removeAllActions()
+    synchronizeView()
+    restorePhotos()
+    updateStatus()
   }
 
-  public func refreshUndoAvailability(_ manager: UndoManager?) {
-    canUndo = manager?.canUndo ?? false
-    canRedo = manager?.canRedo ?? false
+  public func restoreCursor(_ position: Int?) {
+    ensureLoaded()
+    guard !sourceOnly else { return }
+    let offset = position ?? text.length
+    let valid = (0...text.length).contains(offset) && (offset == text.length
+      || (text.string as NSString).rangeOfComposedCharacterSequence(at: offset).location == offset)
+    setSelection(NSRange(location: valid ? offset : text.length, length: 0))
+    textView?.revealSelection()
   }
 
-  public func clearUndoHistory(_ manager: UndoManager?) {
-    manager?.removeAllActions()
-    refreshUndoAvailability(manager)
+  public func prepareForSaving() async throws { try await uploads.prepareForSaving() }
+
+  func attach(_ view: PhotoTextArea) {
+    ensureLoaded()
+    textView = view
+    view.model = self
+    view.photoClipboard.view = view
+    view.photoClipboard.model = self
+    view.pasteDelegate = view.photoClipboard
+    synchronizeView()
+    view.revealSelection()
+    observeUploads()
+    restorePhotos()
   }
 
-  public func undo(_ manager: UndoManager?) {
-    manager?.undo()
-    refreshUndoAvailability(manager)
+  func detach() {
+    cancelLinkEditing()
+    history.removeAllActions()
+    textView?.resignFirstResponder()
+    textView = nil
+    updateStatus()
   }
 
-  public func redo(_ manager: UndoManager?) {
-    manager?.redo()
-    refreshUndoAvailability(manager)
+  func refresh() {
+    guard !isEditing else { return }
+    if let view = textView { text = NSAttributedString(attributedString: view.textStorage) }
+    if loadedSourceOnly == false { markdown = PhotoMarkdownCodec.encode(text) }
+    assets = assets.filter { $0.value.photo != nil }
+    updateStatus()
   }
 
-  public func observeUndoChanges(_ manager: UndoManager?) async {
-    refreshUndoAvailability(manager)
-    async let groupClosed: Void = observeUndoNotification(.NSUndoManagerDidCloseUndoGroup, manager)
-    async let undone: Void = observeUndoNotification(.NSUndoManagerDidUndoChange, manager)
-    async let redone: Void = observeUndoNotification(.NSUndoManagerDidRedoChange, manager)
-    _ = await (groupClosed, undone, redone)
+  func selectionChanged() {
+    guard !isEditing, let view = textView else { return }
+    selectionVersion += 1
+    selection = view.selectedRange
+    selectedPhotoID = nil
+    if selection.length <= 1, selection.location < text.length {
+      selectedPhotoID = (text.attribute(.attachment, at: selection.location, effectiveRange: nil) as? PhotoAttachment)?.id
+    }
+    if let link = selectedLink, selection.length == 0, selection.location == NSMaxRange(link.range) {
+      view.typingAttributes.removeValue(forKey: .link)
+    }
+    updateHistoryStatus()
   }
 
-  public enum FormatState {
-    case on, off, mixed
+  func setSelection(_ value: NSRange) {
+    ensureLoaded()
+    selection = value
+    textView?.selectedRange = value
+  }
 
-    var title: LocalizedStringResource {
-      switch self {
-      case .on: .editorOn
-      case .off: .editorOff
-      case .mixed: .editorMixed
+  func resignFocus() { textView?.resignFirstResponder() }
+
+  func prepareForModeChange() {
+    resignFocus()
+    history.removeAllActions()
+    loadSource(markdown)
+  }
+
+  func updateFonts() {
+    guard let view = textView else { return }
+    isEditing = true
+    history.disableUndoRegistration()
+    EditorTextRuns.enumerate(text) { attributes, range in
+      guard attributes[.attachment] == nil else { return }
+      let bits = EditorTextAttributes.formatBits(in: attributes)
+      if let font = EditorTextAttributes.make(formatBits: bits)[.font] {
+        view.textStorage.addAttribute(.font, value: font, range: range)
       }
     }
+    let bits = EditorTextAttributes.formatBits(in: view.typingAttributes)
+    view.typingAttributes[.font] = EditorTextAttributes.make(formatBits: bits)[.font]
+    text = NSAttributedString(attributedString: view.textStorage)
+    history.enableUndoRegistration()
+    isEditing = false
   }
 
-  public func state(for format: Format) -> FormatState {
-    if case .insertionPoint = selection.indices(in: text) {
-      let intent = EditorTextFormatting.intent(in: selection.typingAttributes(in: text))
-      return intent.contains(format.intent) ? .on : .off
+  func undo() { history.undo(); refresh() }
+
+  func redo() { history.redo(); refresh() }
+
+  func state(for format: Format) -> FormatState {
+    _ = selectionVersion
+    ensureLoaded()
+    if selection.length == 0 {
+      let attributes = textView?.typingAttributes ?? typingAttributes
+      return EditorTextAttributes.formatBits(in: attributes) & format.rawValue != 0 ? .on : .off
     }
-    let values = selection.attributes(in: text).map {
-      EditorTextFormatting.intent(in: $0).contains(format.intent)
+    var values: [Bool] = []
+    text.enumerateAttributes(in: selection) { attributes, _, _ in
+      if attributes[.attachment] == nil { values.append(EditorTextAttributes.formatBits(in: attributes) & format.rawValue != 0) }
     }
-    if values.allSatisfy({ $0 }) && !values.isEmpty { return .on }
+    if !values.isEmpty && values.allSatisfy({ $0 }) { return .on }
     return values.contains(true) ? .mixed : .off
   }
 
-  public func toggle(_ format: Format, undoManager: UndoManager? = nil) {
-    registerUndo(with: undoManager)
+  func toggle(_ format: Format) {
+    ensureLoaded()
+    if selection.length == 0 {
+      var attributes = textView?.typingAttributes ?? typingAttributes
+      let bits = EditorTextAttributes.formatBits(in: attributes) ^ format.rawValue
+      attributes.merge(EditorTextAttributes.make(formatBits: bits)) { _, new in new }
+      typingAttributes = attributes
+      textView?.typingAttributes = attributes
+      selectionVersion += 1
+      return
+    }
     let enable = state(for: format) != .on
-    text.transformAttributes(in: &selection) { attributes in
-      var intent = EditorTextFormatting.intent(in: attributes)
-      if enable { intent.insert(format.intent) } else { intent.remove(format.intent) }
-      EditorTextFormatting.apply(intent, to: &attributes)
-    }
-  }
-
-  public var validLink: URL? {
-    guard let url = URL(string: linkAddress), MarkdownCodec.isAllowedLink(url) else { return nil }
-    return url
-  }
-
-  public var isLinkSelected: Bool { selectedLink != nil }
-
-  private var selectedLink: (url: URL, range: Range<AttributedString.Index>)? {
-    let links = text.runs[\.link].compactMap { value, range in
-      value.map { (url: $0, range: range) }
-    }
-    return links.first { link in
-      switch selection.indices(in: text) {
-      case let .insertionPoint(index):
-        return link.range.lowerBound <= index && index <= link.range.upperBound
-      case let .ranges(ranges): return ranges.ranges.contains { $0.overlaps(link.range) }
+    let snapshot = text
+    edit { result in
+      snapshot.enumerateAttributes(in: selection) { attributes, range, _ in
+        guard attributes[.attachment] == nil else { return }
+        let previous = EditorTextAttributes.formatBits(in: attributes)
+        var updated = EditorTextAttributes.make(formatBits: enable ? previous | format.rawValue : previous & ~format.rawValue)
+        updated[.link] = EditorLink.url(from: attributes[.link])
+        result.setAttributes(updated, range: range)
       }
     }
   }
 
-  public func editLink() {
-    let link = selectedLink
-    if let link {
-      selection = AttributedTextSelection(range: link.range)
+  func editLink() {
+    ensureLoaded()
+    if let link = selectedLink { beginLinkEditing(in: link.range, url: link.url) }
+    else {
+      linkAddress = "https://"
+      let title = (text.string as NSString).substring(with: selection)
+      linkEdit = .init(range: selection, originalURL: nil, title: title)
     }
-    isEditingLink = link != nil
-    linkSelection = selection
-    linkAddress = link?.url.absoluteString ?? "https://"
-    showsLinkEditor = true
   }
 
-  public func removeLink(undoManager: UndoManager? = nil) {
-    guard isEditingLink else { return }
-    if let linkSelection { selection = linkSelection }
-    registerUndo(with: undoManager)
-    text.transformAttributes(in: &selection) { $0.link = nil }
-    showsLinkEditor = false
+  func beginLinkEditing(in range: NSRange, url: URL) {
+    guard valid(range) else { return }
+    setSelection(range)
+    linkAddress = url.absoluteString
+    linkEdit = .init(range: range, originalURL: url, title: (text.string as NSString).substring(with: range))
   }
 
-  public func applyLink(undoManager: UndoManager? = nil) {
-    guard let url = validLink else { return }
-    if let linkSelection { selection = linkSelection }
-    registerUndo(with: undoManager)
-    text.transformAttributes(in: &selection) { $0.link = url }
-    if case let .ranges(ranges) = selection.indices(in: text),
-       let end = ranges.ranges.last?.upperBound {
-      selection = AttributedTextSelection(insertionPoint: end)
-      text.transformAttributes(in: &selection) { $0.link = nil }
+  func cancelLinkEditing() { linkEdit = nil }
+
+  func saveLink(_ draft: LinkEdit) {
+    guard let url = EditorLink.url(from: linkAddress.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
+    updateLink(draft, url: url)
+  }
+
+  func removeLink(_ draft: LinkEdit) { updateLink(draft, url: nil) }
+
+  func importPhotos(_ items: [PhotosPickerItem]) async {
+    guard session != nil, !isImporting else { return }
+    isImporting = true
+    photoError = nil
+    defer { isImporting = false }
+    for item in items {
+      do {
+        try Task.checkCancellation()
+        let data = try await photoService.selectionData(item)
+        try Task.checkCancellation()
+        try await importPhoto(data)
+      } catch is CancellationError { return }
+      catch {
+        guard !Task.isCancelled else { return }
+        photoError = .editorPhotoImportError
+      }
     }
-    showsLinkEditor = false
   }
 
-  public func stopLinkAtBoundary() {
-    guard case let .insertionPoint(index) = selection.indices(in: text),
-          let link = text.runs[\.link].first(where: { $0.0 != nil && $0.1.upperBound == index }),
-          link.1.lowerBound != index else { return }
-    guard selection.typingAttributes(in: text).link != nil else { return }
-    text.transformAttributes(in: &selection) { $0.link = nil }
+  func importPhoto(_ data: Data) async throws {
+    guard let session else { throw EditorPhotoError.unavailable }
+    let id = UUID()
+    let content = try await photoService.restore(id, data, session)
+    guard !Task.isCancelled else { throw CancellationError() }
+    let photo = PhotoAttachment(id: id, preview: PhotoImagePreview.decode(content.preview))
+    if let url = content.uploadedURL { photo.sourceURL = url; photo.ready = true }
+    insertPhoto(photo)
   }
 
+  func insertPhoto(_ photo: PhotoAttachment) {
+    ensureLoaded()
+    let location = selection.location
+    edit { result in
+      let inserted = NSMutableAttributedString(string: "", attributes: EditorTextAttributes.make(formatBits: 0))
+      if location > 0, (result.string as NSString).character(at: location - 1) != Constants.lineFeed {
+        inserted.append(NSAttributedString(string: "\n", attributes: EditorTextAttributes.make(formatBits: 0)))
+      }
+      inserted.append(NSAttributedString(attachment: photo))
+      inserted.append(NSAttributedString(string: "\n", attributes: EditorTextAttributes.make(formatBits: 0)))
+      result.replaceCharacters(in: selection, with: inserted)
+      selection = NSRange(location: location + inserted.length, length: 0)
+      typingAttributes = EditorTextAttributes.make(formatBits: 0)
+    }
+    registerPastedPhoto(photo)
+    textView?.becomeFirstResponder()
+  }
 
+  func registerPastedPhoto(_ photo: PhotoAttachment) {
+    rememberPhoto(photo)
+    if photo.ready {
+      uploads.remember(photo.sourceID, url: photo.sourceURL)
+      if textView != nil { loadPreview(photo) }
+    } else if let session {
+      uploads.start(photo.sourceID, fallback: photo.image?.pngData(), session: session, service: photoService)
+    }
+    observeUploads()
+    applyUploadStates(uploads.states.wrappedValue)
+  }
+
+  func dismissPhotoError() { photoError = nil }
+
+  func retryPhotos() {
+    photoError = nil
+    guard let session else { return }
+    for photo in photos() {
+      uploads.retry(photo.sourceID, fallback: photo.image?.pngData(), session: session, service: photoService)
+    }
+  }
+
+  func photoIDs() -> [UUID] { photos().map(\.id) }
+
+  func movePhoto(to destination: PhotoPosition) {
+    guard let id = selectedPhotoID, let range = photoParagraph(id) else { return }
+    let content = text.attributedSubstring(from: range)
+    edit { result in
+      result.deleteCharacters(in: range)
+      let position: Int
+      switch destination {
+      case .start: position = 0
+      case .afterParagraph:
+        let caret = min(range.location, result.length)
+        position = (result.string as NSString).paragraphRange(for: NSRange(location: caret, length: 0)).upperBound
+      case .end: position = result.length
+      }
+      let moved = NSMutableAttributedString(attributedString: content)
+      if position > 0, (result.string as NSString).character(at: position - 1) != Constants.lineFeed {
+        moved.insert(NSAttributedString(string: "\n", attributes: EditorTextAttributes.make(formatBits: 0)), at: 0)
+      }
+      if !moved.string.hasSuffix("\n") { moved.append(NSAttributedString(string: "\n")) }
+      result.insert(moved, at: position)
+      selection = NSRange(location: position + moved.length, length: 0)
+    }
+    textView?.scrollRangeToVisible(selection)
+  }
+
+  func removePhoto() {
+    guard let id = selectedPhotoID, let range = photoParagraph(id) else { return }
+    edit { result in
+      result.deleteCharacters(in: range)
+      selection = NSRange(location: min(range.location, result.length), length: 0)
+      selectedPhotoID = nil
+    }
+  }
 }
 
 private extension CommunityEditorViewModel {
-  private func observeUndoNotification(_ name: Notification.Name, _ manager: UndoManager?) async {
-    for await _ in NotificationCenter.default.notifications(named: name, object: manager) {
-      guard !Task.isCancelled else { return }
-      refreshUndoAvailability(manager)
+  private func decodeSource(_ source: String) -> NSAttributedString {
+    var previews = loadedPhotoPreviews()
+    let service = photoService
+    return PhotoMarkdownCodec.decode(source) { url in
+      if let image = previews[url] { return image }
+      guard let data = service.cachedPreview(url), let image = PhotoImagePreview.decode(data) else { return nil }
+      previews[url] = image
+      return image
     }
   }
 
-  private func registerUndo(with manager: UndoManager?) {
-    guard let manager else { return }
-    let previousText = text
-    let previousSelection = selection
-    manager.registerUndo(withTarget: manager) { [weak self, weak manager] _ in
-      MainActor.assumeIsolated {
-        guard let target = self, let manager else { return }
-        target.registerUndo(with: manager)
-        target.text = previousText
-        target.selection = previousSelection
-      }
-    }
-    manager.setActionName(
-      String(localized: .editorFormatting))
+  private func ensureLoaded() { if loadedSourceOnly == nil { loadSource(markdown) } }
+
+  private func synchronizeView() {
+    guard let view = textView else { return }
+    isEditing = true
+    view.attributedText = text
+    view.selectedRange = selection
+    view.typingAttributes = typingAttributes
+    isEditing = false
   }
+
+  private func edit(_ operation: (NSMutableAttributedString) -> Void) {
+    history.beginUndoGrouping()
+    registerSnapshot()
+    history.disableUndoRegistration()
+    let result = NSMutableAttributedString(attributedString: text)
+    operation(result)
+    text = NSAttributedString(attributedString: result)
+    synchronizeView()
+    history.enableUndoRegistration()
+    history.endUndoGrouping()
+    refresh()
+  }
+
+  private func registerSnapshot() {
+    let snapshot = text
+    let previousSelection = selection
+    let attributes = textView?.typingAttributes ?? typingAttributes
+    history.registerUndo(withTarget: self) { model in
+      model.registerSnapshot()
+      model.history.disableUndoRegistration()
+      model.text = snapshot
+      model.selection = previousSelection
+      model.typingAttributes = attributes
+      model.synchronizeView()
+      model.history.enableUndoRegistration()
+      model.refresh()
+    }
+  }
+
+  private var selectedLink: (range: NSRange, url: URL)? {
+    var selected: (NSRange, URL)?
+    text.enumerateAttribute(.link, in: NSRange(location: 0, length: text.length)) { value, range, stop in
+      guard let url = EditorLink.url(from: value) else { return }
+      let matches = selection.length == 0
+        ? range.location <= selection.location && selection.location <= NSMaxRange(range)
+        : NSIntersectionRange(range, selection).length > 0
+      guard matches else { return }
+      selected = (range, url)
+      stop.pointee = true
+    }
+    return selected
+  }
+
+  private func valid(_ range: NSRange) -> Bool {
+    range.location >= 0 && range.location <= text.length && range.length >= 0
+      && range.length <= text.length - range.location
+  }
+
+  private func updateLink(_ draft: LinkEdit, url: URL?) {
+    defer { cancelLinkEditing() }
+    guard valid(draft.range), (text.string as NSString).substring(with: draft.range) == draft.title else { return }
+    var current = true
+    text.enumerateAttribute(.link, in: draft.range) { value, _, _ in
+      current = current && EditorLink.url(from: value) == draft.originalURL
+    }
+    guard current, url != draft.originalURL else { return }
+    edit { result in
+      if draft.range.length == 0, let url {
+        let label = NSAttributedString(string: url.absoluteString,
+          attributes: EditorTextAttributes.make(formatBits: 0).merging([.link: url]) { _, new in new })
+        result.insert(label, at: draft.range.location)
+        selection = NSRange(location: draft.range.location + label.length, length: 0)
+      } else {
+        if let url { result.addAttribute(.link, value: url, range: draft.range) }
+        else { result.removeAttribute(.link, range: draft.range) }
+        selection = NSRange(location: NSMaxRange(draft.range), length: 0)
+      }
+      typingAttributes.removeValue(forKey: .link)
+    }
+    textView?.typingAttributes.removeValue(forKey: .link)
+  }
+
+  private func photos() -> [PhotoAttachment] {
+    var values: [PhotoAttachment] = []
+    EditorTextRuns.enumerate(text) { attributes, _ in
+      if let photo = attributes[.attachment] as? PhotoAttachment { values.append(photo) }
+    }
+    return values
+  }
+
+  private func photoParagraph(_ id: UUID) -> NSRange? {
+    var found: NSRange?
+    EditorTextRuns.enumerate(text) { attributes, range in
+      guard (attributes[.attachment] as? PhotoAttachment)?.id == id else { return }
+      let paragraph = (text.string as NSString).paragraphRange(for: range)
+      let content = (text.string as NSString).substring(with: paragraph)
+      found = content == "\u{fffc}\n" || content == "\u{fffc}" ? paragraph : range
+    }
+    return found
+  }
+
+  private func rememberPhoto(_ photo: PhotoAttachment) {
+    assets[ObjectIdentifier(photo)] = PhotoReference(photo)
+    photo.presentation.retry = { [weak self] in self?.retryPhotos() }
+  }
+
+  private func restorePhotos() {
+    for photo in photos() {
+      rememberPhoto(photo)
+      if !photo.ready {
+        if let session { uploads.start(photo.sourceID, fallback: nil, session: session, service: photoService) }
+      } else if textView != nil { loadPreview(photo) }
+    }
+    observeUploads()
+    applyUploadStates(uploads.states.wrappedValue)
+  }
+
+  private func loadPreview(_ photo: PhotoAttachment) {
+    let url = photo.sourceURL
+    guard !photo.hasLoadedPreview, previewLoads[url] == nil else { return }
+    let service = photoService
+    previewLoads[url] = Task { [weak self] in
+      defer { self?.previewLoads[url] = nil }
+      do {
+        let data = try await service.preview(url)
+        guard !Task.isCancelled, let image = PhotoImagePreview.decode(data) else { return }
+        self?.applyPreview(image, for: url)
+      } catch {}
+    }
+  }
+
+  private func loadedPhotoPreviews() -> [URL: UIImage] {
+    var result: [URL: UIImage] = [:]
+    for photo in photos() where photo.hasLoadedPreview {
+      result[photo.sourceURL] = photo.image
+      result[PhotoAttachment.localURL(photo.sourceID)] = photo.image
+    }
+    return result
+  }
+
+  private func applyPreview(_ image: UIImage, for url: URL) {
+    for photo in assets.values.compactMap(\.photo) where photo.sourceURL == url {
+      photo.setPreview(image)
+      photo.hasLoadedPreview = true
+    }
+    invalidatePhotos()
+  }
+
+  private func observeUploads() {
+    guard uploadObservation == nil else { return }
+    let states = uploads.states
+    uploadObservation = observe { @MainActor [weak self] in
+      guard let self else { return }
+      applyUploadStates(states.wrappedValue)
+    }
+  }
+
+  private func applyUploadStates(_ states: [UUID: EditorPhotoUploads.State]) {
+    var changed = false
+    var previewChanged = false
+    let data = uploads.takePreviews()
+    var images: [UUID: UIImage] = [:]
+    for photo in assets.values.compactMap(\.photo) {
+      photo.presentation.state = states[photo.sourceID]
+      if !photo.hasLoadedPreview, let bytes = data[photo.sourceID],
+         let image = images[photo.sourceID] ?? PhotoImagePreview.decode(bytes) {
+        images[photo.sourceID] = image
+        photo.setPreview(image)
+        photo.hasLoadedPreview = true
+        previewChanged = true
+      }
+      guard case let .uploaded(url) = states[photo.sourceID], !photo.ready || photo.sourceURL != url else { continue }
+      photo.ready = true
+      photo.sourceURL = url
+      if !photo.hasLoadedPreview, textView != nil { loadPreview(photo) }
+      changed = true
+    }
+    if previewChanged { invalidatePhotos() }
+    if changed { refresh() } else { updateStatus() }
+  }
+
+  private func invalidatePhotos() {
+    guard let view = textView, let layout = view.textLayoutManager else { return }
+    layout.invalidateLayout(for: layout.documentRange)
+    view.setNeedsLayout()
+    view.setNeedsDisplay()
+  }
+
+  private func updateStatus() {
+    updateHistoryStatus()
+    hasUnfinishedPhotos = photos().contains { !$0.ready }
+  }
+
+  private func updateHistoryStatus() {
+    canUndo = history.canUndo
+    canRedo = history.canRedo
+  }
+
+  private static func isValidPostText(_ source: String) -> Bool {
+    !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      && source.utf16.count <= Constants.characterLimit
+  }
+}
+
+@MainActor private final class PhotoReference {
+  weak var photo: PhotoAttachment?
+  init(_ photo: PhotoAttachment) { self.photo = photo }
 }
 
 private enum Constants {
   static let characterLimit = 4096
-  static let bold = "bold"
-  static let italic = "italic"
-  static let strike = "strikethrough"
-  static let code = "chevron.left.forwardslash.chevron.right"
+  static let lineFeed: unichar = 10
 }
