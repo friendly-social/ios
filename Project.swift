@@ -65,6 +65,15 @@ let project = Project(
             )
         ),
         .target(
+            name: "CommunityTestsHost",
+            destinations: .iOS,
+            product: .app,
+            bundleId: "me.y9san9.Friendly.CommunityTestsHost",
+            deploymentTargets: .iOS("26.0"),
+            infoPlist: .default,
+            sources: ["Tests/CommunityTestsHost/**"]
+        ),
+        .target(
             name: "CommunityTests",
             destinations: .iOS,
             product: .unitTests,
@@ -102,6 +111,7 @@ let project = Project(
                 .package(product: "Networking"),
                 .package(product: "Nuke"),
                 .package(product: "NukeUI"),
+                .target(name: "CommunityTestsHost"),
             ]
         ),
     ],
