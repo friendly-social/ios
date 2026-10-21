@@ -23,8 +23,16 @@ jobs:
       uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: '26.6'
+
+    - name: Boot test simulator
+      if: github.event_name == 'pull_request'
+      run: |
+        CI_SIMULATOR_ID=$(xcrun simctl create 'Friendly CI' com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5)
+        xcrun simctl boot "$CI_SIMULATOR_ID"
+        echo "CI_SIMULATOR_ID=$CI_SIMULATOR_ID" >> "$GITHUB_ENV"
     
     - name: Setup Ruby
+      if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: 3.2
@@ -55,9 +63,10 @@ jobs:
         xcodebuild test \
           -workspace Friendly.xcworkspace \
           -scheme CommunityTests \
-          -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' \
+          -destination "platform=iOS Simulator,id=$CI_SIMULATOR_ID" \
           -resultBundlePath "$RUNNER_TEMP/TestResults.xcresult" \
           -skipMacroValidation \
+          ARCHS=arm64 \
           CODE_SIGNING_ALLOWED=NO
 
     - name: Publish test report
@@ -139,4 +148,4 @@ jobs:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        xcodebuild -workspace Friendly.xcworkspace -scheme Friendly -configuration Release -destination 'generic/platform=iOS' -skipMacroValidation clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+        xcodebuild -workspace Friendly.xcworkspace -scheme Friendly -configuration Release -destination 'generic/platform=iOS' -skipMacroValidation build ARCHS=arm64 CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
