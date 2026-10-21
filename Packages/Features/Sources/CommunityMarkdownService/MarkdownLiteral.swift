@@ -2,6 +2,10 @@ import Foundation
 
 public enum MarkdownLiteral {
   public static func encode(_ text: String) -> String {
+    MarkdownCodec().encode(AttributedString(text))
+  }
+
+  static func escape(_ text: String) -> String {
     text.map { character in
       if character == "&" { return "&amp;" }
       if Constants.escaped.contains(character) { return "\\\(character)" }

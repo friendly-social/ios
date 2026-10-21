@@ -29,44 +29,37 @@ public struct MarkdownCodec: Sendable {
   }
 
   public func encode(_ text: AttributedString) -> String {
-    text.runs.map { run in
-      let raw = String(text[run.range].characters)
-      let intent = run.inlinePresentationIntent ?? []
-      let leading = String(raw.prefix(while: \.isWhitespace))
-      let remainder = raw.dropFirst(leading.count)
-      let trailing = String(remainder.reversed().prefix(while: \.isWhitespace).reversed())
-      let core = String(remainder.dropLast(trailing.count))
-      guard !core.isEmpty else { return raw }
-      var value = escape(core)
-      if intent.contains(.code) {
-        let longest = core.split(omittingEmptySubsequences: false, whereSeparator: { $0 != "`" })
-          .map(\.count).max() ?? 0
-        let fence = String(repeating: "`", count: longest + 1)
-        value = fence + " " + core + " " + fence
-      }
-      if intent.contains(.emphasized) { value = "*" + value + "*" }
-      if intent.contains(.stronglyEmphasized) { value = "**" + value + "**" }
-      if intent.contains(.strikethrough) { value = "~~" + value + "~~" }
-      if let link = run.link, Self.isAllowedLink(link) {
-        let destination = link.absoluteString
-          .replacingOccurrences(of: "(", with: "%28")
-          .replacingOccurrences(of: ")", with: "%29")
-        value = "[" + value + "](" + destination + ")"
-      }
-      return leading + value + trailing
-    }.joined()
+    let text = MarkdownLinks.detecting(in: text)
+    return text.runs.map { encode($0, in: text) }.joined()
   }
 
   public static func isAllowedLink(_ url: URL) -> Bool {
     ["http", "https"].contains(url.scheme?.lowercased() ?? "") && url.host != nil
   }
-
-
 }
 
 private extension MarkdownCodec {
-  private func escape(_ text: String) -> String {
-    let punctuation = Set("\\`*_{}[]<>()#+-.!|~>")
-    return text.map { punctuation.contains($0) ? "\\\($0)" : String($0) }.joined()
+  private func encode(_ run: AttributedString.Runs.Run, in text: AttributedString) -> String {
+    let raw = String(text[run.range].characters)
+    let intent = run.inlinePresentationIntent ?? []
+    let leading = String(raw.prefix(while: \.isWhitespace))
+    let remainder = raw.dropFirst(leading.count)
+    let trailing = String(remainder.reversed().prefix(while: \.isWhitespace).reversed())
+    let core = String(remainder.dropLast(trailing.count))
+    guard !core.isEmpty else { return raw }
+    var value = MarkdownLiteral.escape(core)
+    if intent.contains(.code) {
+      let longest = core.split(omittingEmptySubsequences: false, whereSeparator: { $0 != "`" })
+        .map(\.count).max() ?? 0
+      let fence = String(repeating: "`", count: longest + 1)
+      value = fence + " " + core + " " + fence
+    }
+    if intent.contains(.emphasized) { value = "*" + value + "*" }
+    if intent.contains(.stronglyEmphasized) { value = "**" + value + "**" }
+    if intent.contains(.strikethrough) { value = "~~" + value + "~~" }
+    if let link = run.link, Self.isAllowedLink(link) {
+      value = "[" + value + "](" + MarkdownLinks.destination(link) + ")"
+    }
+    return leading + value + trailing
   }
 }
