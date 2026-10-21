@@ -164,7 +164,7 @@ private extension MarkdownInlineBuilder {
 
   private mutating func flush() {
     if !pending.characters.isEmpty {
-      result.append(Inline(id: result.count, kind: .text(pending)))
+      result.append(Inline(id: result.count, kind: .text(MarkdownLinks.detecting(in: pending))))
       pending = AttributedString()
     }
   }

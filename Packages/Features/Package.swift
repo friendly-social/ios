@@ -793,6 +793,7 @@ let package = Package(
         .product(name: "Nuke", package: "Nuke"),
         "CommunityEditorFeature",
         "CommunityEditorFeatureLive",
+        "CommunityMarkdownService",
         "CommunityProfileService",
         "FilesApi",
         "FilesApiLive",

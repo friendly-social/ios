@@ -51,7 +51,12 @@ struct CommunityDraftServiceLive: Sendable {
     let codec = MarkdownCodec()
     guard !codec.requiresSourceEditing(source),
           let rendered = try? codec.decode(source),
-          rendered.runs.allSatisfy({ ($0.inlinePresentationIntent ?? []).isEmpty && $0.link == nil })
+          rendered.runs.allSatisfy({ run in
+            guard (run.inlinePresentationIntent ?? []).isEmpty else { return false }
+            guard let link = run.link else { return true }
+            let label = String(rendered[run.range].characters)
+            return link == URL(string: label) || link == URL(string: "http://" + label)
+          })
     else { return .markdown(source) }
     return .plainText(String(rendered.characters))
   }
