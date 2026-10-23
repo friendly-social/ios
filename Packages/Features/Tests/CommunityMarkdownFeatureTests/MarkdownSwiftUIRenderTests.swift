@@ -17,14 +17,18 @@ import UIKit
     #expect(actual.pngData() == expected.pngData())
   }
 
-  // swift-cmark 0.9 incorrectly treats currency punctuation as emphasis delimiters.
-  // @Test(arguments: MarkdownRenderAppearance.allCases)
+  @Test(
+    .disabled("swift-cmark 0.9 incorrectly treats currency punctuation as emphasis delimiters"),
+    arguments: MarkdownRenderAppearance.allCases
+  )
   func currencyPunctuationRemainsLiteral(appearance: MarkdownRenderAppearance) throws {
     try expectLiteralRendering("*£*bravo.", appearance: appearance)
   }
 
-  // swift-cmark 0.9 decodes an invalid eight-digit entity instead of preserving it.
-  // @Test(arguments: MarkdownRenderAppearance.allCases)
+  @Test(
+    .disabled("swift-cmark 0.9 decodes an invalid eight-digit entity instead of preserving it"),
+    arguments: MarkdownRenderAppearance.allCases
+  )
   func invalidNumericEntityRemainsLiteral(appearance: MarkdownRenderAppearance) throws {
     try expectLiteralRendering("&#87654321;", appearance: appearance)
   }

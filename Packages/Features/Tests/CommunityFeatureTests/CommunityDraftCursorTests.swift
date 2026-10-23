@@ -8,7 +8,7 @@ import Dependencies
 import Foundation
 import Testing
 
-@MainActor struct CommunityDraftCursorTests {
+@Suite(.serialized) @MainActor struct CommunityDraftCursorTests {
   @Test func composerRestoresAndSavesCursorWithoutChangingMarkdown() async throws {
     let source = "Hello **world**"
     var saved: (String, Int?)?
@@ -28,19 +28,21 @@ import Testing
   }
 
   @Test func cursorMovementAutosavesWithoutShowingContentSavedNotice() async throws {
-    let clock = TestClock()
-    var saved: Int?
-    let drafts = CommunityDrafts(
-      load: { .init(content: "Hello world", cursor: 8) }, save: { saved = $0.cursor }, remove: {})
-    let model = makeComposerModel(service: CommunityService(), drafts: drafts, clock: clock)
-    defer { model.stop() }
-    await model.restore()
-    model.editor.setSelection(NSRange(location: 4, length: 0))
-    model.textChanged()
-    await clock.advance(by: .seconds(1))
-    expectNoDifference(saved, 4)
-    #expect(model.draftSaved)
-    #expect(!model.showsSavedNotice)
+    await withMainSerialExecutor {
+      let clock = TestClock()
+      var saved: Int?
+      let drafts = CommunityDrafts(
+        load: { .init(content: "Hello world", cursor: 8) }, save: { saved = $0.cursor }, remove: {})
+      let model = makeComposerModel(service: CommunityService(), drafts: drafts, clock: clock)
+      defer { model.stop() }
+      await model.restore()
+      model.editor.setSelection(NSRange(location: 4, length: 0))
+      model.textChanged()
+      await clock.advance(by: .seconds(1))
+      expectNoDifference(saved, 4)
+      #expect(model.draftSaved)
+      #expect(!model.showsSavedNotice)
+    }
   }
 
   @Test(arguments: [false, true])

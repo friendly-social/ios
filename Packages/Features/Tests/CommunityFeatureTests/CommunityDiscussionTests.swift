@@ -5,7 +5,9 @@ import CommunityDraftServiceLive
 import CommunityService
 @testable import CommunityServiceLive
 import Foundation
+import Observation
 import Testing
+import XCTest
 
 struct CommunityDiscussionTests {
   @Test func draftServiceNormalizesOnlyUnformattedMarkdown() {
@@ -103,8 +105,11 @@ struct CommunityDiscussionTests {
     #expect(model.post.id == root.id && model.composer != nil)
     composer.editor.loadSource("Reply")
     composer.textChanged()
+    let scrolled = XCTestExpectation(description: "Published reply becomes the scroll target")
+    withObservationTracking { _ = model.scrollToReplyID } onChange: { scrolled.fulfill() }
     await composer.publish()
-    await model.load()
+    let result = await XCTWaiter.fulfillment(of: [scrolled], timeout: Constants.replyRefreshTimeout)
+    #expect(result == .completed)
     #expect(await submission.targetID == target.id)
     #expect(model.post.id == target.id && model.upstream.map(\.id) == [root.id])
     #expect(model.replies.map(\.id) == [3, 99, 4])
@@ -240,4 +245,5 @@ private extension CommunityDiscussionTests {
 
 private enum Constants {
   static let maximumActorTurns = 1000
+  static let replyRefreshTimeout: TimeInterval = 5
 }

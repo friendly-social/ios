@@ -9,7 +9,7 @@ import Dependencies
 import Foundation
 import Testing
 
-@MainActor
+@Suite(.serialized) @MainActor
 struct CommunityPublicationTests {
   private let descriptor = PostDescriptor(id: 42, accessHash: "hash")
 
@@ -24,27 +24,29 @@ struct CommunityPublicationTests {
   }
 
   @Test func autosaveNoticeAppearsThenExpiresAndCanAppearAgain() async {
-    let clock = TestClock()
-    let draft = MemoryDraft(nil)
-    let model = makeComposerModel(service: service { _ in descriptor }, drafts: draft.client, clock: clock)
-    await model.restore()
-    defer { model.stop() }
-    model.editor.loadSource("First draft")
-    model.textChanged()
-    #expect(!model.showsSavedNotice)
-    await clock.advance(by: .milliseconds(500))
-    #expect(!model.showsSavedNotice)
-    await clock.advance(by: .milliseconds(500))
-    #expect(model.showsSavedNotice)
-    #expect(draft.text == "First draft")
-    await clock.advance(by: .seconds(2))
-    #expect(!model.showsSavedNotice)
-    model.editor.loadSource("Second draft")
-    model.textChanged()
-    #expect(!model.showsSavedNotice)
-    await clock.advance(by: .seconds(1))
-    #expect(model.showsSavedNotice)
-    #expect(draft.text == "Second draft")
+    await withMainSerialExecutor {
+      let clock = TestClock()
+      let draft = MemoryDraft(nil)
+      let model = makeComposerModel(service: service { _ in descriptor }, drafts: draft.client, clock: clock)
+      await model.restore()
+      defer { model.stop() }
+      model.editor.loadSource("First draft")
+      model.textChanged()
+      #expect(!model.showsSavedNotice)
+      await clock.advance(by: .milliseconds(500))
+      #expect(!model.showsSavedNotice)
+      await clock.advance(by: .milliseconds(500))
+      #expect(model.showsSavedNotice)
+      #expect(draft.text == "First draft")
+      await clock.advance(by: .seconds(2))
+      #expect(!model.showsSavedNotice)
+      model.editor.loadSource("Second draft")
+      model.textChanged()
+      #expect(!model.showsSavedNotice)
+      await clock.advance(by: .seconds(1))
+      #expect(model.showsSavedNotice)
+      #expect(draft.text == "Second draft")
+    }
   }
 
   @Test func restoresAndPublishesExactMarkdown() async {
