@@ -112,6 +112,7 @@ let package = Package(
       name: "ActivityFeature",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
         "ActivityService",
         "CommunityProfileService",
         "CommunityService",
@@ -133,8 +134,11 @@ let package = Package(
     .target(
       name: "ActivityRootFeature",
       dependencies: [
+        .product(name: "Models", package: "Domain"),
         "ActivityDiscussionFeature",
         "ActivityFeature",
+        "FriendlyUIKit",
+        "ProfileFeature",
       ]
     ),
     .target(

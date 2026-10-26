@@ -25,13 +25,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No replies yet"
+            "value": "No activity yet"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пока нет ответов"
+            "value": "Пока нет уведомлений"
           }
         }
       }
@@ -42,13 +42,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Replies to your posts and comments will appear here."
+            "value": "Replies, discussion updates and friend requests will appear here."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Здесь появятся ответы на ваши посты и комментарии."
+            "value": "Здесь появятся ответы, активность в обсуждениях и заявки в друзья."
           }
         }
       }
@@ -223,6 +223,40 @@
         }
       }
     },
+    "activity.friendRequestFrom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend request from %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заявка в друзья от %@"
+          }
+        }
+      }
+    },
+    "activity.friendRequestAccepted": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ accepted your friend request"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ теперь у вас в друзьях"
+          }
+        }
+      }
+    },
     "activity.openThreadHint": {
       "extractionState": "manual",
       "localizations": {
@@ -236,6 +270,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Открыть обсуждение"
+          }
+        }
+      }
+    },
+    "activity.openProfileHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the profile"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть профиль"
           }
         }
       }

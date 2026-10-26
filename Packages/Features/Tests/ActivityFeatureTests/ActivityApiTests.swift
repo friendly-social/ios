@@ -92,6 +92,20 @@ struct ActivityApiTests {
     expectNoDifference(commonDenominator.id, 20)
   }
 
+  @Test(arguments: [false, true])
+  func decodesFriendRequestsWithoutRequiringAPost(isMutual: Bool) async throws {
+    let body = requestPayload.replacingOccurrences(of: "false", with: String(isMutual))
+    let api = makeAPI { _ in .init(data: Data(body.utf8), statusCode: 200) }
+    let page = try await api.list(nil, credentials)
+    let event = try #require(page.events.first)
+    let from = CommunityPost.Owner(id: 8, accessHash: "user-hash", nickname: "Аня")
+    let expected: ActivityEvent.Content = isMutual
+      ? .friendRequestAccepted(from: from)
+      : .friendRequest(from: from)
+    expectNoDifference(event.content, expected)
+    #expect(event.post == nil)
+  }
+
   @Test func unknownEventWithoutReplyIsSkippedWithoutLosingCursor() async throws {
     let api = makeAPI { _ in .init(data: Data(unknownPayload.utf8), statusCode: 200) }
     let page = try await api.list(nil, credentials)
@@ -99,7 +113,7 @@ struct ActivityApiTests {
     expectNoDifference(page.nextID, "next")
   }
 
-  @Test(arguments: ["new_reply", "indirect_replies"])
+  @Test(arguments: ["new_reply", "indirect_replies", "new_request"])
   func knownEventMissingRequiredContentFails(type: String) async {
     let body = unknownPayload.replacingOccurrences(of: "future", with: type)
     let api = makeAPI { _ in .init(data: Data(body.utf8), statusCode: 200) }
@@ -132,4 +146,9 @@ private let payload = #"""
 
 private let unknownPayload = #"""
 {"data":[{"type":"future","id":1,"instant":"2026-10-11T10:00:00Z","isRead":false}],"nextId":"next"}
+"""#
+
+private let requestPayload = #"""
+{"data":[{"type":"new_request","id":43,"instant":"2026-10-11T10:00:00Z","isRead":true,
+"from":{"id":8,"accessHash":"user-hash","nickname":"Аня"},"isMutual":false}]}
 """#

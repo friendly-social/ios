@@ -65,6 +65,8 @@ private extension ActivityRowView {
     switch event.content {
     case .reply: .activityReplyFrom(event.owner?.nickname ?? "")
     case .indirectReplies: .activityIndirectReplies
+    case let .friendRequest(from): .activityFriendRequestFrom(from.nickname)
+    case let .friendRequestAccepted(from): .activityFriendRequestAccepted(from.nickname)
     }
   }
 
@@ -72,6 +74,7 @@ private extension ActivityRowView {
     switch event.content {
     case .reply: .activityOpenHint
     case .indirectReplies: .activityOpenThreadHint
+    case .friendRequest, .friendRequestAccepted: .activityOpenProfileHint
     }
   }
 
@@ -79,6 +82,8 @@ private extension ActivityRowView {
     switch event.content {
     case .reply: Constants.replySymbol
     case .indirectReplies: Constants.threadSymbol
+    case .friendRequest: Constants.requestSymbol
+    case .friendRequestAccepted: Constants.acceptedSymbol
     }
   }
 
@@ -86,6 +91,8 @@ private extension ActivityRowView {
     switch event.content {
     case .reply: Constants.replyColor
     case .indirectReplies: Constants.threadColor
+    case .friendRequest: Constants.requestColor
+    case .friendRequestAccepted: Constants.acceptedColor
     }
   }
 }
@@ -104,6 +111,10 @@ private enum Constants {
   static let badgeBackground = Color(uiColor: .secondarySystemGroupedBackground)
   static let replySymbol = "arrowshape.turn.up.left.fill"
   static let threadSymbol = "dot.radiowaves.left.and.right"
+  static let requestSymbol = "person.badge.plus"
+  static let acceptedSymbol = "person.crop.circle.badge.checkmark"
   static let replyColor = Color.blue
   static let threadColor = Color.indigo
+  static let requestColor = Color.orange
+  static let acceptedColor = Color.green
 }

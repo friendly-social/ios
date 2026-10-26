@@ -54,6 +54,7 @@ private extension ActivityDiscussionViewModel {
     case let .reply(post): try await service.openReply(post.descriptor, session)
     case let .indirectReplies(_, commonDenominator):
       try await service.openThread(commonDenominator, session)
+    case .friendRequest, .friendRequestAccepted: throw ActivityError.unavailable
     }
   }
 

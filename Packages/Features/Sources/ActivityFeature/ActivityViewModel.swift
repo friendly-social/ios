@@ -3,6 +3,7 @@ import CommunityProfileService
 import CommunityService
 import Dependencies
 import Foundation
+import Models
 import Observation
 
 @MainActor @Observable
@@ -13,7 +14,7 @@ public final class ActivityViewModel {
   public private(set) var nextID: String?
   public private(set) var error: LocalizedStringResource?
   public private(set) var pageError: LocalizedStringResource?
-  public var discussion: ActivityReplyDestination?
+  public var destination: Destination?
   @ObservationIgnored @Dependency(ActivityService.self) private var service
   @ObservationIgnored @Dependency(CommunityProfileService.self) private var profile
   @ObservationIgnored @Dependency(\.date.now) private var now
@@ -76,8 +77,24 @@ public final class ActivityViewModel {
   }
 
   public func openButtonTapped(_ event: ActivityEvent) {
-    guard let session, profile.isCurrentSession(session), discussion == nil else { return }
-    discussion = ActivityReplyDestination(event: event, session: session)
+    guard let session, profile.isCurrentSession(session), destination?.discussion == nil else { return }
+    switch event.content {
+    case .reply, .indirectReplies:
+      destination = .discussion(.init(event: event, session: session))
+    case let .friendRequest(from), let .friendRequestAccepted(from):
+      guard let accessHash = try? UserAccessHash(from.accessHash) else { return }
+      destination = .profile(.init(event: event, session: session, userID: UserId(from.id), accessHash: accessHash))
+    }
+  }
+
+  public func profileOpened(_ destination: Destination.Profile) async {
+    guard !destination.event.isRead, profile.isCurrentSession(destination.session) else { return }
+    do {
+      try await service.markRead(destination.event.id, destination.session)
+      didRead(destination.event.id, session: destination.session)
+    } catch {
+      handle(error, session: destination.session) {}
+    }
   }
 
   public func didRead(_ id: Int64, session: CommunitySession) {
@@ -132,7 +149,7 @@ private extension ActivityViewModel {
     events = []
     readIDs = []
     nextID = nil
-    discussion = nil
+    destination = nil
     hasLoaded = false
     generation += 1
     isLoading = false

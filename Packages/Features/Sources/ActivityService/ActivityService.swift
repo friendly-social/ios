@@ -20,6 +20,8 @@ public struct ActivityEvent: Sendable, Equatable, Identifiable {
   public enum Content: Sendable, Equatable {
     case reply(CommunityPost)
     case indirectReplies(post: CommunityPost, commonDenominator: PostDescriptor)
+    case friendRequest(from: CommunityPost.Owner)
+    case friendRequestAccepted(from: CommunityPost.Owner)
   }
 
   public let content: Content
@@ -38,12 +40,14 @@ extension ActivityEvent {
   public var post: CommunityPost? {
     switch content {
     case let .reply(post), let .indirectReplies(post, _): post
+    case .friendRequest, .friendRequestAccepted: nil
     }
   }
 
   public var owner: CommunityPost.Owner? {
     switch content {
     case let .reply(post), let .indirectReplies(post, _): post.owner
+    case let .friendRequest(from), let .friendRequestAccepted(from): from
     }
   }
 }

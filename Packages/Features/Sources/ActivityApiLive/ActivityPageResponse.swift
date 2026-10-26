@@ -17,6 +17,8 @@ struct ActivityPageResponse: Decodable {
     let isRead: Bool
     let post: PostResponse?
     let commonDenominator: PostDescriptor?
+    let from: OwnerResponse?
+    let isMutual: Bool?
   }
 
   struct PostResponse: Decodable {
@@ -62,6 +64,9 @@ private extension ActivityPageResponse.EventResponse {
     case "indirect_replies":
       guard let post, let commonDenominator else { throw ActivityError.invalidResponse }
       content = .indirectReplies(post: try post.value(), commonDenominator: commonDenominator)
+    case "new_request":
+      guard let from, let isMutual else { throw ActivityError.invalidResponse }
+      content = isMutual ? .friendRequestAccepted(from: from.value) : .friendRequest(from: from.value)
     default: return nil
     }
     return .init(id: id, date: try parseDate(instant), isRead: isRead, content: content)
