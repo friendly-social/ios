@@ -35,12 +35,8 @@ private extension CommunityView {
   private func contentView() -> some View {
     NavigationStack {
       feedNavigationContent()
-        .sheet(item: $model.composer) { composer in
-          CommunityComposerView(model: composer)
-          .presentationDetents([.large])
-        }
-        .sheet(item: $model.editingPost) { editor in
-          CommunityEditView(model: editor).presentationDetents([.large])
+        .sheet(item: $model.sheetDestination) { destination in
+          sheetView(destination).presentationDetents([.large])
         }
         .alert(
           .postMutationUnconfirmed,
@@ -52,8 +48,8 @@ private extension CommunityView {
           if let error = model.mutationError { Text(error) }
         }
     }
-    .onChange(of: model.destination == nil, initial: true) {
-      hidesTabBar = model.destination != nil
+    .onChange(of: model.navigationDestination == nil, initial: true) {
+      hidesTabBar = model.navigationDestination != nil
     }
     .markdownImageLayoutCache(imageLayoutCache)
   }
@@ -64,10 +60,11 @@ private extension CommunityView {
       .background(Constants.background)
       .navigationTitle(Text(verbatim: "Friendly"))
       .navigationBarTitleDisplayMode(.inline)
-      .navigationDestination(item: $model.destination) { destination in
+      .navigationDestination(item: $model.navigationDestination) { destination in
         switch destination {
         case let .post(route): postDetails(for: route)
         case .activity: activityDestination()
+        case .compose, .edit: EmptyView()
         }
       }
       .toolbar { activityToolbar() }
@@ -75,8 +72,8 @@ private extension CommunityView {
         await model.load()
         await model.refreshActivity()
       }
-      .task(id: scenePhase == .active && model.destination == nil) {
-        if scenePhase == .active && model.destination == nil { await model.refreshActivity() }
+      .task(id: scenePhase == .active && model.navigationDestination == nil) {
+        if scenePhase == .active && model.navigationDestination == nil { await model.refreshActivity() }
       }
       .task { await model.load() }
       .task { await model.loadProfile() }
@@ -84,6 +81,15 @@ private extension CommunityView {
       .onDisappear {
         model.stop()
       }
+  }
+
+  @ViewBuilder
+  private func sheetView(_ destination: CommunityViewModel.Destination) -> some View {
+    switch destination {
+    case let .compose(model): CommunityComposerView(model: model)
+    case let .edit(model): CommunityEditView(model: model)
+    case .post, .activity: EmptyView()
+    }
   }
 
   private func postDetails(for route: CommunityViewModel.PostDetailRoute) -> some View {

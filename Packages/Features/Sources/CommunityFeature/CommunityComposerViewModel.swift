@@ -206,6 +206,8 @@ public final class CommunityComposerViewModel: Identifiable {
   }
 }
 
+extension CommunityComposerViewModel: HashableObject {}
+
 private extension CommunityComposerViewModel {
   private func restoreDraft(_ drafts: CommunityDrafts) async {
     do {

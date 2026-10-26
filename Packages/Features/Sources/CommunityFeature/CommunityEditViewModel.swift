@@ -4,6 +4,7 @@ import CommunityService
 import Dependencies
 import Foundation
 import Observation
+import SwiftNavigation
 
 @MainActor @Observable
 public final class CommunityEditViewModel: Identifiable {
@@ -91,3 +92,5 @@ public final class CommunityEditViewModel: Identifiable {
     }
   }
 }
+
+extension CommunityEditViewModel: HashableObject {}

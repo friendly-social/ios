@@ -173,7 +173,7 @@ struct CommunityFeedRedesignTests {
     #expect(rootDraft == "Root draft")
     #expect(replyDraft == nil)
     #expect(model.posts == [parent])
-    #expect(model.composer == nil)
+    #expect(model.destination?.composer == nil)
     model.compose()
     #expect(model.composerTitle == newPostTitle)
     model.stop()
@@ -189,7 +189,7 @@ struct CommunityFeedRedesignTests {
     model.compose()
     model.reply(to: .awaitingDetails(.init(descriptor: .init(id: 1, accessHash: "hash"), text: "Post")))
     #expect(model.currentUser == nil)
-    #expect(model.composer == nil)
+    #expect(model.destination?.composer == nil)
   }
 
   @MainActor @Test func cachedProfileShowsBeforeRefreshAndUpdatesFromServer() async {
@@ -229,7 +229,7 @@ private extension CommunityFeedRedesignTests {
 
   @MainActor
   private func publishRestoredReply(in model: CommunityViewModel) async throws {
-    let composer = try #require(model.composer)
+    let composer = try #require(model.destination?.composer)
     await composer.restore()
     #expect(composer.editor.markdown == "Reply draft")
     await composer.publish()

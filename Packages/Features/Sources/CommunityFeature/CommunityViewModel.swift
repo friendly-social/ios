@@ -12,7 +12,6 @@ public final class CommunityViewModel {
   private(set) var draftState: DraftState = .unknown
   @ObservationIgnored @Dependency(CommunityDraftService.self) private var draftService
   private(set) var feedPosts: [CommunityFeedPost] = []
-  var destination: Destination?
   public var posts: [CommunityPost] { feedPosts.map(\.post) }
   @ObservationIgnored @Dependency(CommunityFeedPreparationService.self) private var feedPreparation
   private(set) var hasNewActivity = false
@@ -21,12 +20,11 @@ public final class CommunityViewModel {
   public private(set) var nextID: String?
   public private(set) var error: LocalizedStringResource?
   public var notice: LocalizedStringResource?
-  public var composer: CommunityComposerViewModel?
-  public var composerTitle: LocalizedStringResource { composer?.title ?? .composerTitle }
+  var destination: Destination?
+  public var composerTitle: LocalizedStringResource { destination?.composer?.title ?? .composerTitle }
   public private(set) var currentUser: CommunityPost.Owner?
   private var replyTarget: PostDescriptor?
   private var loadCurrentUser: (() async throws -> CommunityPost.Owner?)?
-  public var editingPost: CommunityEditViewModel?
   public private(set) var deletingID: Int64?
   public var mutationError: LocalizedStringResource?
   private var accountID: Int64?
@@ -72,7 +70,7 @@ public final class CommunityViewModel {
   }
 
   func openDetails(_ item: CommunityFeedPost, focusReply: Bool = false) {
-    guard destination == nil else { return }
+    guard navigationDestination == nil else { return }
     destination = .post(PostDetailRoute(
       descriptor: item.post.descriptor,
       model: makeDetails(for: item),
@@ -132,18 +130,18 @@ public final class CommunityViewModel {
   }
 
   public func reply(to post: CommunityPost) {
-    guard deletingID == nil, editingPost == nil, composer == nil, isCurrentSession() else { return }
+    guard deletingID == nil, sheetDestination == nil, isCurrentSession() else { return }
     replyTarget = post.descriptor
     withDependencies(from: self) {
       let model = CommunityComposerViewModel(
         replyTo: post.descriptor, onUnauthorized: onUnauthorized,
         onPublished: { [weak self] in await self?.didPublish($0, text: $1, warning: $2) })
-      if model.start() { composer = model }
+      if model.start() { destination = .compose(model) }
     }
   }
 
   public func compose() {
-    guard deletingID == nil, editingPost == nil, composer == nil, isCurrentSession() else { return }
+    guard deletingID == nil, sheetDestination == nil, isCurrentSession() else { return }
     replyTarget = nil
     withDependencies(from: self) {
       let model = CommunityComposerViewModel(
@@ -151,7 +149,7 @@ public final class CommunityViewModel {
         didSaveDraft: { [weak self] in self?.publishedDrafts.remove($0) },
         onUnauthorized: onUnauthorized,
         onPublished: { [weak self] in await self?.didPublish($0, text: $1, warning: $2) })
-      if model.start() { composer = model }
+      if model.start() { destination = .compose(model) }
     }
   }
 
@@ -181,14 +179,14 @@ public final class CommunityViewModel {
   }
 
   public func editButtonTapped(_ post: CommunityPost) {
-    guard canManage(post), deletingID == nil, composer == nil, editingPost == nil else { return }
+    guard canManage(post), deletingID == nil, sheetDestination == nil else { return }
     withDependencies(from: self) {
       let model = CommunityEditViewModel(
         post: post,
         onUnauthorized: onUnauthorized,
         onSaved: { [weak self] updated in await self?.applyEditedPost(updated) })
       model.start()
-      editingPost = model
+      destination = .edit(model)
     }
   }
 
@@ -210,7 +208,7 @@ public final class CommunityViewModel {
   }
 
   public func deleteConfirmed(_ post: CommunityPost) async {
-    guard canManage(post), deletingID == nil, composer == nil, editingPost == nil, !Task.isCancelled
+    guard canManage(post), deletingID == nil, sheetDestination == nil, !Task.isCancelled
     else { return }
     deletingID = post.id
     mutationError = nil
@@ -286,7 +284,7 @@ public final class CommunityViewModel {
     guard isCurrentSession() else { return }
     if replyTarget != nil {
       replyTarget = nil
-      composer = nil
+      if destination?.composer != nil { destination = nil }
       notice = warning
       refreshTask?.cancel()
       refreshTask = Task { [weak self] in await self?.load() }
@@ -303,7 +301,7 @@ public final class CommunityViewModel {
     feedPosts.removeAll { $0.id == post.id }
     feedPosts.insert(prepared, at: 0)
     notice = warning
-    composer = nil
+    if destination?.composer != nil { destination = nil }
     refreshTask?.cancel()
     refreshTask = Task { [weak self] in await self?.load() }
   }
@@ -312,16 +310,18 @@ public final class CommunityViewModel {
     refreshTask?.cancel()
     deleteTask?.cancel()
     loadMoreTask?.cancel()
-    composer?.stop()
+    destination?.composer?.stop()
     generation += 1
     isLoading = false
   }
 }
 
 extension CommunityViewModel {
-  enum Destination: Hashable {
+  enum Destination {
     case post(PostDetailRoute)
     case activity
+    case compose(CommunityComposerViewModel)
+    case edit(CommunityEditViewModel)
   }
 
   struct PostDetailRoute: Hashable {
@@ -346,6 +346,50 @@ extension CommunityViewModel {
     func hash(into hasher: inout Hasher) {
       hasher.combine(descriptor)
     }
+  }
+}
+
+extension CommunityViewModel {
+  var navigationDestination: Destination? {
+    get {
+      switch destination {
+      case .post, .activity: destination
+      default: nil
+      }
+    }
+    set {
+      if let newValue { destination = newValue }
+      else if navigationDestination != nil { destination = nil }
+    }
+  }
+
+  var sheetDestination: Destination? {
+    get {
+      switch destination {
+      case .compose, .edit: destination
+      default: nil
+      }
+    }
+    set {
+      if let newValue { destination = newValue }
+      else if sheetDestination != nil { destination = nil }
+    }
+  }
+}
+
+extension CommunityViewModel.Destination: Hashable, Identifiable {
+  var id: Self { self }
+}
+
+extension CommunityViewModel.Destination {
+  var composer: CommunityComposerViewModel? {
+    guard case let .compose(model) = self else { return nil }
+    return model
+  }
+
+  var editor: CommunityEditViewModel? {
+    guard case let .edit(model) = self else { return nil }
+    return model
   }
 }
 
