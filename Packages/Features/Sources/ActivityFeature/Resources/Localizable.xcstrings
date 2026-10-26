@@ -205,6 +205,40 @@
           }
         }
       }
+    },
+    "activity.indirectReplies": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New replies in the discussion"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новые ответы в обсуждении"
+          }
+        }
+      }
+    },
+    "activity.openThreadHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the discussion"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть обсуждение"
+          }
+        }
+      }
     }
   }
 }

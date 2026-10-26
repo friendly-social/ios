@@ -16,6 +16,7 @@ struct ActivityPageResponse: Decodable {
     let instant: String
     let isRead: Bool
     let post: PostResponse?
+    let commonDenominator: PostDescriptor?
   }
 
   struct PostResponse: Decodable {
@@ -53,9 +54,17 @@ struct ActivityPageResponse: Decodable {
 
 private extension ActivityPageResponse.EventResponse {
   func map() throws -> ActivityEvent? {
-    guard type == "new_reply" else { return nil }
-    guard let post else { throw ActivityError.invalidResponse }
-    return .init(id: id, date: try parseDate(instant), isRead: isRead, reply: try post.value())
+    let content: ActivityEvent.Content
+    switch type {
+    case "new_reply":
+      guard let post else { throw ActivityError.invalidResponse }
+      content = .reply(try post.value())
+    case "indirect_replies":
+      guard let post, let commonDenominator else { throw ActivityError.invalidResponse }
+      content = .indirectReplies(post: try post.value(), commonDenominator: commonDenominator)
+    default: return nil
+    }
+    return .init(id: id, date: try parseDate(instant), isRead: isRead, content: content)
   }
 }
 

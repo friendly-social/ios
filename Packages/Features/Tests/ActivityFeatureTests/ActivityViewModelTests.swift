@@ -17,9 +17,9 @@ struct ActivityViewModelTests {
     let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: now))
     let older = try #require(calendar.date(byAdding: .day, value: -2, to: now))
     let dates = [now, now.addingTimeInterval(-3 * 60 * 60), yesterday, older]
-    let reply = event(1).reply
+    let content = event(1).content
     let events = dates.enumerated().map { index, date in
-      ActivityEvent(id: Int64(index), date: date, isRead: false, reply: reply)
+      ActivityEvent(id: Int64(index), date: date, isRead: false, content: content)
     }
     var service = ActivityService()
     service.list = { _, _ in .init(events: events, nextID: nil) }
@@ -173,7 +173,7 @@ private func event(_ id: Int64) -> ActivityEvent {
   let reply = CommunityPost.published(.init(
     descriptor: .init(id: id, accessHash: "hash"), text: "Reply",
     owner: .init(id: 8, accessHash: "user", nickname: "Author"), date: .now, edited: false))
-  return .init(id: id, date: .init(timeIntervalSince1970: Double(id)), isRead: false, reply: reply)
+  return .init(id: id, date: .init(timeIntervalSince1970: Double(id)), isRead: false, content: .reply(reply))
 }
 
 private actor ActivityLedger {

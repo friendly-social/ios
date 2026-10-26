@@ -87,7 +87,7 @@ public final class ActivityViewModel {
   }
 
   public func avatarURL(for event: ActivityEvent) -> URL? {
-    event.reply.owner?.avatar.map(profile.avatarURL)
+    event.owner?.avatar.map(profile.avatarURL)
   }
 
   func events(in group: ActivityTimeGroup) -> [ActivityEvent] {
