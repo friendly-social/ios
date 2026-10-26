@@ -7,7 +7,7 @@ struct ActivityPageResponse: Decodable {
   let nextId: String?
 
   func events() throws -> [ActivityEvent] {
-    try data.compactMap { try $0.event() }
+    try data.compactMap { try $0.map() }
   }
 
   struct EventResponse: Decodable {
@@ -16,12 +16,6 @@ struct ActivityPageResponse: Decodable {
     let instant: String
     let isRead: Bool
     let post: PostResponse?
-
-    func event() throws -> ActivityEvent? {
-      guard type == "reply" else { return nil }
-      guard let post else { throw ActivityError.invalidResponse }
-      return .init(id: id, date: try parseDate(instant), isRead: isRead, reply: try post.value())
-    }
   }
 
   struct PostResponse: Decodable {
@@ -54,6 +48,14 @@ struct ActivityPageResponse: Decodable {
   struct AvatarResponse: Decodable {
     let id: Int64
     let accessHash: String
+  }
+}
+
+private extension ActivityPageResponse.EventResponse {
+  func map() throws -> ActivityEvent? {
+    guard type == "new_reply" else { return nil }
+    guard let post else { throw ActivityError.invalidResponse }
+    return .init(id: id, date: try parseDate(instant), isRead: isRead, reply: try post.value())
   }
 }
 

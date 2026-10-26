@@ -100,7 +100,7 @@ private extension ActivityApiTests {
 }
 
 private let payload = #"""
-{"data":[{"type":"reply","id":42,"instant":"2026-10-11T10:00:00.123456789Z","isRead":false,
+{"data":[{"type":"new_reply","id":42,"instant":"2026-10-11T10:00:00.123456789Z","isRead":false,
 "post":{"id":30,"accessHash":"reply-hash","instant":"2026-10-11T10:00:00Z","text":"**Привет**","edited":false,
 "owner":{"id":8,"accessHash":"user-hash","nickname":"Аня","avatar":{"id":90,"accessHash":"avatar-hash"}}}}],"nextId":"next"}
 """#
