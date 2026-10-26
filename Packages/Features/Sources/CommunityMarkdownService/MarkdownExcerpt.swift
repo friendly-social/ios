@@ -5,11 +5,6 @@ public struct MarkdownExcerpt: Sendable {
   public let document: MarkdownDocument
   public let isTruncated: Bool
 
-  @concurrent
-  public static func prepare(source: String) async -> Self? {
-    (try? MarkdownDocument(source: source)).map { Self(document: $0) }
-  }
-
   public init(document: MarkdownDocument) {
     var budget = Budget()
     self.document = MarkdownDocument(blocks: budget.blocks(document.blocks))

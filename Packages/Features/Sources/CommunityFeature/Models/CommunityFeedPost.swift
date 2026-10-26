@@ -8,11 +8,15 @@ struct CommunityFeedPost: Identifiable, Sendable {
 
   final class Content: Sendable {
     let source: String?
-    let excerpt: MarkdownExcerpt?
+    let document: MarkdownDocument?
 
-    init(source: String?, excerpt: MarkdownExcerpt?) {
+    var excerpt: MarkdownExcerpt? {
+      document.map(MarkdownExcerpt.init)
+    }
+
+    init(source: String?, document: MarkdownDocument?) {
       self.source = source
-      self.excerpt = excerpt
+      self.document = document
     }
   }
 }

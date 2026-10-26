@@ -83,7 +83,7 @@ struct CommunityThreadAuditTests {
   @Test func deletionPreparationDoesNotOverwriteNewSelectionAncestors() async {
     let gate = ThreadMutationPreparation()
     var preparation = CommunityFeedPreparationService()
-    preparation.prepareExcerpt = { _ in await gate.prepare() }
+    preparation.prepareDocument = { _ in await gate.prepare() }
     var service = baseService()
     service.delete = { _ in }
     service.details = { descriptor in
@@ -138,12 +138,12 @@ private actor SuspendedThreadOperation<Value: Sendable> {
 }
 
 private actor ThreadMutationPreparation {
-  let operation = SuspendedThreadOperation<MarkdownExcerpt?>()
+  let operation = SuspendedThreadOperation<MarkdownDocument?>()
   private var suspendsNext = false
 
   func suspendNext() { suspendsNext = true }
 
-  func prepare() async -> MarkdownExcerpt? {
+  func prepare() async -> MarkdownDocument? {
     guard suspendsNext else { return nil }
     suspendsNext = false
     return try? await operation.run()

@@ -26,8 +26,8 @@ private extension CommunityPostContent {
 
   @ViewBuilder
   private func excerptView(for source: String) -> some View {
-    if isExpanded {
-      MarkdownPreview(source: source, allowsImageViewing: true)
+    if isExpanded, let document = content.document {
+      MarkdownPreview(document: document, allowsImageViewing: true)
     } else if let excerpt = content.excerpt {
       VStack(alignment: .leading, spacing: Constants.spacing) {
         MarkdownPreview(

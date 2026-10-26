@@ -58,7 +58,7 @@ private extension CommunityDiscussionLoadingTests {
     service.markRead = { _ in }
     service.details = { _ in details }
     var preparation = CommunityFeedPreparationService()
-    preparation.prepareExcerpt = { _ in await gate.prepare() }
+    preparation.prepareDocument = { _ in await gate.prepare() }
     return makeDetailModel(post: details.post, service: service, initialDetails: initial, preparation: preparation)
   }
 
@@ -73,12 +73,12 @@ private extension CommunityDiscussionLoadingTests {
 
 private actor DiscussionPreparationGate {
   private var suspendsNext = false
-  private var completion: CheckedContinuation<MarkdownExcerpt?, Never>?
+  private var completion: CheckedContinuation<MarkdownDocument?, Never>?
   private var waiter: CheckedContinuation<Void, Never>?
 
   func suspendNext() { suspendsNext = true }
 
-  func prepare() async -> MarkdownExcerpt? {
+  func prepare() async -> MarkdownDocument? {
     guard suspendsNext else { return nil }
     suspendsNext = false
     return await withCheckedContinuation {

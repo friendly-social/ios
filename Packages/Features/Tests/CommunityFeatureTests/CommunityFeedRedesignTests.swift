@@ -47,7 +47,7 @@ struct CommunityFeedRedesignTests {
     let reply = CommunityPost.awaitingDetails(.init(
       descriptor: .init(id: 3, accessHash: "reply"), text: "**Bold**"))
     let unparsed = CommunityFeedPost(
-      post: reply, content: .init(source: reply.text, excerpt: nil))
+      post: reply, content: .init(source: reply.text, document: nil))
 
     let prepared = try await service.prepare([reply], reusing: [unparsed])
 

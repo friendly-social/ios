@@ -4,7 +4,7 @@ import DependenciesMacros
 
 @DependencyClient
 public struct CommunityFeedPreparationService: Sendable {
-  public var prepareExcerpt: @Sendable (String) async -> MarkdownExcerpt? = { _ in nil }
+  public var prepareDocument: @Sendable (String) async -> MarkdownDocument? = { _ in nil }
 }
 
 extension CommunityFeedPreparationService {
@@ -17,7 +17,7 @@ extension CommunityFeedPreparationService {
     for post in posts {
       try Task.checkCancellation()
       if let content = cached[post.id], content.source == post.text,
-         post.text == nil || content.excerpt != nil {
+         post.text == nil || content.document != nil {
         result.append(CommunityFeedPost(post: post, content: content))
       } else {
         result.append(await preparePost(post))
@@ -35,12 +35,12 @@ extension CommunityFeedPreparationService {
 
 private extension CommunityFeedPreparationService {
   private func preparePost(_ post: CommunityPost) async -> CommunityFeedPost {
-    let excerpt: MarkdownExcerpt?
+    let document: MarkdownDocument?
     if let source = post.text {
-      excerpt = await prepareExcerpt(source)
+      document = await prepareDocument(source)
     } else {
-      excerpt = nil
+      document = nil
     }
-    return CommunityFeedPost(post: post, content: .init(source: post.text, excerpt: excerpt))
+    return CommunityFeedPost(post: post, content: .init(source: post.text, document: document))
   }
 }
