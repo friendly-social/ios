@@ -10,6 +10,29 @@ import Testing
 
 @MainActor
 struct ActivityViewModelTests {
+  @Test func groupsNowAndEarlierTodayTogetherBeforeYesterdayAndOlder() async throws {
+    let calendar = Calendar.current
+    let now = calendar.startOfDay(for: Date(timeIntervalSince1970: 1_792_997_200))
+      .addingTimeInterval(12 * 60 * 60)
+    let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: now))
+    let older = try #require(calendar.date(byAdding: .day, value: -2, to: now))
+    let dates = [now, now.addingTimeInterval(-3 * 60 * 60), yesterday, older]
+    let reply = event(1).reply
+    let events = dates.enumerated().map { index, date in
+      ActivityEvent(id: Int64(index), date: date, isRead: false, reply: reply)
+    }
+    var service = ActivityService()
+    service.list = { _, _ in .init(events: events, nextID: nil) }
+    service.acknowledgeUnreads = { _ in }
+    let model = withDependencies {
+      $0.date.now = now
+    } operation: { makeModel(service) }
+    await model.start()
+    expectNoDifference(model.events(in: .today).map(\.id), [0, 1])
+    expectNoDifference(model.events(in: .yesterday).map(\.id), [2])
+    expectNoDifference(model.events(in: .older).map(\.id), [3])
+  }
+
   @Test func openingListAcknowledgesBadgeWithoutMarkingRowsRead() async {
     let calls = Mutex(0)
     var service = ActivityService()
