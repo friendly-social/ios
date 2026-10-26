@@ -24,24 +24,24 @@ struct CommunityDiscussionTests {
   @MainActor @Test func clearingFullScreenEditorRestoresPlainMiniComposer() async throws {
     let model = makeModel()
     model.expandEditor()
-    let composer = try #require(model.composer)
+    let composer = try #require(model.destination?.composer)
     await composer.restore()
     composer.editor.loadSource("**bold**")
     composer.textChanged()
     composer.editor.loadSource("")
     composer.textChanged()
-    model.composer = nil
+    model.destination = nil
     #expect(model.replyComposer?.plainText == "")
   }
 
   @MainActor @Test func plainFullScreenReplyReturnsToMiniComposer() async throws {
     let model = makeModel()
     model.expandEditor()
-    let composer = try #require(model.composer)
+    let composer = try #require(model.destination?.composer)
     await composer.restore()
     composer.editor.loadSource("просто текст")
     composer.textChanged()
-    model.composer = nil
+    model.destination = nil
     #expect(model.replyComposer?.plainText == "просто текст")
   }
 
@@ -79,9 +79,9 @@ struct CommunityDiscussionTests {
     model.select(child)
     await model.load()
     model.reply(to: root)
-    let composer = try #require(model.composer)
+    let composer = try #require(model.destination?.composer)
     await composer.restore()
-    #expect(model.post.id == child.id && model.composer != nil)
+    #expect(model.post.id == child.id && model.destination?.composer != nil)
     composer.editor.loadSource("Reply")
     composer.textChanged()
     await composer.publish()
@@ -98,9 +98,9 @@ struct CommunityDiscussionTests {
     let model = replyingModel(submission: submission)
     await model.load()
     model.reply(to: target)
-    let composer = try #require(model.composer)
+    let composer = try #require(model.destination?.composer)
     await composer.restore()
-    #expect(model.post.id == root.id && model.composer != nil)
+    #expect(model.post.id == root.id && model.destination?.composer != nil)
     composer.editor.loadSource("Reply")
     composer.textChanged()
     await composer.publish()

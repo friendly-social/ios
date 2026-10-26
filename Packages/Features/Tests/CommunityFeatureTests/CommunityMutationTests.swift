@@ -10,6 +10,15 @@ import Testing
 
 @MainActor
 struct CommunityMutationTests {
+  @Test func discussionCanOpenReplyWhilePostEditorIsPresented() throws {
+    let original = try post()
+    let model = makeDetailModel(post: original, service: service())
+    model.edit(original)
+    #expect(model.destination?.editor != nil)
+    model.reply(to: original)
+    #expect(model.destination?.composer === model.replyComposer)
+  }
+
   @Test func discussionReadUsesDescriptorAndSessionHeaders() async throws {
     let api = makeCommunityApi { request in
       expectNoDifference(request.httpMethod, "POST")
