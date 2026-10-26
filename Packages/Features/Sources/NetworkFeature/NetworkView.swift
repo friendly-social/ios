@@ -43,33 +43,32 @@ public struct NetworkView: View {
         }
         .navigationTitle(.networkFriendsTitle)
         .sheet(
-            isPresented: $viewModel.shouldShowQRCode,
-        ) {
-            NetworkQRCodeView(
-                onDismiss: { viewModel.shouldShowQRCode = false },
-            )
-        }
-        .sheet(
-            isPresented: $viewModel.shouldFindQRCode,
-        ) {
-            ScanToUseAppView(isBlocked: false) {
-                viewModel.shouldFindQRCode = false
-            }
+            item: $viewModel.destination,
+            onDismiss: {
+                Task { await viewModel.reload() }
+            },
+        ) { destination in
+            destinationView(destination)
         }
         .task { await viewModel.reload() }
-        .navigationDestination(
-            for: NetworkViewModel.ProfileDestination.self,
-        ) { destination in
-            let profile = ProfileView.OtherProfile(
-                id: destination.id,
-                accessHash: destination.accessHash,
-            )
-            ProfileView(
-                router: viewModel.router,
-                mode: .otherProfile(profile),
-            )
+        .navigationDestination(for: NetworkViewModel.Destination.self) { destination in
+            destinationView(destination)
         }
         .refreshable { await viewModel.reload() }
+    }
+}
+
+private extension NetworkView {
+    @ViewBuilder
+    private func destinationView(_ destination: NetworkViewModel.Destination) -> some View {
+        switch destination {
+        case .qrCode:
+            NetworkQRCodeView(onDismiss: { viewModel.destination = nil })
+        case .scanner:
+            ScanToUseAppView(isBlocked: false) { viewModel.destination = nil }
+        case let .profile(id, accessHash):
+            ProfileView(router: viewModel.router, mode: .otherProfile(.init(id: id, accessHash: accessHash)))
+        }
     }
 }
 
