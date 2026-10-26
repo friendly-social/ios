@@ -141,8 +141,10 @@ final class CommunityPostDetailViewModel {
     guard !isLoading, isCurrentSession() else { return }
     generation += 1
     let request = generation
+    isLoadingMore = false
     isLoading = true
     loadError = nil
+    pageError = nil
     defer { if generation == request { isLoading = false } }
     do {
       let details = try await fetchedDetails()
@@ -155,7 +157,9 @@ final class CommunityPostDetailViewModel {
       if isCurrentSession() { handleUnauthorized() }
     } catch is CancellationError {
     } catch {
-      if isCurrentSession() { loadError = .postRepliesLoadError }
+      if generation == request, isCurrentSession(), !Task.isCancelled {
+        loadError = .postRepliesLoadError
+      }
     }
   }
 
@@ -189,7 +193,7 @@ final class CommunityPostDetailViewModel {
     let request = generation
     isLoadingMore = true
     pageError = nil
-    defer { isLoadingMore = false }
+    defer { if generation == request { isLoadingMore = false } }
     do {
       let page = try await service.replies(post.descriptor, cursor)
       guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
@@ -203,7 +207,9 @@ final class CommunityPostDetailViewModel {
       if isCurrentSession() { handleUnauthorized() }
     } catch is CancellationError {
     } catch {
-      if isCurrentSession() { pageError = .postRepliesLoadError }
+      if generation == request, isCurrentSession(), !Task.isCancelled {
+        pageError = .postRepliesLoadError
+      }
     }
   }
 
@@ -421,17 +427,20 @@ private extension CommunityPostDetailViewModel {
       })
     }
     pendingReplies = pendingReplies.map { $0.id == updated.id ? updated : $0 }
-    await prepareUpdatedRows()
-    await onMutation(updated)
+    await prepareUpdatedRows(generation: generation)
+    if isCurrentSession() { await onMutation(updated) }
   }
 
-  private func prepareUpdatedRows() async {
+  private func prepareUpdatedRows(generation request: Int) async {
     let ancestors = try? await preparation.prepare(upstream, reusing: ancestorRows)
+    guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
     if let ancestors { ancestorRows = ancestors }
     let entries = replyGroups.map { CommunityReply.thread($0.rows.map(\.post)) }
     let groups = try? await prepareReplies(entries, reusing: replyRows)
+    guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
     if let groups { replyGroups = groups }
     let pending = try? await preparation.prepare(pendingReplies, reusing: pendingRows)
+    guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
     if let pending { pendingRows = pending }
   }
 
