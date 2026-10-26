@@ -21,7 +21,7 @@ private extension ActivityRowView {
           .lineLimit(Constants.previewLines)
         HStack(spacing: Constants.textSpacing) {
           if !event.isRead { unreadIndicator() }
-          Text(event.date, format: .relative(presentation: .numeric)).font(.caption).foregroundStyle(.secondary)
+          Text(event.date, format: .relative(presentation: .named)).font(.caption).foregroundStyle(.secondary)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
