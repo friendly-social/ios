@@ -82,6 +82,7 @@ let project = Project(
             infoPlist: .default,
             sources: ["Packages/Features/Tests/**", "Packages/Infrastructure/Tests/**"],
             dependencies: [
+                .package(product: "AccountStorageService"),
                 .package(product: "ActivityApi"),
                 .package(product: "ActivityApiLive"),
                 .package(product: "ActivityDiscussionFeature"),

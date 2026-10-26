@@ -758,8 +758,10 @@ let package = Package(
     .testTarget(
       name: "CommunityFeatureTests",
       dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
         .product(name: "Networking", package: "Infrastructure"),
         "ActivityService",
         "CommunityApi",

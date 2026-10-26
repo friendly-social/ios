@@ -10,8 +10,9 @@ final class CommunityPostDetailViewModel {
   private(set) var selectedRow: CommunityFeedPost?
   private(set) var upstream: [CommunityPost] = []
   private(set) var ancestorRows: [CommunityFeedPost] = []
-  private(set) var replies: [CommunityPost] = []
-  private(set) var replyRows: [CommunityFeedPost] = []
+  private(set) var replyGroups: [CommunityDiscussionReply] = []
+  var replyRows: [CommunityFeedPost] { replyGroups.flatMap(\.rows) }
+  var replies: [CommunityPost] { replyRows.map(\.post) }
   private(set) var pendingReplies: [CommunityPost] = []
   private(set) var pendingRows: [CommunityFeedPost] = []
   private(set) var scrollToReplyID: Int64?
@@ -172,9 +173,10 @@ final class CommunityPostDetailViewModel {
       upstream = Array(lineage.prefix(upTo: index))
       ancestorRows = Array(ancestorRows.prefix(index))
     } else {
-      upstream = lineage
-      ancestorRows.append(selectedRow ?? CommunityFeedPost(
-        post: post, content: .init(source: post.text, excerpt: nil)))
+      let preceding = precedingReplies(to: item)
+      upstream = lineage + preceding.map(\.post)
+      ancestorRows.append(selectedRow ?? row(post, reusing: []))
+      ancestorRows.append(contentsOf: preceding)
     }
     post = item
     selectedRow = nextRow
@@ -191,11 +193,9 @@ final class CommunityPostDetailViewModel {
     do {
       let page = try await service.replies(post.descriptor, cursor)
       guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
-      let merged = deduplicated(replies + page.data.compactMap(\.directPost))
-      let prepared = try await preparation.prepare(merged, reusing: replyRows)
+      let prepared = try await prepareReplies(page.data, reusing: replyRows)
       guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
-      replies = merged
-      replyRows = prepared
+      replyGroups = mergingReplies(prepared)
       pendingReplies.removeAll { pending in replies.contains { $0.id == pending.id } }
       pendingRows.removeAll { pending in replies.contains { $0.id == pending.id } }
       nextID = page.nextId
@@ -258,7 +258,7 @@ private extension CommunityPostDetailViewModel {
 
   private func includingFocusedReply(in details: CommunityPostDetails) async throws -> CommunityPostDetails {
     guard details.post.descriptor == focusedParent, let focusedReply,
-          !details.replies.data.contains(where: { $0.directPost?.id == focusedReply.id }) else { return details }
+          !details.replies.data.contains(where: { replyPosts($0).contains { $0.id == focusedReply.id } }) else { return details }
     let target: CommunityPostDetails
     do { target = try await service.details(focusedReply) }
     catch CommunityError.rejected(404) { return details }
@@ -277,17 +277,15 @@ private extension CommunityPostDetailViewModel {
 
   private func prepareDetails(_ details: CommunityPostDetails, generation request: Int) async throws {
     let previous = ancestorRows + replyRows + (selectedRow.map { [$0] } ?? [])
-    let replies = deduplicated(details.replies.data.compactMap(\.directPost))
     let ancestors = try await preparation.prepare(details.upstream, reusing: previous)
-    let preparedReplies = try await preparation.prepare(replies, reusing: previous)
+    let preparedReplies = try await prepareReplies(details.replies.data, reusing: previous)
     let selected = await preparation.prepare(details.post)
     guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
     post = details.post
     selectedRow = selected
     upstream = details.upstream
     ancestorRows = ancestors
-    self.replies = replies
-    replyRows = preparedReplies
+    replyGroups = preparedReplies
     nextID = details.replies.nextId
     pendingReplies.removeAll { pending in replies.contains { $0.id == pending.id } }
     pendingRows.removeAll { pending in replies.contains { $0.id == pending.id } }
@@ -321,43 +319,52 @@ private extension CommunityPostDetailViewModel {
     guard isCurrentSession() else { return }
     let reply = CommunityPost.awaitingDetails(.init(
       descriptor: descriptor, text: text, owner: currentOwner, date: .now))
-    cacheSentReply(reply, parentID: target.id)
-    guard post.id == originID else { return }
+    guard post.id == originID else {
+      invalidateSnapshots()
+      cacheSentReply(reply, parentID: target.id)
+      return
+    }
     if target.id != post.id { select(target, ignoringDraft: text) }
-    else { replyComposer = makeReplyComposer(for: post, ignoringDraft: text) }
-    sendError = warning
     if !replies.contains(where: { $0.id == reply.id }), !pendingReplies.contains(where: { $0.id == reply.id }) {
       pendingReplies.append(reply)
       pendingRows.append(row(reply, reusing: []))
     }
-    replyUpdateTask?.cancel()
+    snapshots[target.id] = snapshot()
+    select(reply, ignoringDraft: text)
+    invalidateSnapshots()
+    selectedRow = row(reply, reusing: [])
+    loaded = true
+    sendError = warning
+    scrollToReplyID = descriptor.id
     replyUpdateTask = Task { [weak self] in
-      guard let self else { return }
-      await refreshSentReplies(descriptor, parentID: target.id)
+      await self?.refreshSentReply(descriptor)
     }
   }
 
-  private func refreshSentReplies(_ descriptor: PostDescriptor, parentID: Int64) async {
+  private func refreshSentReply(_ descriptor: PostDescriptor) async {
+    guard isCurrentSession(), !Task.isCancelled, post.descriptor == descriptor else { return }
     await restore()
     let owner: CommunityPost.Owner?
     if let currentOwner { owner = currentOwner } else { owner = await currentUser() }
-    guard isCurrentSession(), !Task.isCancelled, post.id == parentID else { return }
-    let authored = pendingReplies.map { authoredReply($0, owner: owner) }
-    let prepared = try? await preparation.prepare(authored, reusing: pendingRows)
-    guard isCurrentSession(), !Task.isCancelled, post.id == parentID else { return }
+    guard isCurrentSession(), !Task.isCancelled, post.descriptor == descriptor else { return }
     currentOwner = owner
-    pendingReplies = pendingReplies.map { authoredReply($0, owner: owner) }
-    if let prepared { pendingRows = pendingReplies.map { row($0, reusing: prepared) } }
+    post = authoredReply(post, owner: owner)
+    selectedRow = row(post, reusing: selectedRow.map { [$0] } ?? [])
     await load()
-    guard isCurrentSession(), !Task.isCancelled, post.id == parentID else { return }
-    snapshots[post.id] = snapshot()
-    scrollToReplyID = descriptor.id
   }
 
   private func authoredReply(_ reply: CommunityPost, owner: CommunityPost.Owner?) -> CommunityPost {
     guard case let .awaitingDetails(value) = reply, value.owner == nil else { return reply }
     return .awaitingDetails(.init(
       descriptor: value.descriptor, text: value.text, edited: value.edited, owner: owner, date: value.date))
+  }
+
+  private func invalidateSnapshots() {
+    snapshots = snapshots.mapValues { snapshot in
+      var snapshot = snapshot
+      snapshot.needsReload = true
+      return snapshot
+    }
   }
 
   private func cacheSentReply(_ reply: CommunityPost, parentID: Int64) {
@@ -373,7 +380,7 @@ private extension CommunityPostDetailViewModel {
   private func snapshot() -> DiscussionSnapshot {
     DiscussionSnapshot(
       post: post, selectedRow: selectedRow, upstream: upstream, ancestorRows: ancestorRows,
-      replies: replies, replyRows: replyRows, pendingReplies: pendingReplies,
+      replyGroups: replyGroups, pendingReplies: pendingReplies,
       pendingRows: pendingRows, nextID: nextID)
   }
 
@@ -382,12 +389,11 @@ private extension CommunityPostDetailViewModel {
     selectedRow = snapshot.selectedRow
     upstream = snapshot.upstream
     ancestorRows = snapshot.ancestorRows
-    replies = snapshot.replies
-    replyRows = snapshot.replyRows
+    replyGroups = snapshot.replyGroups
     pendingReplies = snapshot.pendingReplies
     pendingRows = snapshot.pendingRows
     nextID = snapshot.nextID
-    loaded = snapshot.pendingReplies.isEmpty
+    loaded = snapshot.pendingReplies.isEmpty && !snapshot.needsReload
   }
 
   private func resetSelection(ignoringDraft: String?) {
@@ -397,8 +403,7 @@ private extension CommunityPostDetailViewModel {
     loaded = false
     loadError = nil
     pageError = nil
-    replies = []
-    replyRows = []
+    replyGroups = []
     pendingReplies = []
     pendingRows = []
     nextID = nil
@@ -410,28 +415,67 @@ private extension CommunityPostDetailViewModel {
     snapshots.removeAll()
     if post.id == updated.id { post = updated }
     upstream = upstream.map { $0.id == updated.id ? updated : $0 }
-    replies = replies.map { $0.id == updated.id ? updated : $0 }
+    replyGroups = replyGroups.compactMap { group in
+      CommunityDiscussionReply(rows: group.rows.map { item in
+        row(item.id == updated.id ? updated : item.post, reusing: group.rows)
+      })
+    }
     pendingReplies = pendingReplies.map { $0.id == updated.id ? updated : $0 }
-    if let prepared = try? await preparation.prepare(upstream, reusing: ancestorRows) {
-      ancestorRows = prepared
-    }
-    if let prepared = try? await preparation.prepare(replies, reusing: replyRows) {
-      replyRows = prepared
-    }
-    if let prepared = try? await preparation.prepare(pendingReplies, reusing: pendingRows) {
-      pendingRows = prepared
-    }
+    await prepareUpdatedRows()
     await onMutation(updated)
   }
 
-  private func deduplicated(_ posts: [CommunityPost]) -> [CommunityPost] {
-    var order: [Int64] = []
-    var latest: [Int64: CommunityPost] = [:]
-    for post in posts {
-      if latest[post.id] == nil { order.append(post.id) }
-      latest[post.id] = post
+  private func prepareUpdatedRows() async {
+    let ancestors = try? await preparation.prepare(upstream, reusing: ancestorRows)
+    if let ancestors { ancestorRows = ancestors }
+    let entries = replyGroups.map { CommunityReply.thread($0.rows.map(\.post)) }
+    let groups = try? await prepareReplies(entries, reusing: replyRows)
+    if let groups { replyGroups = groups }
+    let pending = try? await preparation.prepare(pendingReplies, reusing: pendingRows)
+    if let pending { pendingRows = pending }
+  }
+
+  private func replyPosts(_ reply: CommunityReply) -> [CommunityPost] {
+    switch reply {
+    case let .single(post): [post]
+    case let .thread(posts): posts
     }
-    return order.compactMap { latest[$0] }
+  }
+
+  private func prepareReplies(
+    _ replies: [CommunityReply], reusing previous: [CommunityFeedPost]
+  ) async throws -> [CommunityDiscussionReply] {
+    let posts = replies.flatMap(replyPosts)
+    let rows = try await preparation.prepare(posts, reusing: previous)
+    let byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+    var seen: Set<Int64> = []
+    return replies.compactMap { reply in
+      let rows = replyPosts(reply).compactMap { post in
+        seen.insert(post.id).inserted ? byID[post.id] : nil
+      }
+      return CommunityDiscussionReply(rows: rows)
+    }
+  }
+
+  private func mergingReplies(_ additional: [CommunityDiscussionReply]) -> [CommunityDiscussionReply] {
+    var result = replyGroups
+    for group in additional {
+      if let index = result.firstIndex(where: { $0.id == group.id }) {
+        result[index] = group
+      } else {
+        result.append(group)
+      }
+    }
+    return result
+  }
+
+  private func precedingReplies(to post: CommunityPost) -> [CommunityFeedPost] {
+    for group in replyGroups {
+      if let index = group.rows.firstIndex(where: { $0.id == post.id }) {
+        return Array(group.rows.prefix(upTo: index))
+      }
+    }
+    return []
   }
 }
 
@@ -440,9 +484,10 @@ private struct DiscussionSnapshot {
   let selectedRow: CommunityFeedPost?
   let upstream: [CommunityPost]
   let ancestorRows: [CommunityFeedPost]
-  let replies: [CommunityPost]
-  let replyRows: [CommunityFeedPost]
+  let replyGroups: [CommunityDiscussionReply]
+  var replies: [CommunityPost] { replyGroups.flatMap(\.rows).map(\.post) }
   var pendingReplies: [CommunityPost]
   var pendingRows: [CommunityFeedPost]
   let nextID: String?
+  var needsReload = false
 }
