@@ -2,7 +2,7 @@ import CommunityApi
 @testable import CommunityApiLive
 import CommunityDraftService
 @testable import CommunityDraftServiceLive
-import CommunityFeature
+@testable import CommunityFeature
 import CommunityService
 @testable import CommunityServiceLive
 import Dependencies
@@ -150,7 +150,7 @@ struct CommunityPublicationTests {
     #expect(feed.posts.map(\.id) == [42])
     #expect(feed.error != nil)
     feed.compose()
-    let composer = try #require(feed.composer)
+    let composer = try #require(feed.destination?.composer)
     await composer.restore()
     #expect(composer.editor.markdown.isEmpty)
   }

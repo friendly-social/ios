@@ -8,6 +8,7 @@ extension ActivityService: DependencyKey {
     let live = ActivityServiceLive()
     return .init(
       list: { try await live.list($0, session: $1) },
+      openThread: { try await live.openThread($0, session: $1) },
       openReply: { try await live.openReply($0, session: $1) },
       hasNewUnreads: { try await live.hasNewUnreads(session: $0) },
       acknowledgeUnreads: { try await live.acknowledgeUnreads(session: $0) },

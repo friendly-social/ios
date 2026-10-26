@@ -9,7 +9,7 @@ struct CommunityThreadTests {
     defer { model.stop() }
     await model.load()
     model.reply(to: post(4))
-    let composer = try #require(model.composer)
+    let composer = try #require(model.destination?.composer)
     await composer.restore()
     composer.setPlainText("Continuation")
     await composer.publish()

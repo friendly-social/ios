@@ -10,6 +10,29 @@ import Testing
 
 @MainActor
 struct ActivityViewModelTests {
+  @Test func groupsNowAndEarlierTodayTogetherBeforeYesterdayAndOlder() async throws {
+    let calendar = Calendar.current
+    let now = calendar.startOfDay(for: Date(timeIntervalSince1970: 1_792_997_200))
+      .addingTimeInterval(12 * 60 * 60)
+    let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: now))
+    let older = try #require(calendar.date(byAdding: .day, value: -2, to: now))
+    let dates = [now, now.addingTimeInterval(-3 * 60 * 60), yesterday, older]
+    let content = event(1).content
+    let events = dates.enumerated().map { index, date in
+      ActivityEvent(id: Int64(index), date: date, isRead: false, content: content)
+    }
+    var service = ActivityService()
+    service.list = { _, _ in .init(events: events, nextID: nil) }
+    service.acknowledgeUnreads = { _ in }
+    let model = withDependencies {
+      $0.date.now = now
+    } operation: { makeModel(service) }
+    await model.start()
+    expectNoDifference(model.events(in: .today).map(\.id), [0, 1])
+    expectNoDifference(model.events(in: .yesterday).map(\.id), [2])
+    expectNoDifference(model.events(in: .older).map(\.id), [3])
+  }
+
   @Test func openingListAcknowledgesBadgeWithoutMarkingRowsRead() async {
     let calls = Mutex(0)
     var service = ActivityService()
@@ -57,7 +80,11 @@ struct ActivityViewModelTests {
     await model.loadMore()
     #expect(model.events.map(\.id) == [2, 1])
     model.openButtonTapped(event(1))
-    #expect(model.discussion?.event.id == 1)
+    guard case let .discussion(destination) = model.destination else {
+      Issue.record("Expected discussion destination")
+      return
+    }
+    expectNoDifference(destination.event.id, 1)
     model.didRead(1, session: .init(accountID: 7, token: "token", sessionID: "session"))
     #expect(model.events.first(where: { $0.id == 1 })?.isRead == true)
     await model.load()
@@ -76,8 +103,12 @@ struct ActivityViewModelTests {
     let model = makeModel(service)
     await model.start()
     model.openButtonTapped(event(1))
-    #expect(model.discussion?.event.id == 1)
-    #expect(model.discussion?.session.accountID == 7)
+    guard case let .discussion(destination) = model.destination else {
+      Issue.record("Expected discussion destination")
+      return
+    }
+    expectNoDifference(destination.event.id, 1)
+    expectNoDifference(destination.session.accountID, 7)
     #expect(model.events.first?.isRead == false)
     #expect(calls.withLock { $0 } == 0)
   }
@@ -92,7 +123,7 @@ struct ActivityViewModelTests {
     state.expire()
     model.openButtonTapped(event(1))
     model.didRead(1, session: .init(accountID: 7, token: "token", sessionID: "session"))
-    #expect(model.discussion == nil)
+    #expect(model.destination == nil)
     #expect(model.events.first?.isRead == false)
   }
 
@@ -108,6 +139,28 @@ struct ActivityViewModelTests {
     await model.start()
     await model.start()
     #expect(await ledger.listCalls == 1)
+  }
+
+  @Test(arguments: friendshipContents())
+  func friendRequestOpensProfileAndMarksReadOnlyAfterOpening(content: ActivityEvent.Content) async throws {
+    let calls = Mutex<[Int64]>([])
+    let request = ActivityEvent(id: 42, date: .init(timeIntervalSince1970: 0), isRead: false, content: content)
+    var service = ActivityService()
+    service.acknowledgeUnreads = { _ in }
+    service.list = { _, _ in .init(events: [request], nextID: nil) }
+    service.markRead = { id, _ in calls.withLock { $0.append(id) } }
+    let model = makeModel(service)
+    await model.start()
+    model.openButtonTapped(request)
+    guard case let .profile(destination) = model.destination else {
+      Issue.record("Expected profile destination")
+      return
+    }
+    expectNoDifference(destination.userID.int64, 8)
+    expectNoDifference(calls.withLock { $0 }, [])
+    await model.profileOpened(destination)
+    expectNoDifference(calls.withLock { $0 }, [42])
+    expectNoDifference(model.events.first?.isRead, true)
   }
 
   @Test func oldPaginationFailureDoesNotPolluteRefreshedList() async {
@@ -146,11 +199,16 @@ private extension ActivityViewModelTests {
   }
 }
 
+private func friendshipContents() -> [ActivityEvent.Content] {
+  let user = CommunityPost.Owner(id: 8, accessHash: String(repeating: "a", count: 256), nickname: "Аня")
+  return [.friendRequest(from: user), .friendRequestAccepted(from: user)]
+}
+
 private func event(_ id: Int64) -> ActivityEvent {
   let reply = CommunityPost.published(.init(
     descriptor: .init(id: id, accessHash: "hash"), text: "Reply",
     owner: .init(id: 8, accessHash: "user", nickname: "Author"), date: .now, edited: false))
-  return .init(id: id, date: .init(timeIntervalSince1970: Double(id)), isRead: false, reply: reply)
+  return .init(id: id, date: .init(timeIntervalSince1970: Double(id)), isRead: false, content: .reply(reply))
 }
 
 private actor ActivityLedger {

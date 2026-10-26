@@ -6,11 +6,11 @@ import SwiftUI
 public struct CommunityDiscussionView: View {
   @State private var model: CommunityPostDetailViewModel
   @State private var imageLayoutCache = MarkdownImageLayoutCache()
-  private let highlightedReplyID: Int64
+  private let highlightedReplyID: Int64?
   private let openAuthor: ((CommunityPost.Owner) -> Void)?
 
   public init(
-    details: CommunityPostDetails, highlightedReplyID: Int64,
+    details: CommunityPostDetails, highlightedReplyID: Int64? = nil,
     onUnauthorized: @escaping () -> Void,
     openAuthor: ((CommunityPost.Owner) -> Void)? = nil
   ) {

@@ -2,6 +2,7 @@ import ActivityDiscussionFeature
 import ActivityService
 import CommunityProfileService
 import CommunityService
+import CustomDump
 import Dependencies
 import Foundation
 import Synchronization
@@ -19,6 +20,24 @@ struct ActivityDiscussionViewModelTests {
     #expect(model.discussion?.details.post.id == 10)
     #expect(model.error == nil)
     #expect(didRead)
+  }
+
+  @Test func indirectRepliesOpenCommonDenominatorAsThread() async throws {
+    let post = try #require(event().post)
+    let root = PostDescriptor(id: 20, accessHash: "root")
+    let update = ActivityEvent(id: 42, date: .init(timeIntervalSince1970: 0), isRead: false,
+                              content: .indirectReplies(post: post, commonDenominator: root))
+    var service = ActivityService()
+    service.openThread = { descriptor, _ in
+      expectNoDifference(descriptor, root)
+      return .init(details: discussion().details, replyID: nil)
+    }
+    service.markRead = { _, _ in }
+    let model = makeModel(service, event: update)
+    await model.load()
+    #expect(model.discussion != nil)
+    #expect(model.discussion?.replyID == nil)
+    #expect(model.error == nil)
   }
 
   @Test func spinnerIsShownWhileDiscussionLoads() async {
@@ -143,7 +162,7 @@ struct ActivityDiscussionViewModelTests {
 
 private extension ActivityDiscussionViewModelTests {
   private func makeModel(
-    _ service: ActivityService, current: @escaping @Sendable () -> Bool = { true },
+    _ service: ActivityService, event: ActivityEvent = event(), current: @escaping @Sendable () -> Bool = { true },
     onRead: @escaping () -> Void = {}
   ) -> ActivityDiscussionViewModel {
     var profile = CommunityProfileService()
@@ -153,7 +172,7 @@ private extension ActivityDiscussionViewModelTests {
       $0[CommunityProfileService.self] = profile
     } operation: {
       ActivityDiscussionViewModel(
-        event: event(), session: .init(accountID: 7, token: "token", sessionID: "session"),
+        event: event, session: .init(accountID: 7, token: "token", sessionID: "session"),
         onUnauthorized: {}, onRead: onRead)
     }
   }
@@ -163,7 +182,7 @@ private func event() -> ActivityEvent {
   let reply = CommunityPost.published(.init(
     descriptor: .init(id: 1, accessHash: "hash"), text: "Reply",
     owner: .init(id: 8, accessHash: "user", nickname: "Author"), date: .now, edited: false))
-  return .init(id: 1, date: .now, isRead: false, reply: reply)
+  return .init(id: 1, date: .now, isRead: false, content: .reply(reply))
 }
 
 private func discussion() -> ActivityDiscussion {
@@ -171,7 +190,7 @@ private func discussion() -> ActivityDiscussion {
     descriptor: .init(id: 10, accessHash: "parent"), text: "Ours",
     owner: .init(id: 7, accessHash: "user", nickname: "Us"), date: .now, edited: false))
   return .init(details: .init(post: ours, upstream: [],
-                             replies: .init(data: [.single(event().reply)], nextId: nil)), replyID: 1)
+                             replies: .init(data: [.single(event().post!)], nextId: nil)), replyID: 1)
 }
 
 private actor DiscussionGate {

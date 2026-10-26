@@ -24,9 +24,8 @@ final class CommunityPostDetailViewModel {
   var pageError: LocalizedStringResource?
   var sendError: LocalizedStringResource?
   var mutationError: LocalizedStringResource?
-  var editingPost: CommunityEditViewModel?
+  var destination: Destination?
   private(set) var replyComposer: CommunityComposerViewModel?
-  var composer: CommunityComposerViewModel?
   private(set) var deletingID: Int64?
   @ObservationIgnored @Dependency(CommunityService.self) private var service
   @ObservationIgnored @Dependency(CommunityProfileService.self) private var profileService
@@ -110,7 +109,7 @@ final class CommunityPostDetailViewModel {
         onUnauthorized: onUnauthorized,
         onSaved: { [weak self] updated in await self?.replace(updated) })
       model.start()
-      editingPost = model
+      destination = .edit(model)
     }
   }
 
@@ -214,33 +213,59 @@ final class CommunityPostDetailViewModel {
   }
 
   func expandEditor() {
-    guard composer == nil, let replyComposer, !replyComposer.isPublishing else { return }
-    composer = replyComposer
+    guard destination?.composer == nil, let replyComposer, !replyComposer.isPublishing else { return }
+    destination = .compose(replyComposer)
   }
 
   func reply(to item: CommunityPost) {
-    guard composer == nil, replyComposer?.isPublishing != true else { return }
+    guard destination?.composer == nil, replyComposer?.isPublishing != true else { return }
     if item.id == post.id { expandEditor() }
     else {
       let current = replyComposer
       Task { _ = await current?.flushDraft() }
-      composer = makeReplyComposer(for: item)
+      destination = makeReplyComposer(for: item).map { .compose($0) }
     }
   }
 
   func saveDraft() async {
     _ = await replyComposer?.flushDraft()
-    if let composer, composer !== replyComposer { _ = await composer.flushDraft() }
+    if let composer = destination?.composer, composer !== replyComposer { _ = await composer.flushDraft() }
   }
 
   func stop() {
     generation += 1
     replyUpdateTask?.cancel()
     replyComposer?.stop()
-    if let composer, composer !== replyComposer { composer.stop() }
+    if let composer = destination?.composer, composer !== replyComposer { composer.stop() }
     Task { await saveDraft() }
   }
 
+}
+
+extension CommunityPostDetailViewModel {
+  enum Destination: Identifiable {
+    case compose(CommunityComposerViewModel)
+    case edit(CommunityEditViewModel)
+
+    var id: ObjectIdentifier {
+      switch self {
+      case let .compose(model): ObjectIdentifier(model)
+      case let .edit(model): ObjectIdentifier(model)
+      }
+    }
+  }
+}
+
+extension CommunityPostDetailViewModel.Destination {
+  var composer: CommunityComposerViewModel? {
+    guard case let .compose(model) = self else { return nil }
+    return model
+  }
+
+  var editor: CommunityEditViewModel? {
+    guard case let .edit(model) = self else { return nil }
+    return model
+  }
 }
 
 private extension CommunityPostDetailViewModel {

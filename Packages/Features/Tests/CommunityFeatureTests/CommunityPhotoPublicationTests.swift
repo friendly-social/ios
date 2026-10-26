@@ -36,7 +36,7 @@ import Testing
     composer.editor.loadSource(pending)
     #expect(!composer.canPublish)
     await composer.publish()
-    #expect(!composer.isPublishing && model.composer == nil)
+    #expect(!composer.isPublishing && model.destination?.composer == nil)
     model.stop()
   }
 

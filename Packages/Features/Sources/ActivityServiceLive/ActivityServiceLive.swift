@@ -15,8 +15,8 @@ struct ActivityServiceLive: Sendable {
     let result = try await api.list(cursor, credentials(session))
     try validate(session)
     return .init(events: result.events.map {
-      .init(id: $0.id, date: $0.date, isRead: $0.isRead, reply: $0.reply,
-            preview: ActivityPreview.text($0.reply.text ?? ""))
+      .init(id: $0.id, date: $0.date, isRead: $0.isRead, content: $0.content,
+            preview: ActivityPreview.text($0.post?.text ?? ""))
     }, nextID: result.nextID)
   }
 
@@ -37,6 +37,14 @@ struct ActivityServiceLive: Sendable {
     try validate(session)
     try await api.markRead(id, credentials(session))
     try validate(session)
+  }
+
+  func openThread(_ descriptor: PostDescriptor, session: CommunitySession) async throws -> ActivityDiscussion {
+    try validate(session)
+    let credentials = CommunityCredentials(accountID: session.accountID, token: session.token)
+    let details = try await community.details(descriptor, credentials)
+    try validate(session)
+    return .init(details: details, replyID: nil)
   }
 
   func openReply(_ descriptor: PostDescriptor, session: CommunitySession) async throws -> ActivityDiscussion {

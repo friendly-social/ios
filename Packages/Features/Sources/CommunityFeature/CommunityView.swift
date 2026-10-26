@@ -6,9 +6,7 @@ import SwiftUI
 public struct CommunityView<ActivityDestination: View>: View {
   @Environment(\.scenePhase) private var scenePhase
   @Bindable private var model: CommunityViewModel
-  @State private var detailPath: [CommunityPostDetailRoute] = []
   @State private var imageLayoutCache = MarkdownImageLayoutCache()
-  @State private var showsActivity = false
   @Binding private var hidesTabBar: Bool
   private let avatarURL: (CommunityPost.Owner.Avatar) -> URL
   private let openAuthor: ((CommunityPost.Owner) -> Void)?
@@ -35,14 +33,10 @@ public struct CommunityView<ActivityDestination: View>: View {
 private extension CommunityView {
 
   private func contentView() -> some View {
-    NavigationStack(path: $detailPath) {
+    NavigationStack {
       feedNavigationContent()
-        .sheet(item: $model.composer) { composer in
-          CommunityComposerView(model: composer)
-          .presentationDetents([.large])
-        }
-        .sheet(item: $model.editingPost) { editor in
-          CommunityEditView(model: editor).presentationDetents([.large])
+        .sheet(item: $model.sheetDestination) { destination in
+          sheetView(destination).presentationDetents([.large])
         }
         .alert(
           .postMutationUnconfirmed,
@@ -54,8 +48,8 @@ private extension CommunityView {
           if let error = model.mutationError { Text(error) }
         }
     }
-    .onChange(of: detailPath.isEmpty && !showsActivity, initial: true) {
-      hidesTabBar = !detailPath.isEmpty || showsActivity
+    .onChange(of: model.navigationDestination == nil, initial: true) {
+      hidesTabBar = model.navigationDestination != nil
     }
     .markdownImageLayoutCache(imageLayoutCache)
   }
@@ -66,15 +60,20 @@ private extension CommunityView {
       .background(Constants.background)
       .navigationTitle(Text(verbatim: "Friendly"))
       .navigationBarTitleDisplayMode(.inline)
-      .navigationDestination(for: CommunityPostDetailRoute.self) { postDetails(for: $0) }
-      .navigationDestination(isPresented: $showsActivity, destination: activityDestination)
+      .navigationDestination(item: $model.navigationDestination) { destination in
+        switch destination {
+        case let .post(route): postDetails(for: route)
+        case .activity: activityDestination()
+        case .compose, .edit: EmptyView()
+        }
+      }
       .toolbar { activityToolbar() }
       .refreshable {
         await model.load()
         await model.refreshActivity()
       }
-      .task(id: scenePhase == .active && detailPath.isEmpty && !showsActivity) {
-        if scenePhase == .active && detailPath.isEmpty && !showsActivity { await model.refreshActivity() }
+      .task(id: scenePhase == .active && model.navigationDestination == nil) {
+        if scenePhase == .active && model.navigationDestination == nil { await model.refreshActivity() }
       }
       .task { await model.load() }
       .task { await model.loadProfile() }
@@ -84,7 +83,16 @@ private extension CommunityView {
       }
   }
 
-  private func postDetails(for route: CommunityPostDetailRoute) -> some View {
+  @ViewBuilder
+  private func sheetView(_ destination: CommunityViewModel.Destination) -> some View {
+    switch destination {
+    case let .compose(model): CommunityComposerView(model: model)
+    case let .edit(model): CommunityEditView(model: model)
+    case .post, .activity: EmptyView()
+    }
+  }
+
+  private func postDetails(for route: CommunityViewModel.PostDetailRoute) -> some View {
     CommunityPostDetailView(
       model: route.model,
       currentUser: model.currentUser, avatarURL: avatarURL, openAuthor: openAuthor,
@@ -94,7 +102,7 @@ private extension CommunityView {
   private func activityToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .topBarTrailing) {
       Button(.communityActivity, systemImage: Constants.activity) {
-        showsActivity = true
+        model.openActivity()
       }
       .labelStyle(.iconOnly)
       .badge(model.hasNewActivity ? Text(verbatim: "") : nil)
@@ -104,15 +112,6 @@ private extension CommunityView {
 
   private func deletePost(_ post: CommunityPost) {
     model.deleteButtonTapped(post)
-  }
-
-  private func openDetails(_ item: CommunityFeedPost, focusReply: Bool = false) {
-    guard detailPath.isEmpty else { return }
-    let current = item.post
-    detailPath = [CommunityPostDetailRoute(
-      descriptor: current.descriptor,
-      model: model.makeDetails(for: item),
-      focusReplyOnAppear: focusReply)]
   }
 
   @ViewBuilder
@@ -126,8 +125,8 @@ private extension CommunityView {
           actionsDisabled: model.deletingID != nil,
           edit: { model.editButtonTapped(post) },
           delete: { deletePost(post) },
-          reply: { openDetails(item, focusReply: true) },
-          openDetails: { openDetails(item) }
+          reply: { model.openDetails(item, focusReply: true) },
+          openDetails: { model.openDetails(item) }
         )
         Divider()
       }
@@ -177,30 +176,6 @@ private extension CommunityView {
         systemImage: Constants.empty,
         description: Text(.feedEmptyHint))
     }
-  }
-}
-
-private struct CommunityPostDetailRoute: Hashable {
-  let model: CommunityPostDetailViewModel
-  let focusReplyOnAppear: Bool
-  private let descriptor: PostDescriptor
-
-  init(
-    descriptor: PostDescriptor,
-    model: CommunityPostDetailViewModel,
-    focusReplyOnAppear: Bool
-  ) {
-    self.model = model
-    self.descriptor = descriptor
-    self.focusReplyOnAppear = focusReplyOnAppear
-  }
-
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.descriptor == rhs.descriptor
-  }
-
-  func hash(into hasher: inout Hasher) {
-    hasher.combine(descriptor)
   }
 }
 

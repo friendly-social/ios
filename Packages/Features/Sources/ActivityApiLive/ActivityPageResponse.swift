@@ -7,7 +7,7 @@ struct ActivityPageResponse: Decodable {
   let nextId: String?
 
   func events() throws -> [ActivityEvent] {
-    try data.compactMap { try $0.event() }
+    try data.compactMap { try $0.map() }
   }
 
   struct EventResponse: Decodable {
@@ -16,12 +16,9 @@ struct ActivityPageResponse: Decodable {
     let instant: String
     let isRead: Bool
     let post: PostResponse?
-
-    func event() throws -> ActivityEvent? {
-      guard type == "reply" else { return nil }
-      guard let post else { throw ActivityError.invalidResponse }
-      return .init(id: id, date: try parseDate(instant), isRead: isRead, reply: try post.value())
-    }
+    let commonDenominator: PostDescriptor?
+    let from: OwnerResponse?
+    let isMutual: Bool?
   }
 
   struct PostResponse: Decodable {
@@ -54,6 +51,25 @@ struct ActivityPageResponse: Decodable {
   struct AvatarResponse: Decodable {
     let id: Int64
     let accessHash: String
+  }
+}
+
+private extension ActivityPageResponse.EventResponse {
+  func map() throws -> ActivityEvent? {
+    let content: ActivityEvent.Content
+    switch type {
+    case "new_reply":
+      guard let post else { throw ActivityError.invalidResponse }
+      content = .reply(try post.value())
+    case "indirect_replies":
+      guard let post, let commonDenominator else { throw ActivityError.invalidResponse }
+      content = .indirectReplies(post: try post.value(), commonDenominator: commonDenominator)
+    case "new_request":
+      guard let from, let isMutual else { throw ActivityError.invalidResponse }
+      content = isMutual ? .friendRequestAccepted(from: from.value) : .friendRequest(from: from.value)
+    default: return nil
+    }
+    return .init(id: id, date: try parseDate(instant), isRead: isRead, content: content)
   }
 }
 

@@ -34,6 +34,14 @@ struct CommunityPostDetailView: View {
 }
 
 private extension CommunityPostDetailView {
+  @ViewBuilder
+  private func destinationView(_ destination: CommunityPostDetailViewModel.Destination) -> some View {
+    switch destination {
+    case let .compose(model): CommunityComposerView(model: model)
+    case let .edit(model): CommunityEditView(model: model)
+    }
+  }
+
   private func contentView() -> some View {
     discussionView()
       .alert(.postReplyUncertain, isPresented: replyRetryPresented) {
@@ -41,7 +49,7 @@ private extension CommunityPostDetailView {
         Button(.commonCancel, role: .cancel) {}
       }
       .alert(.postReply, isPresented: Binding(
-        get: { model.composer == nil && replyError != nil && !replyRetryPresented.wrappedValue },
+        get: { model.destination?.composer == nil && replyError != nil && !replyRetryPresented.wrappedValue },
         set: { if !$0 { model.sendError = nil; model.replyComposer?.dismissPublicationError() } }
       )) {
         Button(.commonOk, role: .cancel) { model.sendError = nil; model.replyComposer?.dismissPublicationError() }
@@ -64,8 +72,7 @@ private extension CommunityPostDetailView {
       .navigationTitle(.postTitle)
       .navigationBarTitleDisplayMode(.inline)
       .safeAreaBar(edge: .bottom) { replyBar() }
-      .sheet(item: $model.composer) { CommunityComposerView(model: $0) }
-      .sheet(item: $model.editingPost) { CommunityEditView(model: $0) }
+      .sheet(item: $model.destination) { destinationView($0) }
       .task { await model.activate() }
       .task(id: highlightedReplyID) { await clearHighlight() }
       .task {
@@ -77,13 +84,13 @@ private extension CommunityPostDetailView {
       .refreshable { await model.load() }
       .onDisappear { model.stop() }
       .onChange(of: scenePhase) {
-        if scenePhase != .active && model.composer == nil { Task { await model.saveDraft() } }
+        if scenePhase != .active && model.destination?.composer == nil { Task { await model.saveDraft() } }
       }
   }
 
   private var replyRetryPresented: Binding<Bool> {
     Binding(
-      get: { model.composer == nil && model.replyComposer?.needsRetryConfirmation == true },
+      get: { model.destination?.composer == nil && model.replyComposer?.needsRetryConfirmation == true },
       set: { model.replyComposer?.needsRetryConfirmation = $0 })
   }
 

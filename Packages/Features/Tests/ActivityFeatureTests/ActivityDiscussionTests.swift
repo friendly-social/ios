@@ -3,11 +3,19 @@ import ActivityServiceLive
 import CommunityApi
 import CommunityProfileService
 import CommunityService
+import CustomDump
 import Dependencies
 import Foundation
 import Testing
 
 struct ActivityDiscussionTests {
+  @Test func opensIndirectActivityAtThreadRootWithoutRequiringAParent() async throws {
+    let service = liveService(details: { descriptor, _ in details(post(descriptor.id), replies: [post(3)]) })
+    let result = try await service.openThread(post(1).descriptor, session)
+    expectNoDifference(result.details.post.id, 1)
+    #expect(result.replyID == nil)
+  }
+
   @Test func opensOurParentWithAncestorsAndReceivedReplyBelowIt() async throws {
     let root = post(1, owner: 9)
     let ours = post(2, owner: 7)

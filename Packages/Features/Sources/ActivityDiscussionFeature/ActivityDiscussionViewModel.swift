@@ -33,7 +33,7 @@ public final class ActivityDiscussionViewModel {
     error = nil
     defer { isLoading = false }
     do {
-      let result = try await service.openReply(event.reply.descriptor, session)
+      let result = try await openDiscussion()
       guard acceptsSession else { return }
       discussion = result
     } catch {
@@ -49,6 +49,15 @@ public final class ActivityDiscussionViewModel {
 }
 
 private extension ActivityDiscussionViewModel {
+  private func openDiscussion() async throws -> ActivityDiscussion {
+    switch event.content {
+    case let .reply(post): try await service.openReply(post.descriptor, session)
+    case let .indirectReplies(_, commonDenominator):
+      try await service.openThread(commonDenominator, session)
+    case .friendRequest, .friendRequestAccepted: throw ActivityError.unavailable
+    }
+  }
+
   private var acceptsSession: Bool {
     profile.isCurrentSession(session) && !Task.isCancelled
   }

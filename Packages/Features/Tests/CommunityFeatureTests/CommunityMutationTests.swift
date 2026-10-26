@@ -10,6 +10,15 @@ import Testing
 
 @MainActor
 struct CommunityMutationTests {
+  @Test func discussionCanOpenReplyWhilePostEditorIsPresented() throws {
+    let original = try post()
+    let model = makeDetailModel(post: original, service: service())
+    model.edit(original)
+    #expect(model.destination?.editor != nil)
+    model.reply(to: original)
+    #expect(model.destination?.composer === model.replyComposer)
+  }
+
   @Test func discussionReadUsesDescriptorAndSessionHeaders() async throws {
     let api = makeCommunityApi { request in
       expectNoDifference(request.httpMethod, "POST")
@@ -43,7 +52,7 @@ struct CommunityMutationTests {
     #expect(!model.canManage(original))
     model.editButtonTapped(original)
     await model.deleteConfirmed(original)
-    #expect(model.editingPost == nil)
+    #expect(model.destination?.editor == nil)
     #expect(state.calls == 0)
   }
 
@@ -124,7 +133,7 @@ struct CommunityMutationTests {
     #expect(!model.canManage(other))
     model.editButtonTapped(other)
     await model.deleteConfirmed(other)
-    #expect(model.editingPost == nil)
+    #expect(model.destination?.editor == nil)
     #expect(state.calls == 0)
     #expect(model.canManage(try post()))
   }
@@ -142,7 +151,7 @@ struct CommunityMutationTests {
     guard case .awaitingDetails = post else { Issue.record("Expected local confirmed post"); return }
     #expect(model.canManage(post))
     model.editButtonTapped(post)
-    let editor = try #require(model.editingPost)
+    let editor = try #require(model.destination?.editor)
     editor.editor.loadSource("Изменён")
     await editor.saveButtonTapped()
     #expect(state.editedText == "Изменён")
@@ -176,7 +185,7 @@ struct CommunityMutationTests {
     model.stop()
     let local = try #require(model.posts.first)
     model.editButtonTapped(local)
-    let editor = try #require(model.editingPost)
+    let editor = try #require(model.destination?.editor)
     editor.editor.loadSource("Правка")
     let save = Task { await editor.saveButtonTapped() }
     await withCheckedContinuation { state.started = $0 }
@@ -192,7 +201,7 @@ struct CommunityMutationTests {
     let model = makeFeedModel(feedPreparation: .fixture, service: service(), drafts: drafts, accountID: 7)
     #expect(!model.canManage(deleted))
     model.editButtonTapped(deleted)
-    #expect(model.editingPost == nil)
+    #expect(model.destination?.editor == nil)
     let editor = makeEditModel(post: deleted, service: service())
     editor.editor.loadSource("Нельзя восстановить редактированием")
     #expect(!editor.canSave)
@@ -204,7 +213,7 @@ struct CommunityMutationTests {
     let model = makeFeedModel(feedPreparation: .fixture, service: service(list: { _ in .init(data: [original], nextId: nil) }), drafts: drafts, accountID: 7)
     await model.load()
     model.editButtonTapped(original)
-    let editor = try #require(model.editingPost)
+    let editor = try #require(model.destination?.editor)
     editor.editor.loadSource("Изменён")
     await editor.saveButtonTapped()
     #expect(model.posts.first?.text == "Изменён")
@@ -284,7 +293,7 @@ struct CommunityMutationTests {
     let task = Task { await model.load() }
     await withCheckedContinuation { state.started = $0 }
     model.editButtonTapped(original)
-    let editor = try #require(model.editingPost)
+    let editor = try #require(model.destination?.editor)
     editor.editor.loadSource("Новый текст")
     await editor.saveButtonTapped()
     state.pageCompletion?.resume(returning: .init(data: [original], nextId: nil))
