@@ -101,6 +101,10 @@ final class CommunityPostDetailViewModel {
     }
   }
 
+  func canTranslate(_ item: CommunityPost) -> Bool {
+    item.canTranslate(by: accountID)
+  }
+
   func edit(_ item: CommunityPost) {
     guard canManage(item), deletingID == nil else { return }
     withDependencies(from: self) {
