@@ -12,6 +12,7 @@ public final class CommunityViewModel {
   private(set) var draftState: DraftState = .unknown
   @ObservationIgnored @Dependency(CommunityDraftService.self) private var draftService
   private(set) var feedPosts: [CommunityFeedPost] = []
+  var destination: Destination?
   public var posts: [CommunityPost] { feedPosts.map(\.post) }
   @ObservationIgnored @Dependency(CommunityFeedPreparationService.self) private var feedPreparation
   private(set) var hasNewActivity = false
@@ -64,6 +65,19 @@ public final class CommunityViewModel {
       callback()
     }
     return true
+  }
+
+  func openActivity() {
+    destination = .activity
+  }
+
+  func openDetails(_ item: CommunityFeedPost, focusReply: Bool = false) {
+    guard destination == nil else { return }
+    destination = .post(PostDetailRoute(
+      descriptor: item.post.descriptor,
+      model: makeDetails(for: item),
+      focusReplyOnAppear: focusReply
+    ))
   }
 
   func makeDetails(for item: CommunityFeedPost) -> CommunityPostDetailViewModel {
@@ -301,6 +315,37 @@ public final class CommunityViewModel {
     composer?.stop()
     generation += 1
     isLoading = false
+  }
+}
+
+extension CommunityViewModel {
+  enum Destination: Hashable {
+    case post(PostDetailRoute)
+    case activity
+  }
+
+  struct PostDetailRoute: Hashable {
+    let model: CommunityPostDetailViewModel
+    let focusReplyOnAppear: Bool
+    private let descriptor: PostDescriptor
+
+    init(
+      descriptor: PostDescriptor,
+      model: CommunityPostDetailViewModel,
+      focusReplyOnAppear: Bool
+    ) {
+      self.model = model
+      self.descriptor = descriptor
+      self.focusReplyOnAppear = focusReplyOnAppear
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+      lhs.descriptor == rhs.descriptor
+    }
+
+    func hash(into hasher: inout Hasher) {
+      hasher.combine(descriptor)
+    }
   }
 }
 
