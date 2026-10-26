@@ -142,6 +142,7 @@ private extension CommunityPostDetailView {
 
   private func ancestorView(_ item: CommunityFeedPost) -> some View {
     postRow(item, showsFooter: false)
+      .frame(minHeight: Constants.connectedPostMinimumHeight, alignment: .topLeading)
       .overlay { connectorView() }
   }
 
@@ -178,6 +179,7 @@ private extension CommunityPostDetailView {
       ForEach(group.rows) { reply in
         let isLast = reply.id == group.rows.last?.id
         postRow(reply, showsFooter: isLast, showsFullContent: group.rows.count > 1)
+          .frame(minHeight: isLast ? nil : Constants.connectedPostMinimumHeight, alignment: .topLeading)
           .overlay { if !isLast { connectorView() } }
           .background(highlightedReplyID == reply.id ? Constants.highlight : .clear)
           .id(reply.id)
@@ -398,6 +400,8 @@ private enum Constants {
   static let connectorGap: CGFloat = postTopPadding
   static let connectorCenterX: CGFloat = padding + avatarSize / 2
   static let connectorStartY: CGFloat = postTopPadding + avatarSize + connectorGap
+  static let connectorMinimumLength: CGFloat = 16
+  static let connectedPostMinimumHeight = connectorStartY + connectorMinimumLength
   static let connectorColor = Color(uiColor: .separator)
   static let background = Color(uiColor: .systemBackground)
   static let delete = "trash"
