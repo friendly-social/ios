@@ -10,13 +10,29 @@ on:
 jobs:
   build-and-deploy:
     runs-on: macos-latest
+    permissions:
+      contents: read
+      checks: write
     
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 20
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '26.6'
+
+    - name: Boot test simulator
+      if: github.event_name == 'pull_request'
+      run: |
+        CI_SIMULATOR_ID=$(xcrun simctl create 'Friendly CI' com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro com.apple.CoreSimulator.SimRuntime.iOS-26-5)
+        xcrun simctl boot "$CI_SIMULATOR_ID"
+        echo "CI_SIMULATOR_ID=$CI_SIMULATOR_ID" >> "$GITHUB_ENV"
     
     - name: Setup Ruby
+      if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: 3.2
@@ -40,10 +56,58 @@ jobs:
       run: |
         tuist generate
     
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+    - name: Run tests
+      id: tests
+      if: github.event_name == 'pull_request'
+      run: |
+        xcodebuild test \
+          -workspace Friendly.xcworkspace \
+          -scheme CommunityTests \
+          -destination "platform=iOS Simulator,id=$CI_SIMULATOR_ID" \
+          -resultBundlePath "$RUNNER_TEMP/TestResults.xcresult" \
+          -skipMacroValidation \
+          ARCHS=arm64 \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: Publish test report
+      if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.tests.outcome != 'skipped' }}
+      uses: actions/github-script@v9
       with:
-        xcode-version: latest-stable
+        script: |
+          const { execFileSync } = require('node:child_process');
+          const bundle = `${process.env.RUNNER_TEMP}/TestResults.xcresult`;
+          if (!require('node:fs').existsSync(bundle)) {
+            core.warning('Xcode did not produce a test result bundle.');
+            return;
+          }
+          execFileSync('ditto', ['-c', '-k', '--keepParent', bundle, `${bundle}.zip`]);
+          const report = JSON.parse(execFileSync('xcrun', [
+            'xcresulttool', 'get', 'test-results', 'summary', '--path', bundle, '--compact'
+          ], { encoding: 'utf8' }));
+          const title = `${report.passedTests} passed, ${report.failedTests} failed, ${report.skippedTests} skipped`;
+          const failures = report.testFailures.map(failure =>
+            `### ${failure.testIdentifierString}\n\n${failure.failureText}`
+          ).join('\n\n');
+          const summary = `## ${title}\n\n${failures}`;
+          await core.summary.addRaw(summary).write();
+          if (context.payload.pull_request.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) return;
+          await github.rest.checks.create({
+            ...context.repo,
+            head_sha: context.sha,
+            name: `Tests: ${title}`,
+            status: 'completed',
+            conclusion: report.result === 'Passed' ? 'success' : 'failure',
+            details_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            output: { title, summary: summary.slice(0, 65535) }
+          });
+
+    - name: Save test results
+      if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.tests.outcome != 'skipped' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: TestResults
+        path: ${{ runner.temp }}/TestResults.xcresult.zip
+        if-no-files-found: ignore
     
     - name: Install certificates and provisioning profiles
       if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -84,6 +148,4 @@ jobs:
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        tuist install
-        tuist generate
-        xcodebuild -workspace Friendly.xcworkspace -scheme Friendly -configuration Release -destination 'generic/platform=iOS' -skipMacroValidation clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+        xcodebuild -workspace Friendly.xcworkspace -scheme Friendly -configuration Release -destination 'generic/platform=iOS' -skipMacroValidation build ARCHS=arm64 CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO

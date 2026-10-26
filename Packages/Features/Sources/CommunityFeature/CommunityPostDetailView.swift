@@ -148,7 +148,8 @@ private extension CommunityPostDetailView {
   }
 
   private func ancestorView(_ item: CommunityFeedPost) -> some View {
-    postRow(item)
+    postRow(item, showsFooter: false)
+      .frame(minHeight: Constants.connectedPostMinimumHeight, alignment: .topLeading)
       .overlay { connectorView() }
   }
 
@@ -168,10 +169,8 @@ private extension CommunityPostDetailView {
     if model.loaded && model.replies.isEmpty && model.pendingReplies.isEmpty {
       Text(.postRepliesEmpty).foregroundStyle(.secondary).padding(Constants.padding)
     }
-    ForEach(model.replyRows) { reply in
-      postRow(reply)
-        .background(highlightedReplyID == reply.id ? Constants.highlight : .clear)
-        .id(reply.id)
+    ForEach(model.replyGroups) { group in
+      replyGroupView(group)
       Divider()
     }
     ForEach(model.pendingRows) { reply in
@@ -180,6 +179,19 @@ private extension CommunityPostDetailView {
       Divider()
     }
     paginationView()
+  }
+
+  private func replyGroupView(_ group: CommunityDiscussionReply) -> some View {
+    VStack(alignment: .leading, spacing: Constants.zero) {
+      ForEach(group.rows) { reply in
+        let isLast = reply.id == group.rows.last?.id
+        postRow(reply, showsFooter: isLast, showsFullContent: group.rows.count > 1)
+          .frame(minHeight: isLast ? nil : Constants.connectedPostMinimumHeight, alignment: .topLeading)
+          .overlay { if !isLast { connectorView() } }
+          .background(highlightedReplyID == reply.id ? Constants.highlight : .clear)
+          .id(reply.id)
+      }
+    }
   }
 
   private func repliesHeaderView() -> some View {
@@ -207,10 +219,16 @@ private extension CommunityPostDetailView {
     .allowsHitTesting(false)
   }
 
-  private func postRow(_ item: CommunityFeedPost) -> some View {
-    postLayout(for: item.post) {
-      CommunityPostContent(content: item.content, expandsInPlace: true) {
-        select(item.post)
+  private func postRow(
+    _ item: CommunityFeedPost, showsFooter: Bool = true, showsFullContent: Bool = false
+  ) -> some View {
+    postLayout(for: item.post, showsFooter: showsFooter) {
+      if showsFullContent, let source = item.content.source {
+        MarkdownPreview(source: source, allowsImageViewing: true)
+      } else {
+        CommunityPostContent(content: item.content, expandsInPlace: true) {
+          select(item.post)
+        }
       }
     } reply: {
       model.reply(to: item.post)
@@ -238,7 +256,7 @@ private extension CommunityPostDetailView {
   }
 
   private func postLayout<Content: View>(
-    for post: CommunityPost, @ViewBuilder content: () -> Content,
+    for post: CommunityPost, showsFooter: Bool = true, @ViewBuilder content: () -> Content,
     reply: @escaping () -> Void
   ) -> some View {
     HStack(alignment: .top, spacing: Constants.avatarSpacing) {
@@ -247,9 +265,11 @@ private extension CommunityPostDetailView {
       VStack(alignment: .leading, spacing: Constants.postSpacing) {
         headerView(for: post)
         content()
-        CommunityPostFooter(
-          owners: post.replyPreviews, avatarURL: avatarURL,
-          alignment: .leading, showsReplySymbol: false, reply: reply)
+        if showsFooter {
+          CommunityPostFooter(
+            owners: post.replyPreviews, avatarURL: avatarURL,
+            alignment: .leading, showsReplySymbol: false, reply: reply)
+        }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -387,6 +407,8 @@ private enum Constants {
   static let connectorGap: CGFloat = postTopPadding
   static let connectorCenterX: CGFloat = padding + avatarSize / 2
   static let connectorStartY: CGFloat = postTopPadding + avatarSize + connectorGap
+  static let connectorMinimumLength: CGFloat = 16
+  static let connectedPostMinimumHeight = connectorStartY + connectorMinimumLength
   static let connectorColor = Color(uiColor: .separator)
   static let background = Color(uiColor: .systemBackground)
   static let delete = "trash"

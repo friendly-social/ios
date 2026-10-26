@@ -70,7 +70,7 @@ struct CommunityDiscussionTests {
     #expect(model.replies.map(\.id) == [2])
   }
 
-  @MainActor @Test func replyingToAncestorOpensEditorWithoutSelectingAndThenTruncatesChain() async throws {
+  @MainActor @Test func replyingToAncestorSelectsPublishedReplyWithCorrectAncestors() async throws {
     let root = post(1)
     let child = post(2)
     let submission = DiscussionSubmission()
@@ -86,12 +86,15 @@ struct CommunityDiscussionTests {
     composer.textChanged()
     await composer.publish()
     await model.load()
-    #expect(await submission.targetID == root.id && model.post.id == root.id)
-    #expect(model.upstream.isEmpty && model.replies.map(\.id) == [3, 99, 4])
-    #expect(model.pendingReplies.isEmpty)
+    #expect(await submission.targetID == root.id && model.post.id == 99)
+    #expect(model.upstream.map(\.id) == [root.id])
+    #expect(model.replies.isEmpty && model.pendingReplies.isEmpty)
+    model.select(root)
+    await model.load()
+    #expect(model.replies.map(\.id) == [3, 99, 4])
   }
 
-  @MainActor @Test func replyingToListedReplyMovesItAboveServerOrderedReplies() async throws {
+  @MainActor @Test func replyingToListedReplySelectsPublishedReply() async throws {
     let root = post(1)
     let target = post(2)
     let submission = DiscussionSubmission()
@@ -104,14 +107,13 @@ struct CommunityDiscussionTests {
     composer.editor.loadSource("Reply")
     composer.textChanged()
     await composer.publish()
-    await model.load()
     #expect(await submission.targetID == target.id)
-    #expect(model.post.id == target.id && model.upstream.map(\.id) == [root.id])
-    #expect(model.replies.map(\.id) == [3, 99, 4])
+    #expect(model.post.id == 99 && model.upstream.map(\.id) == [root.id, target.id])
+    #expect(model.replies.isEmpty)
     #expect(model.scrollToReplyID == 99)
   }
 
-  @MainActor @Test func pendingReplyUsesCurrentAuthorUntilServerDetailsArrive() async throws {
+  @MainActor @Test func selectedReplyUsesCurrentAuthorUntilServerDetailsArrive() async throws {
     let root = post(1)
     let owner = CommunityPost.Owner(
       id: 7, accessHash: "owner", nickname: "Alex",
@@ -119,7 +121,7 @@ struct CommunityDiscussionTests {
     var service = CommunityService()
     service.markRead = { _ in }
     service.reply = { _, _ in self.post(99).descriptor }
-    service.details = { _ in .init(post: root, upstream: [], replies: .init(data: [], nextId: nil)) }
+    service.details = { _ in throw CommunityError.unavailable }
     let model = makeDetailModel(
       post: root, service: service,
       preparation: .fixture,
@@ -130,10 +132,10 @@ struct CommunityDiscussionTests {
     composer.setPlainText("Reply")
     await composer.publish()
     await model.load()
-    #expect(model.pendingReplies.map(\.id) == [99])
+    #expect(model.post.id == 99 && model.pendingReplies.isEmpty)
     await waitForOwner(owner, in: model)
-    #expect(model.pendingReplies.first?.owner == owner)
-    #expect(model.pendingReplies.first?.date != nil)
+    #expect(model.post.owner == owner)
+    #expect(model.post.date != nil)
   }
 
   @Test func detailDecodesDirectRepliesWithoutFlatteningThread() throws {
@@ -177,7 +179,8 @@ struct CommunityDiscussionTests {
     await model.load()
     #expect(model.replies.map(\.id) == [2])
     await model.loadMore()
-    #expect(model.replies.map(\.id) == [2, 3])
+    #expect(model.replies.map(\.id) == [2, 3, 4])
+    #expect(model.replyGroups.map { $0.rows.map(\.id) } == [[2], [3, 4]])
     #expect(model.nextID == nil)
   }
 }
@@ -193,10 +196,10 @@ private actor DiscussionSubmission {
 private extension CommunityDiscussionTests {
   @MainActor private func waitForOwner(_ owner: CommunityPost.Owner, in model: CommunityPostDetailViewModel) async {
     for _ in 0..<Constants.maximumActorTurns {
-      if model.pendingReplies.first?.owner == owner { return }
+      if model.post.owner == owner { return }
       await Task.yield()
     }
-    Issue.record("Pending reply owner did not load")
+    Issue.record("Selected reply owner did not load")
   }
 
   @MainActor private func replyingModel(submission: DiscussionSubmission) -> CommunityPostDetailViewModel {
@@ -207,7 +210,12 @@ private extension CommunityDiscussionTests {
       return self.post(99).descriptor
     }
     service.details = { descriptor in
-      let sent = await submission.targetID == descriptor.id
+      let parentID = await submission.targetID
+      if descriptor.id == 99 {
+        let upstream = parentID == 1 ? [self.post(1)] : [self.post(1), self.post(2)]
+        return .init(post: self.post(99), upstream: upstream, replies: .init(data: [], nextId: nil))
+      }
+      let sent = parentID == descriptor.id
       let replies = sent ? [self.post(3), self.post(99), self.post(4)]
         : descriptor.id == 1 ? [self.post(2)] : []
       return .init(

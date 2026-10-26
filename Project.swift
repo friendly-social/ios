@@ -65,6 +65,15 @@ let project = Project(
             )
         ),
         .target(
+            name: "CommunityTestsHost",
+            destinations: .iOS,
+            product: .app,
+            bundleId: "me.y9san9.Friendly.CommunityTestsHost",
+            deploymentTargets: .iOS("26.0"),
+            infoPlist: .default,
+            sources: ["Tests/CommunityTestsHost/**"]
+        ),
+        .target(
             name: "CommunityTests",
             destinations: .iOS,
             product: .unitTests,
@@ -73,6 +82,7 @@ let project = Project(
             infoPlist: .default,
             sources: ["Packages/Features/Tests/**", "Packages/Infrastructure/Tests/**"],
             dependencies: [
+                .package(product: "AccountStorageService"),
                 .package(product: "ActivityApi"),
                 .package(product: "ActivityApiLive"),
                 .package(product: "ActivityDiscussionFeature"),
@@ -102,6 +112,7 @@ let project = Project(
                 .package(product: "Networking"),
                 .package(product: "Nuke"),
                 .package(product: "NukeUI"),
+                .target(name: "CommunityTestsHost"),
             ]
         ),
     ],

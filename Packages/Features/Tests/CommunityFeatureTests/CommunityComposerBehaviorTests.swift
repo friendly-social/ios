@@ -6,7 +6,7 @@ import Dependencies
 import Synchronization
 import Testing
 
-@MainActor struct CommunityComposerBehaviorTests {
+@Suite(.serialized) @MainActor struct CommunityComposerBehaviorTests {
   @Test(arguments: [false, true])
   func uncertainPublicationRequiresConfirmationBeforeAnotherRequest(reply: Bool) async {
     let calls = Mutex(0)
@@ -30,38 +30,42 @@ import Testing
 
   @Test(arguments: [false, true])
   func lateContentChangeDuringDiscardCannotResurrectTheDraft(reply: Bool) async {
-    let removal = SuspendedDraftRemoval()
-    let clock = TestClock()
-    var saved: [String] = []
-    let model = makeComposerModel(
-      service: .init(),
-      drafts: .init(load: { .init(content: "Draft") }, save: { saved.append($0.content) }, remove: removal.remove),
-      replyTo: reply ? .init(id: 1, accessHash: "parent") : nil, clock: clock)
-    defer { model.stop() }
-    await model.restore()
-    let discard = Task { await model.discard() }
-    await removal.waitUntilStarted()
-    model.editor.loadSource("Late upload completion")
-    model.textChanged()
-    removal.finish()
-    #expect(await discard.value)
-    await clock.advance(by: .seconds(1))
-    #expect(saved.isEmpty)
-    expectNoDifference(model.editor.markdown, "")
+    await withMainSerialExecutor {
+      let removal = SuspendedDraftRemoval()
+      let clock = TestClock()
+      var saved: [String] = []
+      let model = makeComposerModel(
+        service: .init(),
+        drafts: .init(load: { .init(content: "Draft") }, save: { saved.append($0.content) }, remove: removal.remove),
+        replyTo: reply ? .init(id: 1, accessHash: "parent") : nil, clock: clock)
+      defer { model.stop() }
+      await model.restore()
+      let discard = Task { await model.discard() }
+      await removal.waitUntilStarted()
+      model.editor.loadSource("Late upload completion")
+      model.textChanged()
+      removal.finish()
+      #expect(await discard.value)
+      await clock.advance(by: .seconds(1))
+      #expect(saved.isEmpty)
+      expectNoDifference(model.editor.markdown, "")
+    }
   }
 
   @Test(arguments: [false, true])
   func editorChangesAutosaveWithoutAView(reply: Bool) async {
-    let clock = TestClock()
-    var saved: [String] = []
-    let model = makeComposerModel(
-      service: .init(), drafts: .init(load: { nil }, save: { saved.append($0.content) }, remove: {}),
-      replyTo: reply ? .init(id: 1, accessHash: "parent") : nil, clock: clock)
-    defer { model.stop() }
-    await model.restore()
-    model.editor.loadSource("Automatically saved")
-    await clock.advance(by: .seconds(1))
-    expectNoDifference(saved, ["Automatically saved"])
+    await withMainSerialExecutor {
+      let clock = TestClock()
+      var saved: [String] = []
+      let model = makeComposerModel(
+        service: .init(), drafts: .init(load: { nil }, save: { saved.append($0.content) }, remove: {}),
+        replyTo: reply ? .init(id: 1, accessHash: "parent") : nil, clock: clock)
+      defer { model.stop() }
+      await model.restore()
+      model.editor.loadSource("Automatically saved")
+      await clock.advance(by: .seconds(1))
+      expectNoDifference(saved, ["Automatically saved"])
+    }
   }
 
   @Test(arguments: [false, true])
