@@ -783,6 +783,7 @@ let package = Package(
     .testTarget(
       name: "CommunityMarkdownServiceTests",
       dependencies: [
+        .product(name: "CustomDump", package: "swift-custom-dump"),
         "CommunityMarkdownService",
       ]
     ),
