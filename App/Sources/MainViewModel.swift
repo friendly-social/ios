@@ -13,10 +13,6 @@ class MainViewModel {
         self.communityModel = CommunityRootViewModel(onSessionExpired: routeToSignUp)
     }
 
-    func showFeed() {
-        selectedItem = .feed
-    }
-
     func open(_ route: ContentViewModel.MainRoute) {
         switch route {
         case .community: selectedItem = .community

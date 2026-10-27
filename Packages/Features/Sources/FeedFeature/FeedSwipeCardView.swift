@@ -185,12 +185,6 @@ struct FeedSwipeCardView: View {
             swipeCard(width: width)
         }
     }
-
-    struct CommonFriend {
-        let id: UserId
-        let avatarUrl: URL
-        let onClick: () -> Void
-    }
 }
 
 private struct ColoredOverlay: View {
