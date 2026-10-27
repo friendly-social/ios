@@ -11,6 +11,25 @@ struct CommunityPostHeader: View {
   let actionsDisabled: Bool
   let edit: () -> Void
   let delete: () -> Void
+  let translation: CommunityPostTranslationViewModel?
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+  @ScaledMetric(relativeTo: .subheadline) private var translationWidth = Constants.translationWidth
+
+  init(
+    post: CommunityPost, openAuthor: ((CommunityPost.Owner) -> Void)?,
+    canManage: Bool, isDeleting: Bool, actionsDisabled: Bool,
+    edit: @escaping () -> Void, delete: @escaping () -> Void,
+    translation: CommunityPostTranslationViewModel? = nil
+  ) {
+    self.post = post
+    self.openAuthor = openAuthor
+    self.canManage = canManage
+    self.isDeleting = isDeleting
+    self.actionsDisabled = actionsDisabled
+    self.edit = edit
+    self.delete = delete
+    self.translation = translation
+  }
 
   var body: some View {
     contentView()
@@ -24,11 +43,17 @@ private extension CommunityPostHeader {
     metadataView()
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.trailing, controlsWidth)
-      .overlay(alignment: .trailing) { controlsView() }
+      .overlay(alignment: controlsAlignment) { controlsView() }
+  }
+
+  private var controlsAlignment: Alignment {
+    if canManage || isDeleting { return .trailing }
+    return Alignment(horizontal: .trailing, vertical: .firstTextBaseline)
   }
 
   private var controlsWidth: CGFloat {
-    canManage || isDeleting ? Constants.touchTarget + Constants.spacing : Constants.zero
+    if canManage || isDeleting { return Constants.touchTarget + Constants.spacing }
+    return translation == nil ? Constants.zero : translationWidth + Constants.spacing
   }
 
   @ViewBuilder
@@ -41,6 +66,9 @@ private extension CommunityPostHeader {
       actionsMenu()
         .disabled(actionsDisabled)
         .accessibilityLabel(.postActions)
+    } else if let translation, translation.languageLabel != nil {
+      CommunityPostTranslationButton(model: translation, alignment: .trailing)
+        .frame(width: translationWidth, alignment: .trailing)
     }
   }
 
@@ -63,6 +91,7 @@ private extension CommunityPostHeader {
     authorText()
     .font(.subheadline.weight(.semibold))
     .foregroundStyle(Constants.primary)
+    .lineLimit(1)
     .multilineTextAlignment(.leading)
   }
 
@@ -115,14 +144,16 @@ private extension CommunityPostHeader {
 
   @ViewBuilder
   private func metadataView() -> some View {
-    ViewThatFits(in: .horizontal) {
-      HStack(alignment: .firstTextBaseline, spacing: Constants.spacing) {
-        author()
-        timestamp()
-      }
+    if dynamicTypeSize.isAccessibilitySize {
       VStack(alignment: .leading, spacing: Constants.compactSpacing) {
         author()
         timestamp()
+      }
+    } else {
+      HStack(alignment: .firstTextBaseline, spacing: Constants.spacing) {
+        author()
+        timestamp()
+          .fixedSize()
       }
     }
   }
@@ -133,6 +164,7 @@ private enum Constants {
   static let spacing: CGFloat = 6
   static let compactSpacing: CGFloat = 2
   static let touchTarget: CGFloat = 44
+  static let translationWidth: CGFloat = 48
   static let dateRefreshInterval: TimeInterval = 60
   static let primary = Color.primary
   static let secondary = Color.secondary

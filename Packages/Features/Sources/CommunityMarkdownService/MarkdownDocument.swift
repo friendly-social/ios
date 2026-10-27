@@ -47,6 +47,11 @@ public struct MarkdownDocument: Sendable {
 
   public let blocks: [Block]
 
+  @concurrent
+  public static func prepare(source: String) async -> Self? {
+    try? Self(source: source)
+  }
+
   init(blocks: [Block]) {
     self.blocks = blocks
   }

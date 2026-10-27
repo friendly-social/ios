@@ -8,6 +8,7 @@ struct CommunityPostCard: View {
   let avatarURL: (CommunityPost.Owner.Avatar) -> URL
   let openAuthor: ((CommunityPost.Owner) -> Void)?
   let canManage: Bool
+  let canTranslate: Bool
   let isDeleting: Bool
   let actionsDisabled: Bool
   let edit: () -> Void
@@ -21,7 +22,6 @@ struct CommunityPostCard: View {
 }
 
 private extension CommunityPostCard {
-
   @ViewBuilder
   private func contentView() -> some View {
     HStack(alignment: .top, spacing: Constants.columnSpacing) {
@@ -42,8 +42,6 @@ private extension CommunityPostCard {
     .accessibilityAction(named: .postReadAll, openDetails)
   }
 
-
-
   private func authorAccessibilityLabel() -> Text {
     if let owner = post.owner { return Text(.postProfile(owner.nickname)) }
     return Text(.postAuthor)
@@ -59,35 +57,41 @@ private extension CommunityPostCard {
     }
   }
 
-  @ViewBuilder
-  private func postBodyView() -> some View {
-    VStack(alignment: .leading, spacing: Constants.headerSpacing) {
-      CommunityPostHeader(
-        post: post, openAuthor: openAuthor,
-        canManage: canManage, isDeleting: isDeleting, actionsDisabled: actionsDisabled,
-        edit: edit, delete: delete
-      )
-      CommunityPostContent(content: content, expandsInPlace: false, openDetails: openDetails)
-    }
+  private func postHeaderView() -> some View {
+    CommunityPostHeader(
+      post: post, openAuthor: openAuthor,
+      canManage: canManage, isDeleting: isDeleting, actionsDisabled: actionsDisabled,
+      edit: edit, delete: delete)
   }
 
   @ViewBuilder
   private func postColumnView() -> some View {
-    VStack(alignment: .leading, spacing: Constants.footerSpacing) {
-      postBodyView()
+    CommunityPostTranslationView(original: content, allowsTranslation: canTranslate) { displayed, translation in
+      VStack(alignment: .leading, spacing: Constants.headerSpacing) {
+        postHeaderView()
+        CommunityPostContent(content: displayed, expandsInPlace: false, openDetails: openDetails)
+        postFooterView(translation)
+      }
+    }
+  }
+
+  private func postFooterView(_ translation: CommunityPostTranslationViewModel?) -> some View {
+    HStack(spacing: Constants.footerSpacing) {
+      if let translation, translation.languageLabel != nil {
+        CommunityPostTranslationButton(model: translation)
+      }
       CommunityPostFooter(
         owners: post.replyPreviews, avatarURL: avatarURL,
         reply: reply, openDetails: openDetails)
-        .disabled(actionsDisabled)
     }
+    .disabled(actionsDisabled)
   }
 }
 
 private enum Constants {
   static let columnSpacing: CGFloat = 10
   static let headerSpacing: CGFloat = 4
-  // The footer's 44 pt hit target already provides space around its label.
-  static let footerSpacing: CGFloat = 0
+  static let footerSpacing: CGFloat = 8
   static let avatarSize: CGFloat = 40
   static let horizontalPadding: CGFloat = 16
   static let topPadding: CGFloat = 12

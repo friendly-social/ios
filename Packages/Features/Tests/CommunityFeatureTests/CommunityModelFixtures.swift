@@ -82,6 +82,7 @@ func makeEditModel(
 @MainActor
 func makeDetailModel(
   post: CommunityPost,
+  selectedRow: CommunityFeedPost? = nil,
   service: CommunityService,
   initialDetails: CommunityPostDetails? = nil,
   focusedReply: PostDescriptor? = nil,
@@ -103,6 +104,7 @@ func makeDetailModel(
   } operation: {
     let model = CommunityPostDetailViewModel(
       post: post,
+      selectedRow: selectedRow,
       initialDetails: initialDetails,
       focusedReply: focusedReply,
       onUnauthorized: onUnauthorized,

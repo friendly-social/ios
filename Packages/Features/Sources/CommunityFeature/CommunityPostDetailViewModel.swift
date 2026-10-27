@@ -101,6 +101,10 @@ final class CommunityPostDetailViewModel {
     }
   }
 
+  func canTranslate(_ item: CommunityPost) -> Bool {
+    item.canTranslate(by: accountID)
+  }
+
   func edit(_ item: CommunityPost) {
     guard canManage(item), deletingID == nil else { return }
     withDependencies(from: self) {
@@ -303,14 +307,14 @@ private extension CommunityPostDetailViewModel {
     if let cached = previous.first(where: { $0.id == post.id && $0.content.source == post.text }) {
       return CommunityFeedPost(post: post, content: cached.content)
     }
-    return CommunityFeedPost(post: post, content: .init(source: post.text, excerpt: nil))
+    return CommunityFeedPost(post: post, content: .init(source: post.text, document: nil))
   }
 
   private func prepareDetails(_ details: CommunityPostDetails, generation request: Int) async throws {
     let previous = ancestorRows + replyRows + (selectedRow.map { [$0] } ?? [])
     let ancestors = try await preparation.prepare(details.upstream, reusing: previous)
     let preparedReplies = try await prepareReplies(details.replies.data, reusing: previous)
-    let selected = await preparation.prepare(details.post)
+    let selected = try await preparation.prepare([details.post], reusing: previous).first
     guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
     post = details.post
     selectedRow = selected
@@ -457,6 +461,9 @@ private extension CommunityPostDetailViewModel {
   }
 
   private func prepareUpdatedRows(generation request: Int) async {
+    let selected = try? await preparation.prepare([post], reusing: selectedRow.map { [$0] } ?? []).first
+    guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
+    if let selected { selectedRow = selected }
     let ancestors = try? await preparation.prepare(upstream, reusing: ancestorRows)
     guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
     if let ancestors { ancestorRows = ancestors }

@@ -44,6 +44,8 @@ let package = Package(
     .library(name: "LiveDependencies", targets: ["LiveDependencies"]),
     .library(name: "NetworkFeature", targets: ["NetworkFeature"]),
     .library(name: "NetworkService", targets: ["NetworkService"]),
+    .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
+    .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
     .library(name: "ProfileFormService", targets: ["ProfileFormService"]),
     .library(name: "ProfileApi", targets: ["ProfileApi"]),
     .library(name: "ProfileApiLive", targets: ["ProfileApiLive"]),
@@ -545,6 +547,7 @@ let package = Package(
         "CommunityProfileService",
         "CommunityService",
         "FriendlyUIKit",
+        "PostTranslationService",
       ],
       resources: [
         .process("Resources"),
@@ -602,6 +605,20 @@ let package = Package(
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+      ]
+    ),
+    .target(
+      name: "PostTranslationService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "PostTranslationServiceLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "PostTranslationService",
       ]
     ),
     .target(
@@ -725,6 +742,7 @@ let package = Package(
         "FriendAccessServiceLive",
         "FriendsApiLive",
         "NetworkServiceLive",
+        "PostTranslationServiceLive",
         "ProfileApiLive",
         "ProfileFormServiceLive",
         "ProfileServiceLive",
@@ -778,11 +796,22 @@ let package = Package(
         "CommunityProfileService",
         "CommunityService",
         "CommunityServiceLive",
+        "PostTranslationService",
+      ]
+    ),
+    .testTarget(
+      name: "PostTranslationServiceTests",
+      dependencies: [
+        .product(name: "CustomDump", package: "swift-custom-dump"),
+        "CommunityMarkdownService",
+        "PostTranslationService",
+        "PostTranslationServiceLive",
       ]
     ),
     .testTarget(
       name: "CommunityMarkdownServiceTests",
       dependencies: [
+        .product(name: "CustomDump", package: "swift-custom-dump"),
         "CommunityMarkdownService",
       ]
     ),

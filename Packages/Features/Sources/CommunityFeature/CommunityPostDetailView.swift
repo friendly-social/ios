@@ -154,8 +154,8 @@ private extension CommunityPostDetailView {
   }
 
   private func selectedPostView() -> some View {
-    postLayout(for: model.post) {
-      bodyView(for: model.post)
+    postLayout(for: model.post, original: selectedContent) { displayed in
+      selectedBodyView(displayed)
     } reply: {
       model.reply(to: model.post)
     }
@@ -222,11 +222,11 @@ private extension CommunityPostDetailView {
   private func postRow(
     _ item: CommunityFeedPost, showsFooter: Bool = true, showsFullContent: Bool = false
   ) -> some View {
-    postLayout(for: item.post, showsFooter: showsFooter) {
-      if showsFullContent, let source = item.content.source {
-        MarkdownPreview(source: source, allowsImageViewing: true)
+    postLayout(for: item.post, original: item.content, showsFooter: showsFooter) { displayed in
+      if showsFullContent {
+        selectedBodyView(displayed)
       } else {
-        CommunityPostContent(content: item.content, expandsInPlace: true) {
+        CommunityPostContent(content: displayed, expandsInPlace: true) {
           select(item.post)
         }
       }
@@ -256,19 +256,24 @@ private extension CommunityPostDetailView {
   }
 
   private func postLayout<Content: View>(
-    for post: CommunityPost, showsFooter: Bool = true, @ViewBuilder content: () -> Content,
+    for post: CommunityPost, original: CommunityFeedPost.Content, showsFooter: Bool = true,
+    @ViewBuilder content: @escaping (CommunityFeedPost.Content) -> Content,
     reply: @escaping () -> Void
   ) -> some View {
     HStack(alignment: .top, spacing: Constants.avatarSpacing) {
       CommunityAvatar(owner: post.owner, avatarURL: avatarURL)
         .frame(width: Constants.avatarSize, height: Constants.avatarSize)
-      VStack(alignment: .leading, spacing: Constants.postSpacing) {
-        headerView(for: post)
-        content()
-        if showsFooter {
-          CommunityPostFooter(
-            owners: post.replyPreviews, avatarURL: avatarURL,
-            alignment: .leading, showsReplySymbol: false, reply: reply)
+      CommunityPostTranslationView(
+        original: original, allowsTranslation: model.canTranslate(post)
+      ) { displayed, translation in
+        VStack(alignment: .leading, spacing: Constants.postSpacing) {
+          headerView(for: post, translation: translation)
+          content(displayed)
+          if showsFooter {
+            CommunityPostFooter(
+              owners: post.replyPreviews, avatarURL: avatarURL,
+              alignment: .leading, showsReplySymbol: false, reply: reply)
+          }
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -278,27 +283,32 @@ private extension CommunityPostDetailView {
     .padding(.bottom, Constants.postBottomPadding)
   }
 
-  private func headerView(for post: CommunityPost) -> some View {
+  private func headerView(
+    for post: CommunityPost, translation: CommunityPostTranslationViewModel?
+  ) -> some View {
     CommunityPostHeader(
       post: post, openAuthor: openAuthor, canManage: model.canManage(post),
       isDeleting: model.deletingID == post.id, actionsDisabled: model.deletingID != nil,
-      edit: { model.edit(post) }, delete: { Task { await model.delete(post) } })
+      edit: { model.edit(post) }, delete: { Task { await model.delete(post) } },
+      translation: translation)
   }
 
   @ViewBuilder
-  private func bodyView(for post: CommunityPost) -> some View {
-    if let text = post.text {
-      if let content = model.selectedRow?.content,
-         content.source == text,
-         let excerpt = content.excerpt,
-         !excerpt.isTruncated {
-        MarkdownPreview(document: excerpt.document, allowsImageViewing: true)
+  private func selectedBodyView(_ content: CommunityFeedPost.Content) -> some View {
+    if let source = content.source {
+      if let document = content.document {
+        MarkdownPreview(document: document, allowsImageViewing: true)
       } else {
-        MarkdownPreview(source: text, allowsImageViewing: true)
+        MarkdownPreview(source: source, allowsImageViewing: true)
       }
     } else {
       Label(.postDeleted, systemImage: Constants.delete).foregroundStyle(.secondary)
     }
+  }
+
+  private var selectedContent: CommunityFeedPost.Content {
+    if let content = model.selectedRow?.content, content.source == model.post.text { return content }
+    return .init(source: model.post.text, document: nil)
   }
 
   @ViewBuilder

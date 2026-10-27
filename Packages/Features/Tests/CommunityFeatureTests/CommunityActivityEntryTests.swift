@@ -56,7 +56,7 @@ struct CommunityActivityEntryTests {
     let gate = PreparationGate()
     let reads = Mutex<[PostDescriptor]>([])
     var preparation = CommunityFeedPreparationService()
-    preparation.prepareExcerpt = { _ in await gate.prepare() }
+    preparation.prepareDocument = { _ in await gate.prepare() }
     var service = CommunityService()
     service.markRead = { descriptor in reads.withLock { $0.append(descriptor) } }
     service.details = { descriptor in details(post(descriptor.id), upstream: [post(1), post(2)]) }
@@ -125,10 +125,10 @@ private func details(
 
 private actor PreparationGate {
   private var calls = 0
-  private var completion: CheckedContinuation<MarkdownExcerpt?, Never>?
+  private var completion: CheckedContinuation<MarkdownDocument?, Never>?
   private var started: CheckedContinuation<Void, Never>?
 
-  func prepare() async -> MarkdownExcerpt? {
+  func prepare() async -> MarkdownDocument? {
     calls += 1
     if calls > 1 { return nil }
     return await withCheckedContinuation {

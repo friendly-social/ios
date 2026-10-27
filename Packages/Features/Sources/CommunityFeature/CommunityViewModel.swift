@@ -157,6 +157,10 @@ public final class CommunityViewModel {
     showsPostActions(for: post) && isCurrentSession()
   }
 
+  func canTranslate(_ post: CommunityPost) -> Bool {
+    post.canTranslate(by: accountID)
+  }
+
   func showsPostActions(for post: CommunityPost) -> Bool {
     guard let accountID else { return false }
     switch post {
