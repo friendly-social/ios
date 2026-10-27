@@ -58,10 +58,4 @@ extension CommunityDraftSnapshot: Sendable where Content: Sendable {}
 public enum CommunityReplyDraft: Sendable, Equatable, Codable {
   case plainText(String)
   case markdown(String)
-
-  public var text: String {
-    switch self {
-    case let .plainText(text), let .markdown(text): text
-    }
-  }
 }

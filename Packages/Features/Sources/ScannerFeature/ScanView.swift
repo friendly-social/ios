@@ -17,7 +17,6 @@ public struct ScanToUseAppView: View {
     private let onEmailLogin: (() -> Void)?
     private let onSignOut: (() -> Void)?
     
-    @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
 
     public init(

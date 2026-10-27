@@ -44,15 +44,6 @@ class ProfileViewModel {
     private(set) var state: State = .loading
     private(set) var alertError: AlertError? = nil
 
-    var success: ProfileInfo {
-        get {
-            guard case let .success(success) = state else {
-                fatalError("expected success")
-            }
-            return success
-        }
-    }
-
     var socialLinkDestination: URL? {
         guard case let .success(profile) = state,
               let url = profile.socialUrl else { return nil }
