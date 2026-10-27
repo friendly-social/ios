@@ -461,6 +461,9 @@ private extension CommunityPostDetailViewModel {
   }
 
   private func prepareUpdatedRows(generation request: Int) async {
+    let selected = try? await preparation.prepare([post], reusing: selectedRow.map { [$0] } ?? []).first
+    guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
+    if let selected { selectedRow = selected }
     let ancestors = try? await preparation.prepare(upstream, reusing: ancestorRows)
     guard generation == request, isCurrentSession(), !Task.isCancelled else { return }
     if let ancestors { ancestorRows = ancestors }

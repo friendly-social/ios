@@ -40,6 +40,30 @@ struct CommunityPreparedContentTests {
     #expect(model.loaded)
     #expect(model.selectedRow?.content === row.content)
   }
+
+  @Test func editingSelectedPostUpdatesItsPreparedMarkdown() async throws {
+    let original = post()
+    let row = await CommunityFeedPreparationService.fixture.prepare(original)
+    var service = CommunityService()
+    service.markRead = { _ in }
+    service.edit = { _, _ in }
+    let details = CommunityPostDetails(post: original, upstream: [], replies: .init(data: [], nextId: nil))
+    let model = makeDetailModel(post: original, selectedRow: row, service: service, initialDetails: details)
+    defer { model.stop() }
+    await model.load()
+    model.edit(original)
+    let editor = try #require(model.destination?.editor)
+    let source = "# Updated\n\nHello **edited world**"
+    editor.editor.loadSource(source)
+    await editor.saveButtonTapped()
+    #expect(editor.isSaved)
+    expectNoDifference(model.post.text, source)
+    expectNoDifference(model.selectedRow?.post.text, source)
+    expectNoDifference(model.selectedRow?.content.source, source)
+    let document = try #require(model.selectedRow?.content.document)
+    let expected = try MarkdownDocument(source: source)
+    expectNoDifference(document.textSegments, expected.textSegments)
+  }
 }
 
 private extension CommunityPreparedContentTests {

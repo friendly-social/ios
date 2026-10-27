@@ -104,6 +104,7 @@ struct CommunityThreadAuditTests {
     await gate.operation.succeed(nil)
     await deletion.value
     #expect(model.post.id == 4)
+    #expect(model.selectedRow?.id == 4)
     #expect(model.upstream.map(\.id) == [1, 2])
     #expect(model.ancestorRows.map(\.id) == [1, 2])
   }
