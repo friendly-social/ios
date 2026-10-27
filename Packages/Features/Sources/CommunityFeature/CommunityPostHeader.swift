@@ -12,6 +12,7 @@ struct CommunityPostHeader: View {
   let edit: () -> Void
   let delete: () -> Void
   let translation: CommunityPostTranslationViewModel?
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @ScaledMetric(relativeTo: .subheadline) private var translationWidth = Constants.translationWidth
 
   init(
@@ -42,7 +43,12 @@ private extension CommunityPostHeader {
     metadataView()
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.trailing, controlsWidth)
-      .overlay(alignment: .trailing) { controlsView() }
+      .overlay(alignment: controlsAlignment) { controlsView() }
+  }
+
+  private var controlsAlignment: Alignment {
+    if canManage || isDeleting { return .trailing }
+    return Alignment(horizontal: .trailing, vertical: .firstTextBaseline)
   }
 
   private var controlsWidth: CGFloat {
@@ -85,6 +91,7 @@ private extension CommunityPostHeader {
     authorText()
     .font(.subheadline.weight(.semibold))
     .foregroundStyle(Constants.primary)
+    .lineLimit(1)
     .multilineTextAlignment(.leading)
   }
 
@@ -137,14 +144,16 @@ private extension CommunityPostHeader {
 
   @ViewBuilder
   private func metadataView() -> some View {
-    ViewThatFits(in: .horizontal) {
-      HStack(alignment: .firstTextBaseline, spacing: Constants.spacing) {
-        author()
-        timestamp()
-      }
+    if dynamicTypeSize.isAccessibilitySize {
       VStack(alignment: .leading, spacing: Constants.compactSpacing) {
         author()
         timestamp()
+      }
+    } else {
+      HStack(alignment: .firstTextBaseline, spacing: Constants.spacing) {
+        author()
+        timestamp()
+          .fixedSize()
       }
     }
   }
