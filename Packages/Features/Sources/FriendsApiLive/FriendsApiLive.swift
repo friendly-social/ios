@@ -19,8 +19,8 @@ struct FriendsApiLive: Sendable {
     return try FriendToken(response.token)
   }
 
-  func add(_ authorization: Authorization, token: FriendToken, id: UserId) async throws {
-    let body = AddRequest(token: token.string, userId: id.int64)
+  func add(_ authorization: Authorization, token: FriendToken) async throws {
+    let body = AddRequest(token: token.string)
     let response: AddResponse = try await send(
       path: "friends/add", method: .post, body: body, authorization: authorization)
     if response.type == "FriendTokenExpired" { throw FriendsApi.Error.expiredToken }
@@ -117,7 +117,7 @@ private struct FileDescriptorResponse: Decodable {
 }
 
 private struct GenerateResponse: Decodable { let token: String }
-private struct AddRequest: Encodable { let token: String; let userId: Int64 }
+private struct AddRequest: Encodable { let token: String }
 private struct AddResponse: Decodable { let type: String }
 private struct FriendRequest: Encodable { let userId: Int64; let userAccessHash: String }
 private struct EmptyResponse: Decodable {}

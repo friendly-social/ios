@@ -34,7 +34,6 @@ struct AddFriendServiceLive: Sendable {
             try await friendsApi.friendsAdd(
                 authorization,
                 command.token,
-                command.id,
             )
         } catch let error as FriendsApi.Error {
             switch error {
