@@ -3,10 +3,10 @@ import Dependencies
 import FilesApi
 import Foundation
 import FriendsApi
+import Models
 import NetworkService
 import QRCode
 import UIKit
-import URLMacro
 
 struct NetworkServiceLive: Sendable {
   @Dependency(FriendsApi.self) private var friendsApi
@@ -28,12 +28,8 @@ struct NetworkServiceLive: Sendable {
 
   func generateInvitationURL() async throws -> URL {
     let authorization = try storage.loadAuthorization()
-    let token = try await friendsApi.friendsGenerate(authorization)
-    guard let reference = "add/\(authorization.id.int64)/\(token.string)"
-      .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-      let url = URL(string: Constants.landingURL.absoluteString + "#?reference=\(reference)")
-    else { throw URLError(.badURL) }
-    return url
+    let invitation = try await friendsApi.friendsGenerate(authorization, false)
+    return try Deeplink.invitationURL(for: invitation.token)
   }
 
   func generateQRCode(for url: URL) -> UIImage? {
@@ -46,8 +42,4 @@ struct NetworkServiceLive: Sendable {
     else { return nil }
     return UIImage(cgImage: image)
   }
-}
-
-private enum Constants {
-  static let landingURL = #URL("https://getfriend.ly/#/")
 }

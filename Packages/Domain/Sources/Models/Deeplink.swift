@@ -1,87 +1,46 @@
 import Foundation
 
 public enum Deeplink {
-    case addFriend(id: UserId, token: FriendToken)
+  case addFriend(token: FriendToken)
 }
 
 extension Deeplink {
-    // friendly://add/<id>/<token>
-    private static var friendlyRegex: Regex<(Substring, Substring, Substring)> {
-        try! Regex(#"^friendly://add/([^/]+)/(.+)$"#)
+  public static func invitationURL(for token: FriendToken) throws -> URL {
+    guard let pathSegment = token.string.addingPercentEncoding(withAllowedCharacters: Constants.pathSegmentCharacters) else {
+      throw URLError(.badURL)
     }
+    var components = URLComponents()
+    components.scheme = Constants.scheme
+    components.host = Constants.inviteHost
+    components.percentEncodedPath = "/\(pathSegment)"
+    guard let url = components.url else { throw URLError(.badURL) }
+    return url
+  }
 
-    // add/<id>/<token>
-    private static var referenceRegex: Regex<(Substring, Substring, Substring)> {
-        try! Regex(#"^add/([^/]+)/(.+)$"#)
+  public static func parseOf(url: URL) -> Deeplink? {
+    guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+          components.user == nil, components.password == nil, components.port == nil,
+          components.query == nil, components.fragment == nil,
+          components.percentEncodedPath.hasPrefix("/") else { return nil }
+    let pathSegment = components.percentEncodedPath.dropFirst()
+    guard !pathSegment.contains("/"),
+          let rawToken = pathSegment.removingPercentEncoding,
+          !rawToken.isEmpty else { return nil }
+    switch (components.scheme?.lowercased(), components.host?.lowercased()) {
+    case (Constants.scheme, Constants.inviteHost), (Constants.appScheme, Constants.addHost):
+      return .addFriend(token: FriendToken(rawToken))
+    default:
+      return nil
     }
-
-    public static func parseOf(url: URL) -> Deeplink? {
-        if let deeplink = parseFriendly(url: url) { return deeplink }
-        if let deeplink = parseReferenceURL(url: url) { return deeplink }
-        return nil
-    }
+  }
 }
 
-private extension Deeplink {
-    static func parseFriendly(url: URL) -> Deeplink? {
-        guard url.scheme?.lowercased() == "friendly" else { return nil }
-
-        let string = url.absoluteString
-        guard let match = try? friendlyRegex.wholeMatch(in: string) else { return nil }
-
-        let rawId = String(match.output.1)
-        let rawToken = String(match.output.2)
-        return makeAddFriend(rawId: rawId, rawToken: rawToken)
-    }
-
-    static func parseReferenceURL(url: URL) -> Deeplink? {
-        if let reference = url.queryValue("reference"),
-           let deeplink = parseReference(reference) {
-            return deeplink
-        }
-
-        if let fragment = url.fragment,
-           let reference = extractReference(from: fragment),
-           let deeplink = parseReference(reference) {
-            return deeplink
-        }
-
-        return nil
-    }
-
-    static func parseReference(_ reference: String) -> Deeplink? {
-        let decoded = reference.removingPercentEncoding ?? reference
-        guard let match = try? referenceRegex.wholeMatch(in: decoded) else { return nil }
-
-        let rawId = String(match.output.1)
-        let rawToken = String(match.output.2)
-        return makeAddFriend(rawId: rawId, rawToken: rawToken)
-    }
-
-    static func extractReference(from fragment: String) -> String? {
-        let decoded = fragment.removingPercentEncoding ?? fragment
-        guard let range = decoded.range(of: "reference=") else { return nil }
-
-        let tail = decoded[range.upperBound...]
-        if let amp = tail.firstIndex(of: "&") {
-            return String(tail[..<amp])
-        }
-        return String(tail)
-    }
-
-    static func makeAddFriend(rawId: String, rawToken: String) -> Deeplink? {
-        guard let idInt64 = Int64(rawId) else { return nil }
-        let id = UserId(idInt64)
-        guard let token = try? FriendToken(rawToken) else { return nil }
-        return .addFriend(id: id, token: token)
-    }
-}
-
-private extension URL {
-    func queryValue(_ name: String) -> String? {
-        URLComponents(url: self, resolvingAgainstBaseURL: false)?
-            .queryItems?
-            .first(where: { $0.name == name })?
-            .value
-    }
+private enum Constants {
+  static let scheme = "https"
+  static let inviteHost = "invite.getfriend.ly"
+  static let appScheme = "friendly"
+  static let addHost = "add"
+  static let pathSegmentCharacters = CharacterSet(
+    charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+  )
 }

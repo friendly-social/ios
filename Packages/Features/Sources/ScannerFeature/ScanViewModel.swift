@@ -82,8 +82,8 @@ final class ScanToUseAppViewModel {
 
             let deeplink = Deeplink.parseOf(url: url)
             switch deeplink {
-            case let .addFriend(id, token):
-                add(friend: AddFriendCommand(id: id, token: token))
+            case let .addFriend(token):
+                add(friend: AddFriendCommand(token: token))
             case nil:
                 throw ScanEnterError.invalidURL
             }

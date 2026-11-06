@@ -66,7 +66,6 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", exact: "1.7.3"),
     .package(url: "https://github.com/pointfreeco/swift-navigation", exact: "2.11.2", traits: []),
     .package(url: "https://github.com/pointfreeco/swift-sharing", exact: "2.10.1"),
-    .package(url: "https://github.com/alex-npmn/URLMacro.git", from: "1.0.2"),
     .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     .package(url: "https://github.com/tevelee/SwiftUI-Flow", exact: "3.1.0"),
   ],
@@ -685,11 +684,11 @@ let package = Package(
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),
         .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
         .product(name: "QRCode", package: "QRCode"),
-        .product(name: "URLMacro", package: "URLMacro"),
-        "NetworkService",
         "FilesApi",
         "FriendsApi",
+        "NetworkService",
       ]
     ),
     .target(
