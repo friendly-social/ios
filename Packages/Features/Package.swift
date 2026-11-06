@@ -275,7 +275,7 @@ let package = Package(
       name: "NetworkQRCodeFeature",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
-        "NetworkService",
+        "InvitationService",
       ],
       resources: [
         .process("Resources"),
@@ -680,12 +680,29 @@ let package = Package(
       ]
     ),
     .target(
-      name: "NetworkServiceLive",
+      name: "InvitationService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "InvitationServiceLive",
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
         .product(name: "QRCode", package: "QRCode"),
+        "FriendsApi",
+        "InvitationService",
+      ],
+      resources: [.copy("Resources/InvitationIcon.png")]
+    ),
+    .target(
+      name: "NetworkServiceLive",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
         "FilesApi",
         "FriendsApi",
         "NetworkService",
@@ -740,6 +757,7 @@ let package = Package(
         "FilesApiLive",
         "FriendAccessServiceLive",
         "FriendsApiLive",
+        "InvitationServiceLive",
         "NetworkServiceLive",
         "PostTranslationServiceLive",
         "ProfileApiLive",

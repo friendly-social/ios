@@ -1,14 +1,10 @@
-public import NetworkService
 public import Dependencies
+public import NetworkService
 
 extension NetworkService {
   static func live() -> Self {
     let live = NetworkServiceLive()
-    return .init(
-      loadFriends: { try await live.loadFriends() },
-      generateInvitationURL: { try await live.generateInvitationURL() },
-      generateQRCode: { live.generateQRCode(for: $0) }
-    )
+    return .init(loadFriends: live.loadFriends)
   }
 }
 
