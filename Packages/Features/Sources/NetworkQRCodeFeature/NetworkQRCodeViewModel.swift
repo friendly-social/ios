@@ -33,6 +33,7 @@ final class NetworkQRCodeViewModel {
   @ObservationIgnored @Dependency(\.date.now) private var now
   @ObservationIgnored @Dependency(InvitationService.self) private var service
   private var didStart = false
+  private var isSaving = false
 
   init(onDismiss: @escaping () -> Void) {
     self.onDismiss = onDismiss
@@ -76,6 +77,21 @@ final class NetworkQRCodeViewModel {
     notice = .linkCopied
   }
 
+  func saveImage() async {
+    guard let invitation = activeInvitation, !isSaving else { return }
+    isSaving = true
+    defer { isSaving = false }
+    let result: Notice
+    do {
+      try await service.saveImage(invitation.image)
+      result = .imageSaved
+    } catch {
+      result = .saveFailed
+    }
+    guard activeInvitation?.url == invitation.url else { return }
+    notice = result
+  }
+
   enum State {
     case loading
     case refreshing(expiration: Date)
@@ -85,6 +101,8 @@ final class NetworkQRCodeViewModel {
 
   enum Notice {
     case linkCopied
+    case imageSaved
+    case saveFailed
   }
 }
 

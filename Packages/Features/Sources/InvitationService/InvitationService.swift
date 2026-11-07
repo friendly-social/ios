@@ -6,6 +6,7 @@ import UIKit
 public struct InvitationService: Sendable {
   public var generateInvitation: @Sendable (Bool) async throws -> InvitationCode
   public var copyLink: @Sendable (URL) async -> Void
+  public var saveImage: @Sendable (UIImage) async throws -> Void
 }
 
 public struct InvitationCode: Sendable {

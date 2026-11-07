@@ -4,6 +4,7 @@ import Foundation
 import FriendsApi
 import InvitationService
 import Models
+import Photos
 import QRCode
 import UIKit
 
@@ -22,6 +23,15 @@ struct InvitationServiceLive: Sendable {
   @MainActor
   func copyLink(_ url: URL) {
     UIPasteboard.general.url = url
+  }
+
+  func saveImage(_ image: UIImage) async throws {
+    guard await PHPhotoLibrary.requestAuthorization(for: .addOnly) == .authorized else {
+      throw CocoaError(.fileWriteNoPermission)
+    }
+    try await PHPhotoLibrary.shared().performChanges {
+      PHAssetChangeRequest.creationRequestForAsset(from: image)
+    }
   }
 }
 

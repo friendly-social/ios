@@ -6,7 +6,8 @@ extension InvitationService: DependencyKey {
     let live = InvitationServiceLive()
     return .init(
       generateInvitation: { try await live.generateInvitation(force: $0) },
-      copyLink: { await live.copyLink($0) }
+      copyLink: { await live.copyLink($0) },
+      saveImage: live.saveImage
     )
   }
 }

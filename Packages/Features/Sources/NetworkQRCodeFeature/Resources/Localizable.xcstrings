@@ -222,6 +222,23 @@
         }
       }
     },
+    "network_qrcode_save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save to Photos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить в Фото"
+          }
+        }
+      }
+    },
     "network_qrcode_copied": {
       "extractionState": "manual",
       "localizations": {
@@ -235,6 +252,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ссылка скопирована"
+          }
+        }
+      }
+    },
+    "network_qrcode_saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QR code saved to Photos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QR-код сохранён в Фото"
+          }
+        }
+      }
+    },
+    "network_qrcode_save_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not save the QR code to Photos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось сохранить QR-код в Фото"
           }
         }
       }

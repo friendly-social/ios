@@ -1,0 +1,23 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSPhotoLibraryAddUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friendly saves invitation QR codes to your photo library when you ask."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Friendly сохраняет QR-код приглашения в «Фото», когда вы нажимаете «Сохранить в Фото»."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -176,8 +176,17 @@ private extension NetworkQRCodeView {
   private func shareButtons() -> some View {
     VStack(spacing: Constants.actionSpacing) {
       shareButton()
-      copyButton()
-        .buttonStyle(.glass)
+      ViewThatFits {
+        HStack(spacing: Constants.actionSpacing) {
+          copyButton()
+          saveButton()
+        }
+        VStack(spacing: Constants.actionSpacing) {
+          copyButton()
+          saveButton()
+        }
+      }
+      .buttonStyle(.glass)
     }
     .controlSize(.large)
     .disabled(model.activeInvitation == nil)
@@ -204,6 +213,17 @@ private extension NetworkQRCodeView {
       Task { await model.copyLink() }
     } label: {
       Label(.networkQrcodeCopy, systemImage: Constants.copyIcon)
+        .fixedSize(horizontal: true, vertical: false)
+        .frame(maxWidth: .infinity)
+    }
+  }
+
+  private func saveButton() -> some View {
+    Button {
+      Task { await model.saveImage() }
+    } label: {
+      Label(.networkQrcodeSave, systemImage: Constants.qrIcon)
+        .fixedSize(horizontal: true, vertical: false)
         .frame(maxWidth: .infinity)
     }
   }
@@ -223,6 +243,8 @@ private extension NetworkQRCodeViewModel.Notice {
   var title: LocalizedStringResource {
     switch self {
     case .linkCopied: .networkQrcodeCopied
+    case .imageSaved: .networkQrcodeSaved
+    case .saveFailed: .networkQrcodeSaveFailed
     }
   }
 }
@@ -248,4 +270,5 @@ private enum Constants {
   static let clockIcon = "clock"
   static let shareIcon = "square.and.arrow.up"
   static let copyIcon = "doc.on.doc"
+  static let qrIcon = "qrcode"
 }
