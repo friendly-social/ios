@@ -247,8 +247,8 @@ final class CommunityPostDetailViewModel {
     isLoading = false
     isLoadingMore = false
     replyUpdateTask?.cancel()
-    replyComposer?.stop()
-    if let composer = destination?.composer, composer !== replyComposer { composer.stop() }
+    if replyComposer?.isPublishing != true { replyComposer?.stop() }
+    if let composer = destination?.composer, composer !== replyComposer, !composer.isPublishing { composer.stop() }
     Task { await saveDraft() }
   }
 
