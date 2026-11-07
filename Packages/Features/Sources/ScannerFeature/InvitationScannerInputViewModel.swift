@@ -51,6 +51,11 @@ final class InvitationScannerInputViewModel {
 }
 
 extension InvitationScannerInputViewModel {
+  func handlePasteFailure() {
+    guard acceptsInput else { return }
+    presentError(.scannerQrcodePasteFailed)
+  }
+
   func handlePickedPhoto(_ item: PhotosPickerItem) async {
     guard acceptsInput, !Task.isCancelled else { return }
     state = .loading

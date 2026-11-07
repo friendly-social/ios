@@ -4,6 +4,8 @@ import UIKit
 
 public struct InvitationScannerView: View {
   @Environment(\.openURL) private var openURL
+  @ScaledMetric(relativeTo: .body) private var pasteHeight = Constants.pasteHeight
+  @ScaledMetric(relativeTo: .body) private var pasteWidth = Constants.pasteWidth
   @State private var camera: QRScannerViewModel
   @State private var model: InvitationScannerInputViewModel
   @State private var photo: PhotosPickerItem?
@@ -138,14 +140,35 @@ private extension InvitationScannerView {
   }
 
   private func inputFooter() -> some View {
-    photoButton()
-      .frame(maxWidth: Constants.contentWidth)
-      .frame(maxWidth: .infinity)
-      .padding(.horizontal)
-      .padding(.vertical, Constants.footerInset)
-      .background(Color(uiColor: .systemGroupedBackground), ignoresSafeAreaEdges: .bottom)
-      .disabled(!model.acceptsInput)
-      .controlSize(.large)
+    ViewThatFits(in: .horizontal) {
+      HStack(spacing: Constants.footerInset) {
+        photoButton()
+        pasteButton()
+      }
+      VStack(spacing: Constants.footerInset) {
+        photoButton()
+        pasteButton()
+      }
+    }
+    .frame(maxWidth: Constants.contentWidth)
+    .frame(maxWidth: .infinity)
+    .padding(.horizontal)
+    .padding(.vertical, Constants.footerInset)
+    .background(Color(uiColor: .systemGroupedBackground), ignoresSafeAreaEdges: .bottom)
+    .disabled(!model.acceptsInput)
+    .controlSize(.large)
+  }
+
+  private func pasteButton() -> some View {
+    InvitationPasteButtonView { text in
+      guard model.acceptsInput else { return }
+      model.handleScanned(code: text)
+    } onFailure: {
+      model.handlePasteFailure()
+    }
+    .frame(minWidth: pasteWidth, maxWidth: .infinity)
+    .frame(height: pasteHeight)
+    .glassEffect(.regular.tint(Constants.pasteTint).interactive(), in: .capsule)
   }
 
   private func photoButton() -> some View {
@@ -206,6 +229,9 @@ private enum Constants {
   static let reticleArmFraction: CGFloat = 0.24
   static let reticleRadiusFraction: CGFloat = 0.45
   static let footerInset: CGFloat = 8
+  static let pasteHeight: CGFloat = 50
+  static let pasteWidth: CGFloat = 120
+  static let pasteTint = Color(uiColor: .systemBlue)
   static let processingInset: CGFloat = 14
   static let torchOn = "flashlight.on.fill"
   static let torchOff = "flashlight.off.fill"

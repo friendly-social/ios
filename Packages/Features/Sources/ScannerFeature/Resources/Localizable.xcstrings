@@ -1,6 +1,23 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "scanner_qrcode_paste_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read the link from the clipboard."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать ссылку из буфера обмена."
+          }
+        }
+      }
+    },
     "scanner_qrcode_choose_photo": {
       "extractionState": "manual",
       "localizations": {
