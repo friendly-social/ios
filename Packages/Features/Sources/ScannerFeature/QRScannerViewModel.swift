@@ -19,8 +19,8 @@ final class QRScannerViewModel {
   private(set) var session: AVCaptureSession?
   @ObservationIgnored @Dependency(QRSessionService.self) private var service
   @ObservationIgnored @Dependency(CameraPermissionService.self) private var permissionService
-  @ObservationIgnored private let qrDelegate = QrScannerDelegate()
   @ObservationIgnored private var scanTask: Task<Void, Never>?
+  private var preparationGeneration = 0
   private let onDismiss: (String?) -> Void
 
   var settingsURL: URL? { permissionService.settingsURL() }
@@ -31,26 +31,34 @@ final class QRScannerViewModel {
 
   func prepare() async {
     guard state != .loading, state != .running else { return }
+    preparationGeneration += 1
+    let generation = preparationGeneration
     state = .loading
-    startListening()
+    let qrDelegate = QrScannerDelegate()
     do {
       let configuredSession = try await service.makeSession(qrDelegate)
-      guard !Task.isCancelled else { return }
+      guard generation == preparationGeneration, !Task.isCancelled else { return }
+      startListening(qrDelegate)
       session = configuredSession
       await service.startRunning(configuredSession)
-      guard !Task.isCancelled else { return }
+      guard generation == preparationGeneration, !Task.isCancelled else {
+        await service.stopRunning(configuredSession)
+        return
+      }
       state = .running
-    } catch is CancellationError {
-    } catch CameraSessionError.permissionDenied {
-      state = .noPermission
     } catch {
-      state = .ioError
+      guard generation == preparationGeneration, !Task.isCancelled else { return }
+      state = error as? CameraSessionError == .permissionDenied ? .noPermission : .ioError
     }
   }
 
   func stop() {
+    preparationGeneration += 1
     scanTask?.cancel()
+    scanTask = nil
+    state = .idle
     guard let session else { return }
+    self.session = nil
     Task { await service.stopRunning(session) }
   }
 
@@ -61,7 +69,7 @@ final class QRScannerViewModel {
 }
 
 private extension QRScannerViewModel {
-  private func startListening() {
+  private func startListening(_ qrDelegate: QrScannerDelegate) {
     guard scanTask == nil else { return }
     scanTask = Task { [weak self, qrDelegate] in
       for await code in qrDelegate.codes {

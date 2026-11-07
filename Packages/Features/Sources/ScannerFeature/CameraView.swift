@@ -1,32 +1,30 @@
-//
-//  CameraView.swift
-//  Friendly
-//
-//  Created by Konstantin on 04.02.2026.
-//
-
-import AVKit
+import AVFoundation
 import SwiftUI
+import UIKit
 
 struct CameraView: UIViewRepresentable {
-    var frameSize: CGSize
-    
-    let session: AVCaptureSession
-    
-    func makeUIView(context: Context) -> UIView {
-        let view = UIViewType(frame: CGRect(origin: .zero, size: frameSize))
-        view.backgroundColor = .clear
-        
-        let cameraLayer = AVCaptureVideoPreviewLayer(session: session)
-        cameraLayer.frame = CGRect(origin: .zero, size: frameSize)
-        cameraLayer.videoGravity = .resizeAspectFill
-        cameraLayer.masksToBounds = true
-        view.layer.addSublayer(cameraLayer)
-        
-        return view
-    }
-    
-    func updateUIView(_ uiView: UIViewType, context: Context) {
-        
-    }
+  private let session: AVCaptureSession
+
+  init(session: AVCaptureSession) {
+    self.session = session
+  }
+
+  func makeUIView(context: Context) -> Preview {
+    let view = Preview()
+    view.cameraLayer.videoGravity = .resizeAspectFill
+    view.cameraLayer.session = session
+    return view
+  }
+
+  func updateUIView(_ view: Preview, context: Context) {
+    if view.cameraLayer.session !== session { view.cameraLayer.session = session }
+  }
+
+  final class Preview: UIView {
+    override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+  }
+}
+
+private extension CameraView.Preview {
+  var cameraLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
 }

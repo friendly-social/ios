@@ -4,7 +4,6 @@ import QRSessionService
 
 actor QRSessionServiceLive {
   private let permission: CameraPermissionService
-  private let metadataOutput = AVCaptureMetadataOutput()
 
   init(permission: CameraPermissionService) {
     self.permission = permission
@@ -32,6 +31,7 @@ actor QRSessionServiceLive {
     let input = try AVCaptureDeviceInput(device: device)
     guard session.canAddInput(input) else { throw CameraSessionError.cannotAddInput }
     session.addInput(input)
+    let metadataOutput = AVCaptureMetadataOutput()
     guard session.canAddOutput(metadataOutput) else { throw CameraSessionError.cannotAddOutput }
     session.addOutput(metadataOutput)
     metadataOutput.setMetadataObjectsDelegate(delegate, queue: .main)

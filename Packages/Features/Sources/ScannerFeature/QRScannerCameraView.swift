@@ -1,5 +1,5 @@
 //
-//  QRScannerView.swift
+//  QRScannerCameraView.swift
 //  Friendly
 //
 //  Created by Konstantin on 05.02.2026.
@@ -8,171 +8,200 @@
 import SwiftUI
 
 struct QRScannerCameraView: View {
-    @Environment(\.openURL) private var openURL
+  @Environment(\.openURL) private var openURL
+  @State private var viewModel: QRScannerViewModel
+  @State private var isScanningAnimation = false
 
-    @State private var viewModel: QRScannerViewModel
+  init(onDismiss: @escaping (String?) -> Void) {
+    _viewModel = State(wrappedValue: QRScannerViewModel(onDismiss: onDismiss))
+  }
 
-    @State private var isScanningAnimation = false
-
-    init(onDismiss: @escaping (String?) -> Void) {
-        _viewModel = State(wrappedValue: QRScannerViewModel(onDismiss: onDismiss))
+  var body: some View {
+    NavigationView {
+      scannerContent()
+        .toolbar { toolbarContent() }
+        .onDisappear { viewModel.stop() }
+        .task { await viewModel.prepare() }
     }
+  }
+}
 
-    var body: some View {
-        NavigationView {
-            ZStack {
-                switch viewModel.state {
-                case .idle, .loading:
-                    ProgressView()
-
-                case .running:
-                    scanView()
-
-                case .noPermission:
-                    permissionView()
-
-                case .ioError:
-                    errorView()
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(.scannerQrcodeNavigationTitle)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: { viewModel.onDismiss(code: nil) }) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-            .onDisappear {
-                viewModel.stop()
-            }
-            .task { await viewModel.prepare() }
-        }
+private extension QRScannerCameraView {
+  @ViewBuilder
+  private func scannerContent() -> some View {
+    switch viewModel.state {
+    case .idle, .loading:
+      ProgressView()
+    case .running:
+      scanView()
+    case .noPermission:
+      permissionView()
+    case .ioError:
+      errorView()
     }
+  }
 
-    // MARK: - Views
-
-    private func scanView() -> some View {
-        VStack(spacing: 8) {
-            Text(.scannerQrcodeTitle)
-                .font(.title2)
-                .padding(.top, 20)
-
-            Text(.scannerQrcodeSubtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Spacer(minLength: .zero)
-
-            GeometryReader { proxy in
-                let size = proxy.size
-
-                ZStack {
-                    if let session = viewModel.session {
-                        CameraView(
-                            frameSize: CGSize(width: size.width, height: size.width),
-                            session: session
-                        )
-                        .scaleEffect(0.97)
-                    }
-
-                    ForEach(0...4, id: \.self) { index in
-                        let rotation = Double(index) * 90.0
-                        RoundedRectangle(cornerRadius: 2, style: .circular)
-                            .trim(from: 0.61, to: 0.64)
-                            .stroke(
-                                Color.blue,
-                                style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
-                            )
-                            .rotationEffect(.degrees(rotation))
-                    }
-                }
-                .frame(width: size.width, height: size.width)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(Color.blue)
-                        .frame(height: 2.5)
-                        .shadow(
-                            color: .black.opacity(0.8),
-                            radius: 8,
-                            x: 0,
-                            y: isScanningAnimation ? 15 : -15
-                        )
-                        .offset(y: isScanningAnimation ? size.width : 0)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onAppear { startScannerAnimation() }
-            }
-            .padding(.horizontal, 45)
-
-            Spacer(minLength: 15)
-        }
-        .padding(15)
+  @ToolbarContentBuilder
+  private func toolbarContent() -> some ToolbarContent {
+    ToolbarItem(placement: .principal) {
+      Text(.scannerQrcodeNavigationTitle)
     }
-
-    private func permissionView() -> some View {
-        VStack(spacing: 12) {
-            Text(.scannerQrcodeCameraPermissionTitle)
-                .font(.title2)
-
-            Text(.scannerQrcodeCameraPermissionMessage)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button(.openSettings) {
-                guard let url = viewModel.settingsURL else { return }
-                openURL(url)
-            }
-            .buttonStyle(.borderedProminent)
-
-            Button(.buttonBaseClose, role: .cancel) { viewModel.onDismiss(code: nil) }
-                .buttonStyle(.glass)
-                .padding(.horizontal)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    ToolbarItem(placement: .primaryAction) {
+      Button(action: { viewModel.onDismiss(code: nil) }) {
+        Image(systemName: Constants.closeIcon)
+      }
     }
+  }
 
-    private func errorView() -> some View {
-        VStack(spacing: 12) {
-            Text(.errorBaseTitle)
-                .font(.title2)
+  private func scanView() -> some View {
+    VStack(spacing: Constants.spacing) {
+      Text(.scannerQrcodeTitle)
+        .font(.title2)
+        .padding(.top, Constants.titleTopInset)
 
-            Button {
-                Task { await viewModel.prepare() }
-            } label: {
-                Text(.errorBaseSubtitle)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-            }
-            .buttonStyle(.glassProminent)
-            .padding(.horizontal)
-            
-            Button {
-                viewModel.onDismiss(code: nil)
-            } label: {
-                Text(.buttonBaseClose)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-            }
-            .buttonStyle(.glass)
-            .padding(.horizontal)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      Text(.scannerQrcodeSubtitle)
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+
+      Spacer(minLength: .zero)
+
+      GeometryReader { proxy in
+        cameraPreview(width: proxy.size.width)
+      }
+      .padding(.horizontal, Constants.previewHorizontalInset)
+
+      Spacer(minLength: Constants.contentInset)
     }
+    .padding(Constants.contentInset)
+  }
 
-    // MARK: - Animation
-
-    private func startScannerAnimation() {
-        guard !isScanningAnimation else { return }
-        withAnimation(.easeInOut(duration: 0.85).delay(0.1).repeatForever(autoreverses: true)) {
-            isScanningAnimation = true
-        }
+  private func cameraPreview(width: CGFloat) -> some View {
+    ZStack {
+      if let session = viewModel.session {
+        CameraView(session: session)
+          .scaleEffect(Constants.cameraScale)
+      }
+      reticle()
     }
+    .frame(width: width, height: width)
+    .overlay(alignment: .top) { scanLine(width: width) }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .onAppear { startScannerAnimation() }
+  }
 
+  private func reticle() -> some View {
+    ForEach(Constants.reticleIndices, id: \.self) { index in
+      RoundedRectangle(cornerRadius: Constants.reticleCornerRadius, style: .circular)
+        .trim(from: Constants.reticleTrimStart, to: Constants.reticleTrimEnd)
+        .stroke(
+          Constants.scanColor,
+          style: StrokeStyle(lineWidth: Constants.reticleStrokeWidth, lineCap: .round, lineJoin: .round)
+        )
+        .rotationEffect(.degrees(Double(index) * Constants.reticleRotationStep))
+    }
+  }
+
+  private func scanLine(width: CGFloat) -> some View {
+    Rectangle()
+      .fill(Constants.scanColor)
+      .frame(height: Constants.scanLineHeight)
+      .shadow(
+        color: .black.opacity(Constants.scanLineShadowOpacity),
+        radius: Constants.scanLineShadowRadius,
+        y: isScanningAnimation ? Constants.scanLineShadowOffset : -Constants.scanLineShadowOffset
+      )
+      .offset(y: isScanningAnimation ? width : .zero)
+  }
+
+  private func startScannerAnimation() {
+    guard !isScanningAnimation else { return }
+    let animation = Animation.easeInOut(duration: Constants.animationDuration)
+      .delay(Constants.animationDelay)
+      .repeatForever(autoreverses: true)
+    withAnimation(animation) {
+      isScanningAnimation = true
+    }
+  }
+
+  private func permissionView() -> some View {
+    VStack(spacing: Constants.messageSpacing) {
+      Text(.scannerQrcodeCameraPermissionTitle)
+        .font(.title2)
+
+      Text(.scannerQrcodeCameraPermissionMessage)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+
+      Button(.openSettings) {
+        guard let url = viewModel.settingsURL else { return }
+        openURL(url)
+      }
+      .buttonStyle(.borderedProminent)
+
+      Button(.buttonBaseClose, role: .cancel) { viewModel.onDismiss(code: nil) }
+        .buttonStyle(.glass)
+        .padding(.horizontal)
+    }
+    .padding()
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func errorView() -> some View {
+    VStack(spacing: Constants.messageSpacing) {
+      Text(.errorBaseTitle)
+        .font(.title2)
+
+      retryButton()
+
+      Button {
+        viewModel.onDismiss(code: nil)
+      } label: {
+        errorButtonLabel(.buttonBaseClose)
+      }
+      .buttonStyle(.glass)
+      .padding(.horizontal)
+    }
+    .padding()
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private func retryButton() -> some View {
+    Button {
+      Task { await viewModel.prepare() }
+    } label: {
+      errorButtonLabel(.errorBaseSubtitle)
+    }
+    .buttonStyle(.glassProminent)
+    .padding(.horizontal)
+  }
+
+  private func errorButtonLabel(_ title: LocalizedStringResource) -> some View {
+    Text(title)
+      .font(.headline)
+      .frame(maxWidth: .infinity)
+      .padding()
+  }
+}
+
+private enum Constants {
+  static let spacing: CGFloat = 8
+  static let messageSpacing: CGFloat = 12
+  static let contentInset: CGFloat = 15
+  static let titleTopInset: CGFloat = 20
+  static let previewHorizontalInset: CGFloat = 45
+  static let cameraScale: CGFloat = 0.97
+  static let reticleIndices = 0...4
+  static let reticleCornerRadius: CGFloat = 2
+  static let reticleTrimStart: CGFloat = 0.61
+  static let reticleTrimEnd: CGFloat = 0.64
+  static let reticleStrokeWidth: CGFloat = 5
+  static let reticleRotationStep = 90.0
+  static let scanColor = Color.blue
+  static let scanLineHeight: CGFloat = 2.5
+  static let scanLineShadowOpacity = 0.8
+  static let scanLineShadowRadius: CGFloat = 8
+  static let scanLineShadowOffset: CGFloat = 15
+  static let animationDuration = 0.85
+  static let animationDelay = 0.1
+  static let closeIcon = "xmark"
 }
