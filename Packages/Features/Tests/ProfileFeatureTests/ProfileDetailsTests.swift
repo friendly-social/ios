@@ -19,7 +19,7 @@ struct ProfileDetailsTests {
 }
 
 private extension ProfileDetailsTests {
-  func decode(_ friendship: String) throws -> ProfileDetails {
+  private func decode(_ friendship: String) throws -> ProfileDetails {
     let hash = String(repeating: "a", count: 256)
     let user: [String: Any] = [
       "id": 1, "accessHash": hash, "nickname": "Anna", "description": "Hello",

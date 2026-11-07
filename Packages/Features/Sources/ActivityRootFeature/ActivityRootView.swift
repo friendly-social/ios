@@ -54,7 +54,7 @@ private extension ActivityRootView {
 
   private func profileView(_ destination: ActivityViewModel.Destination.Profile) -> some View {
     RouterView { router in
-      ProfileView(router: router, mode: .otherProfile(.init(
+      ProfileView(mode: .otherProfile(.init(
         id: destination.userID, accessHash: destination.accessHash)))
     }
     .presentationDragIndicator(.visible)

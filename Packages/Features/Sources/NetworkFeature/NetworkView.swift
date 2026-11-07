@@ -20,7 +20,7 @@ public struct NetworkView: View {
         value: viewModel.state.rawValue,
       )
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(Color(uiColor: .systemGroupedBackground))
+      .background(Constants.background)
       .toolbar { invitationToolbar() }
       .navigationTitle(.networkFriendsTitle)
       .sheet(
@@ -65,7 +65,7 @@ private extension NetworkView {
     case .invitation:
       NetworkQRCodeView(onDismiss: { viewModel.destination = nil })
     case let .profile(id, accessHash):
-      ProfileView(router: viewModel.router, mode: .otherProfile(.init(id: id, accessHash: accessHash)))
+      ProfileView(mode: .otherProfile(.init(id: id, accessHash: accessHash)))
     }
   }
 }
@@ -125,7 +125,7 @@ private struct NetworkSuccessView: View {
           }
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .background(Constants.friendsBackground)
         .clipShape(RoundedRectangle(cornerRadius: Constants.listCornerRadius))
         .padding()
         Text(.networkFriendsAddHint)
@@ -157,6 +157,8 @@ private struct FriendView: View {
 }
 
 private enum Constants {
+  static let background = Color(uiColor: .systemGroupedBackground)
+  static let friendsBackground = Color(uiColor: .secondarySystemGroupedBackground)
   static let connectionErrorIcon = "wifi.slash"
   static let emptyNetworkIcon = "person.line.dotted.person"
   static let animationDuration = 0.3

@@ -107,6 +107,7 @@ let project = Project(
                 .package(product: "DependenciesTestSupport"),
                 .package(product: "FilesApi"),
                 .package(product: "FilesApiLive"),
+                .package(product: "FriendsApi"),
                 .package(product: "FriendlyUIKit"),
                 .package(product: "ImageService"),
                 .package(product: "ImageServiceLive"),
@@ -119,6 +120,9 @@ let project = Project(
                 .package(product: "PostTranslationServiceLive"),
                 .package(product: "ProfileApi"),
                 .package(product: "ProfileApiLive"),
+                .package(product: "ProfileFeature"),
+                .package(product: "ProfileService"),
+                .package(product: "ProfileServiceLive"),
                 .target(name: "CommunityTestsHost"),
             ]
         ),

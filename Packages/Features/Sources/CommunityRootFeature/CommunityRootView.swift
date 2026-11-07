@@ -43,7 +43,7 @@ private extension CommunityRootView {
 
   private func authorView(_ author: CommunityRootViewModel.AuthorDestination) -> some View {
     RouterView { router in
-      ProfileView(router: router, mode: .otherProfile(author.profile))
+      ProfileView(mode: .otherProfile(author.profile))
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {
             Button(.communityClose, systemImage: Constants.close) { model.closeAuthor() }

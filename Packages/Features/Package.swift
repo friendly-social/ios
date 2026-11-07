@@ -52,6 +52,7 @@ let package = Package(
     .library(name: "ProfileApiLive", targets: ["ProfileApiLive"]),
     .library(name: "ProfileFeature", targets: ["ProfileFeature"]),
     .library(name: "ProfileService", targets: ["ProfileService"]),
+    .library(name: "ProfileServiceLive", targets: ["ProfileServiceLive"]),
     .library(name: "ScannerFeature", targets: ["ScannerFeature"]),
     .library(name: "CameraPermissionService", targets: ["CameraPermissionService"]),
     .library(name: "QRPhotoImportService", targets: ["QRPhotoImportService"]),
@@ -297,9 +298,13 @@ let package = Package(
         .product(name: "Flow", package: "SwiftUI-Flow"),
         .product(name: "Models", package: "Domain"),
         "AuthFeature",
+        "CommunityMarkdownFeature",
+        "CommunityMarkdownService",
+        "FriendlyUIKit",
+        "NetworkQRCodeFeature",
+        "PhotoViewerFeature",
         "ProfileFormService",
         "ProfileService",
-        "FriendlyUIKit",
       ],
       resources: [
         .process("Resources"),
@@ -642,6 +647,7 @@ let package = Package(
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+        "CommunityMarkdownService",
       ]
     ),
     .target(
@@ -732,9 +738,10 @@ let package = Package(
       name: "ProfileServiceLive",
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),
-        "AccountSessionService",
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+        "AccountSessionService",
+        "CommunityMarkdownService",
         "FilesApi",
         "FriendsApi",
         "ProfileApi",
@@ -779,11 +786,19 @@ let package = Package(
     .testTarget(
       name: "ProfileFeatureTests",
       dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
         .product(name: "CustomDump", package: "swift-custom-dump"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+        "CommunityMarkdownService",
+        "FilesApi",
+        "FriendsApi",
         "FriendlyUIKit",
         "ProfileApi",
         "ProfileApiLive",
+        "ProfileFeature",
+        "ProfileService",
+        "ProfileServiceLive",
       ]
     ),
     .testTarget(

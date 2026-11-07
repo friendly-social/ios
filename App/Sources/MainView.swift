@@ -29,7 +29,7 @@ struct MainView: View {
             }
             Tab(
                 .mainFeed,
-                systemImage: "newspaper",
+                systemImage: Constants.feed,
                 value: .feed,
             ) {
                 RouterView { router in
@@ -39,7 +39,7 @@ struct MainView: View {
 
             Tab(
                 .mainNetwork,
-                systemImage: "person.3",
+                systemImage: Constants.network,
                 value: .network,
             ) {
                 RouterView { router in
@@ -51,7 +51,7 @@ struct MainView: View {
 
             Tab(
                 .mainProfile,
-                systemImage: "person.crop.circle",
+                systemImage: Constants.profile,
                 value: .profile,
             ) {
                 RouterView { router in
@@ -59,7 +59,6 @@ struct MainView: View {
                         routeToSignUp: viewModel.routeToSignUp,
                     )
                     ProfileView(
-                        router: router,
                         mode: .selfProfile(selfProfile),
                     )
                 }
@@ -76,4 +75,7 @@ struct MainView: View {
 
 private enum Constants {
   static let community = "text.bubble"
+  static let feed = "newspaper"
+  static let profile = "person.crop.circle"
+  static let network = "person.3"
 }

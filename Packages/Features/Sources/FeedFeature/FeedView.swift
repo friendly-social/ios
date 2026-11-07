@@ -18,11 +18,11 @@ public struct FeedView: View {
             }
         }
         .animation(
-            .easeInOut(duration: 0.3),
+            .easeInOut(duration: Constants.animationDuration),
             value: viewModel.state.rawValue,
         )
         .frame(maxHeight: .infinity)
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(Constants.background)
         .onAppear { viewModel.appear() }
         .navigationDestination(
             for: FeedViewModel.ProfileDestination.self,
@@ -32,7 +32,6 @@ public struct FeedView: View {
                 accessHash: destination.accessHash,
             )
             ProfileView(
-                router: viewModel.router,
                 mode: .otherProfile(profile),
             )
         }
@@ -49,10 +48,10 @@ private struct LoadingView: View {
 private struct IOErrorView: View {
     var body: some View {
         VStack {
-            Image(systemName: "wifi.slash")
+            Image(systemName: Constants.connectionErrorSymbol)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 50, height: 50)
+                .frame(width: Constants.stateIconSize, height: Constants.stateIconSize)
                 .foregroundStyle(.secondary)
             Text(.ioErrorTitle)
                 .font(.title2)
@@ -72,12 +71,12 @@ private struct FeedSuccessView: View {
     var body: some View {
         ZStack {
             FeedEmptyView()
-            let entries = Array(entries.prefix(2).enumerated())
+            let entries = Array(entries.prefix(Constants.visibleCardCount).enumerated())
             ForEach(entries, id: \.element.id) { (index, entry) in
                 FeedSwipeCardView(entry: entry)
                     .padding(.horizontal)
                     .padding(.bottom)
-                    .zIndex(1 - Double(index))
+                    .zIndex(Double(Constants.visibleCardCount - index - 1))
             }
         }
     }
@@ -86,10 +85,10 @@ private struct FeedSuccessView: View {
 private struct FeedEmptyView: View {
     var body: some View {
         VStack {
-            Image(systemName: "tray")
+            Image(systemName: Constants.emptySymbol)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 50, height: 50)
+                .frame(width: Constants.stateIconSize, height: Constants.stateIconSize)
                 .foregroundStyle(.secondary)
             Text(.feedEmpty)
                 .font(.title2)
@@ -101,4 +100,13 @@ private struct FeedEmptyView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+private enum Constants {
+  static let background = Color(uiColor: .systemGroupedBackground)
+  static let animationDuration = 0.3
+  static let stateIconSize: CGFloat = 50
+  static let visibleCardCount = 2
+  static let connectionErrorSymbol = "wifi.slash"
+  static let emptySymbol = "tray"
 }
