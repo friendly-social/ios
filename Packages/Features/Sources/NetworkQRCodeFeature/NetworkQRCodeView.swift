@@ -1,3 +1,4 @@
+import ScannerFeature
 import SwiftUI
 import UIKit
 
@@ -12,10 +13,15 @@ public struct NetworkQRCodeView: View {
     NavigationStack {
       contentView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: .zero) { scannerFooter() }
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(.networkQrcodeTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { closeButton() }
+        .navigationDestination(item: $model.scannerDestination) { _ in
+          InvitationScannerView(onSuccess: model.onDismiss)
+            .toolbar { closeButton() }
+        }
         .alert(.networkQrcodeReplaceTitle, isPresented: $model.confirmsReplacement) {
           Button(.networkQrcodeReplaceAction, role: .destructive) {
             Task { await model.replaceCode() }
@@ -176,6 +182,7 @@ private extension NetworkQRCodeView {
   private func shareButtons() -> some View {
     VStack(spacing: Constants.actionSpacing) {
       shareButton()
+        .buttonStyle(.glassProminent)
       ViewThatFits {
         HStack(spacing: Constants.actionSpacing) {
           copyButton()
@@ -192,15 +199,13 @@ private extension NetworkQRCodeView {
     .disabled(model.activeInvitation == nil)
   }
 
+  @ViewBuilder
   private func shareButton() -> some View {
-    Group {
-      if let invitation = model.activeInvitation {
-        ShareLink(item: invitation.url) { shareLabel() }
-      } else {
-        Button(action: {}) { shareLabel() }
-      }
+    if let invitation = model.activeInvitation {
+      ShareLink(item: invitation.url) { shareLabel() }
+    } else {
+      Button(action: {}) { shareLabel() }
     }
-    .buttonStyle(.glassProminent)
   }
 
   private func shareLabel() -> some View {
@@ -237,6 +242,44 @@ private extension NetworkQRCodeView {
     }
   }
 
+  private func scannerFooter() -> some View {
+    VStack(spacing: Constants.footerSpacing) {
+      Divider()
+      scannerButton()
+    }
+    .frame(maxWidth: Constants.contentWidth)
+    .frame(maxWidth: .infinity)
+    .padding(.horizontal, Constants.horizontalInset)
+    .padding(.bottom, Constants.footerSpacing)
+    .background(Color(uiColor: .systemGroupedBackground), ignoresSafeAreaEdges: .bottom)
+  }
+
+  private func scannerButton() -> some View {
+    Button(action: model.showScanner) {
+      HStack(spacing: Constants.scannerSpacing) {
+        Image(systemName: Constants.scanIcon)
+          .font(.title3)
+          .foregroundStyle(Color.accentColor)
+          .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: Constants.captionSpacing) {
+          Text(.networkQrcodeScan)
+            .font(.subheadline.weight(.semibold))
+          Text(.networkQrcodeScanSubtitle)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .multilineTextAlignment(.leading)
+        Image(systemName: Constants.chevronIcon)
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(.tertiary)
+          .accessibilityHidden(true)
+      }
+      .frame(minHeight: Constants.tapHeight)
+      .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+  }
 }
 
 private extension NetworkQRCodeViewModel.Notice {
@@ -255,6 +298,8 @@ private enum Constants {
   static let horizontalInset: CGFloat = 24
   static let verticalInset: CGFloat = 22
   static let captionSpacing: CGFloat = 4
+  static let footerSpacing: CGFloat = 8
+  static let scannerSpacing: CGFloat = 12
   static let codeWidth: CGFloat = 208
   static let codeCornerRadius: CGFloat = 20
   static let loadingCodeAsset = "LoadingInvitationCode"
@@ -265,10 +310,13 @@ private enum Constants {
   static let expirationPlaceholderWidth: CGFloat = 114
   static let expirationPlaceholderHeight: CGFloat = 19
   static let contentWidth: CGFloat = 440
+  static let tapHeight: CGFloat = 44
   static let closeIcon = "xmark"
   static let connectionErrorIcon = "wifi.slash"
   static let clockIcon = "clock"
   static let shareIcon = "square.and.arrow.up"
   static let copyIcon = "doc.on.doc"
   static let qrIcon = "qrcode"
+  static let scanIcon = "qrcode.viewfinder"
+  static let chevronIcon = "chevron.forward"
 }

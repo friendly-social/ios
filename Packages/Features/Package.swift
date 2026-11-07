@@ -276,6 +276,7 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         "InvitationService",
+        "ScannerFeature",
       ],
       resources: [
         .process("Resources"),
@@ -411,11 +412,10 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
-        "NetworkService",
         "FriendlyUIKit",
         "NetworkQRCodeFeature",
+        "NetworkService",
         "ProfileFeature",
-        "ScannerFeature",
       ],
       resources: [
         .process("Resources"),

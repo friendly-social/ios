@@ -10,7 +10,7 @@ import Observation
 class NetworkViewModel {
   @ObservationIgnored @Dependency(NetworkService.self) private var service
 
-  var state: State = .loading
+  private(set) var state: State = .loading
   var destination: Destination?
 
   let router: Router
@@ -21,12 +21,8 @@ class NetworkViewModel {
     self.router = router
   }
 
-  func showQRCode() {
-    destination = .qrCode
-  }
-
-  func findQRCode() {
-    destination = .scanner
+  func showInvitation() {
+    destination = .invitation
   }
 
   func reload() async {
@@ -74,8 +70,7 @@ class NetworkViewModel {
   }
 
   enum Destination: Hashable, Identifiable {
-    case qrCode
-    case scanner
+    case invitation
     case profile(id: UserId, accessHash: UserAccessHash)
 
     var id: Self { self }

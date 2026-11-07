@@ -35,6 +35,23 @@
         }
       }
     },
+    "network_qrcode_scan_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a friend using their invitation"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить друга по его приглашению"
+          }
+        }
+      }
+    },
     "network_qrcode_title": {
       "extractionState": "manual",
       "localizations": {
@@ -286,6 +303,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Не удалось сохранить QR-код в Фото"
+          }
+        }
+      }
+    },
+    "network_qrcode_scan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan QR code"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сканировать QR-код"
           }
         }
       }

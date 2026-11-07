@@ -1,7 +1,6 @@
 import FriendlyUIKit
 import NetworkQRCodeFeature
 import ProfileFeature
-import ScannerFeature
 import SwiftUI
 import UIKit
 
@@ -52,16 +51,10 @@ private extension NetworkView {
 
   @ToolbarContentBuilder
   private func invitationToolbar() -> some ToolbarContent {
-    ToolbarItemGroup(placement: .primaryAction) {
-      Button(
-        action: { viewModel.showQRCode() },
-      ) {
-        Image(systemName: Constants.invitationCodeIcon)
-      }
-      Button(
-        action: { viewModel.findQRCode() },
-      ) {
-        Image(systemName: Constants.scannerIcon)
+    ToolbarItem(placement: .primaryAction) {
+      Button(action: viewModel.showInvitation) {
+        Label(.networkFriendsAddPeople, systemImage: Constants.addPeopleIcon)
+          .labelStyle(.iconOnly)
       }
     }
   }
@@ -69,23 +62,10 @@ private extension NetworkView {
   @ViewBuilder
   private func destinationView(_ destination: NetworkViewModel.Destination) -> some View {
     switch destination {
-    case .qrCode:
+    case .invitation:
       NetworkQRCodeView(onDismiss: { viewModel.destination = nil })
-    case .scanner:
-      scannerSheet()
     case let .profile(id, accessHash):
       ProfileView(router: viewModel.router, mode: .otherProfile(.init(id: id, accessHash: accessHash)))
-    }
-  }
-
-  private func scannerSheet() -> some View {
-    NavigationStack {
-      InvitationScannerView { viewModel.destination = nil }
-        .toolbar {
-          ToolbarItem(placement: .topBarTrailing) {
-            Button(role: .close) { viewModel.destination = nil }
-          }
-        }
     }
   }
 }
@@ -177,8 +157,6 @@ private struct FriendView: View {
 }
 
 private enum Constants {
-  static let invitationCodeIcon = "qrcode"
-  static let scannerIcon = "qrcode.viewfinder"
   static let connectionErrorIcon = "wifi.slash"
   static let emptyNetworkIcon = "person.line.dotted.person"
   static let animationDuration = 0.3
@@ -186,4 +164,5 @@ private enum Constants {
   static let listSpacing: CGFloat = 12
   static let listCornerRadius: CGFloat = 20
   static let avatarSize: CGFloat = 50
+  static let addPeopleIcon = "person.badge.plus"
 }
