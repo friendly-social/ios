@@ -26,7 +26,7 @@ private extension ActivityPreview {
     content.map {
       switch $0.kind {
       case let .text(text): String(text.characters)
-      case let .image(_, alt): alt
+      case let .image(_, alt, _, _): alt
       }
     }.joined()
   }

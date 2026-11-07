@@ -432,6 +432,7 @@ let package = Package(
     .target(
       name: "CommunityMarkdownFeature",
       dependencies: [
+        .product(name: "ImageService", package: "Infrastructure"),
         .product(name: "NukeUI", package: "Nuke"),
         "CommunityMarkdownService",
         "PhotoViewerFeature",

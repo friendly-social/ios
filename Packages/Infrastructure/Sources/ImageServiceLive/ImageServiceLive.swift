@@ -7,6 +7,11 @@ struct ImageServiceLive: Sendable {
 
   init(pipeline: ImagePipeline? = nil) { self.pipeline = pipeline ?? Self.makePipeline() }
 
+  static func decoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
+    if let svg = SVGImageDecoder(context: context) { return svg }
+    return ImageDecoderRegistry.shared.decoder(for: context)
+  }
+
   func prepare() { ImagePipeline.shared = pipeline }
 
   func cached(_ url: URL) -> Data? {
@@ -40,6 +45,7 @@ private extension ImageServiceLive {
     var configuration = ImagePipeline.Configuration.withDataCache(
       name: Constants.cacheName, sizeLimit: Constants.diskBytes)
     configuration.imageCache = ImageCache(costLimit: Constants.memoryBytes)
+    configuration.makeImageDecoder = Self.decoder
     configuration.maximumResponseDataSize = Constants.maximumBytes
     return ImagePipeline(configuration: configuration)
   }

@@ -24,7 +24,7 @@ public struct MarkdownDocument: Sendable {
     public let kind: Kind
     public enum Kind: Sendable {
       case text(AttributedString)
-      case image(url: URL?, alt: String)
+      case image(url: URL?, alt: String, width: Double? = nil, height: Double? = nil)
     }
   }
 
@@ -96,7 +96,11 @@ private extension MarkdownDocument {
       case is ThematicBreak:
         kind = .divider
       case let html as HTMLBlock:
-        kind = .unsupported(html.rawHTML)
+        if let image = HTMLImageParser.parse(html.rawHTML) {
+          kind = .paragraph([Inline(id: 0, kind: image)])
+        } else {
+          kind = .unsupported(html.rawHTML)
+        }
       default:
         kind = .unsupported(child.format())
       }
@@ -192,7 +196,12 @@ private extension MarkdownInlineBuilder {
       pending.append(AttributedString("\n", attributes: attributes))
       return
     case let html as InlineHTML:
-      pending.append(AttributedString(html.rawHTML, attributes: attributes))
+      if let image = HTMLImageParser.parse(html.rawHTML) {
+        flush()
+        result.append(Inline(id: result.count, kind: image))
+      } else {
+        pending.append(AttributedString(html.rawHTML, attributes: attributes))
+      }
       return
     default: break
     }

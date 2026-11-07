@@ -1,6 +1,7 @@
 import CommunityMarkdownService
 import CoreText
 import Foundation
+import ImageService
 import NukeUI
 import PhotoViewerFeature
 import SwiftUI
@@ -193,13 +194,13 @@ private extension MarkdownInlineView {
     switch inline.kind {
     case let .text(text):
       Text(text).fixedSize(horizontal: false, vertical: true)
-    case let .image(url, alt):
-      MarkdownImageView(url: url, alt: alt)
+    case let .image(url, alt, width, height):
+      MarkdownImageView(url: url, alt: alt, width: width, height: height)
     }
   }
 
   private var firstLineTopInset: CGFloat {
-    guard let first = content.first, case .image = first.kind else { return Constants.zero }
+    guard let first = content.first, first.kind.isImage else { return Constants.zero }
     let resolved = (font ?? .body).resolve(in: fontContext).ctFont
     return max(Constants.zero, CTFontGetAscent(resolved) - CTFontGetCapHeight(resolved))
   }
@@ -212,6 +213,8 @@ private struct MarkdownImageView: View {
   @State private var selectedImage: PresentedImage?
   let url: URL?
   let alt: String
+  var width: Double? = nil
+  var height: Double? = nil
 
   private struct PresentedImage: Identifiable {
     let id: URL
@@ -235,8 +238,6 @@ private extension MarkdownImageView {
         .frame(maxWidth: .infinity, minHeight: Constants.emptyImageHeight)
       }
     }
-    .background(.quaternary, in: .rect(cornerRadius: Constants.cornerRadius))
-    .clipShape(.rect(cornerRadius: Constants.cornerRadius))
     .fullScreenCover(item: $selectedImage) { selected in
       PhotoViewer(
         image: selected.image,
@@ -247,15 +248,20 @@ private extension MarkdownImageView {
   }
 
   private func remoteImageView(_ url: URL) -> some View {
-    MarkdownImageLayout(ratio: layoutCache?.ratio(for: url), maximumHeight: Constants.imageHeight) {
-      LazyImage(url: url) { state in
+    LazyImage(url: url) { state in
+      let svg = state.imageContainer?.userInfo[.init(SVGImage.metadataKey)] as? SVGImage
+      let size = svg?.size ?? state.imageContainer?.image.size
+      let radius = svg == nil ? Constants.cornerRadius : Constants.zero
+      MarkdownImageLayout(intrinsicSize: size ?? layoutCache?.size(for: url), maximumHeight: Constants.imageHeight,
+                          width: width, height: height) {
         imagePhaseView(state)
-          .onChange(of: state.imageContainer?.image.size, initial: true) {
-            if let size = state.imageContainer?.image.size {
-              // Rendered sizes would feed this cache back into its own layout.
-              layoutCache?.record(size: size, for: url)
-            }
-          }
+      }
+      .background {
+        if svg == nil { RoundedRectangle(cornerRadius: radius).fill(.quaternary) }
+      }
+      .clipShape(.rect(cornerRadius: radius))
+      .onChange(of: size, initial: true) {
+        if let size { layoutCache?.record(size: size, for: url) }
       }
     }
     .frame(maxHeight: Constants.imageHeight)
@@ -264,7 +270,9 @@ private extension MarkdownImageView {
 
   @ViewBuilder
   private func imagePhaseView(_ state: LazyImageState) -> some View {
-    if let image = state.image {
+    if let svg = state.imageContainer?.userInfo[.init(SVGImage.metadataKey)] as? SVGImage {
+      SVGWebView(data: svg.data).accessibilityLabel(alt.isEmpty ? Text(.markdownImage) : Text(alt))
+    } else if let image = state.image {
       if allowsImageViewing, let url {
         Button {
           var transaction = Transaction(animation: nil)
@@ -287,7 +295,7 @@ private extension MarkdownImageView {
     } else {
       ProgressView().frame(
         maxWidth: .infinity,
-        minHeight: url.flatMap { layoutCache?.ratio(for: $0) } == nil ? Constants.loadingHeight : nil)
+        minHeight: url.flatMap { layoutCache?.size(for: $0) } == nil ? Constants.loadingHeight : nil)
     }
   }
 
