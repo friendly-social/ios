@@ -261,8 +261,7 @@ private extension CommunityPostDetailView {
     reply: @escaping () -> Void
   ) -> some View {
     HStack(alignment: .top, spacing: Constants.avatarSpacing) {
-      CommunityAvatar(owner: post.owner, avatarURL: avatarURL)
-        .frame(width: Constants.avatarSize, height: Constants.avatarSize)
+      authorAvatar(for: post)
       CommunityPostTranslationView(
         original: original, allowsTranslation: model.canTranslate(post)
       ) { displayed, translation in
@@ -281,6 +280,23 @@ private extension CommunityPostDetailView {
     .padding(.horizontal, Constants.padding)
     .padding(.top, Constants.postTopPadding)
     .padding(.bottom, Constants.postBottomPadding)
+  }
+
+  @ViewBuilder
+  private func authorAvatar(for post: CommunityPost) -> some View {
+    if let owner = post.owner, let openAuthor {
+      Button { openAuthor(owner) } label: {
+        CommunityAvatar(owner: owner, avatarURL: avatarURL)
+          .frame(width: Constants.avatarSize, height: Constants.avatarSize)
+          .contentShape(.circle)
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(Text(.postProfile(owner.nickname)))
+      .accessibilityHint(.postAuthorHint)
+    } else {
+      CommunityAvatar(owner: post.owner, avatarURL: avatarURL)
+        .frame(width: Constants.avatarSize, height: Constants.avatarSize)
+    }
   }
 
   private func headerView(
