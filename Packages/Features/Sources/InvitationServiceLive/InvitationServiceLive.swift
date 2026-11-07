@@ -18,6 +18,11 @@ struct InvitationServiceLive: Sendable {
     let image = try await generateQRCode(for: url)
     return .init(url: url, image: image, expiration: invitation.expiration)
   }
+
+  @MainActor
+  func copyLink(_ url: URL) {
+    UIPasteboard.general.url = url
+  }
 }
 
 private extension InvitationServiceLive {

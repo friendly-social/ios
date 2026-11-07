@@ -5,6 +5,7 @@ import UIKit
 @DependencyClient
 public struct InvitationService: Sendable {
   public var generateInvitation: @Sendable (Bool) async throws -> InvitationCode
+  public var copyLink: @Sendable (URL) async -> Void
 }
 
 public struct InvitationCode: Sendable {
