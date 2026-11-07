@@ -1,4 +1,4 @@
-@testable import CommunityMarkdownFeature
+@testable import PhotoViewerFeature
 import Foundation
 import Testing
 
@@ -59,8 +59,8 @@ struct MarkdownPhotoViewerTests {
 }
 
 private extension MarkdownPhotoViewerTests {
-  private func makeModel() -> MarkdownPhotoViewModel {
-    let model = MarkdownPhotoViewModel()
+  private func makeModel() -> PhotoViewerModel {
+    let model = PhotoViewerModel()
     model.geometryChanged(viewport: CGSize(width: 400, height: 800), imageSize: CGSize(width: 400, height: 300))
     return model
   }

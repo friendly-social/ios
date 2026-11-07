@@ -4,11 +4,21 @@ import SwiftUI
 public struct AvatarView: View {
   private let url: URL?
   private let size: CGFloat
+  private let openLabel: LocalizedStringResource?
+  private let onOpen: ((Image, CGSize?, CGRect) -> Void)?
+  private let isPresented: Bool
+  @State private var sourceFrame = CGRect.zero
   @Environment(\.colorScheme) private var colorScheme
 
-  public init(url: URL?, size: CGFloat) {
+  public init(
+    url: URL?, size: CGFloat, openLabel: LocalizedStringResource? = nil,
+    isPresented: Bool = false, onOpen: ((Image, CGSize?, CGRect) -> Void)? = nil
+  ) {
     self.url = url
     self.size = size
+    self.openLabel = openLabel
+    self.isPresented = isPresented
+    self.onOpen = onOpen
   }
 
   public var body: some View { contentView() }
@@ -20,8 +30,7 @@ private extension AvatarView {
     if let url {
       LazyImage(url: url) { state in
         if let image = state.image {
-          image.resizable().aspectRatio(contentMode: .fill)
-            .frame(width: size, height: size).clipShape(.circle)
+          loadedImage(image, imageSize: state.imageContainer?.image.size)
         } else {
           placeholderView().overlay {
             ZStack {
@@ -34,6 +43,28 @@ private extension AvatarView {
     } else {
       placeholderView()
     }
+  }
+
+  @ViewBuilder
+  private func loadedImage(_ image: Image, imageSize: CGSize?) -> some View {
+    if let onOpen, let openLabel {
+      Button {
+        onOpen(image, imageSize, sourceFrame)
+      } label: {
+        avatarImage(image)
+          .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { sourceFrame = $0 }
+          .opacity(isPresented ? 0 : 1)
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(Text(openLabel))
+    } else {
+      avatarImage(image)
+    }
+  }
+
+  private func avatarImage(_ image: Image) -> some View {
+    image.resizable().aspectRatio(contentMode: .fill)
+      .frame(width: size, height: size).clipShape(.circle)
   }
 
   private func placeholderView() -> some View {

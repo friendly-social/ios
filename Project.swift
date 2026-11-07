@@ -113,6 +113,7 @@ let project = Project(
                 .package(product: "Networking"),
                 .package(product: "Nuke"),
                 .package(product: "NukeUI"),
+                .package(product: "PhotoViewerFeature"),
                 .package(product: "PostTranslationService"),
                 .package(product: "PostTranslationServiceLive"),
                 .target(name: "CommunityTestsHost"),

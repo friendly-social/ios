@@ -44,6 +44,7 @@ let package = Package(
     .library(name: "LiveDependencies", targets: ["LiveDependencies"]),
     .library(name: "NetworkFeature", targets: ["NetworkFeature"]),
     .library(name: "NetworkService", targets: ["NetworkService"]),
+    .library(name: "PhotoViewerFeature", targets: ["PhotoViewerFeature"]),
     .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
     .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
     .library(name: "ProfileFormService", targets: ["ProfileFormService"]),
@@ -425,10 +426,15 @@ let package = Package(
       ]
     ),
     .target(
+      name: "PhotoViewerFeature",
+      resources: [.process("Resources")]
+    ),
+    .target(
       name: "CommunityMarkdownFeature",
       dependencies: [
         .product(name: "NukeUI", package: "Nuke"),
         "CommunityMarkdownService",
+        "PhotoViewerFeature",
       ],
       resources: [
         .process("Resources"),
@@ -855,6 +861,7 @@ let package = Package(
       name: "CommunityMarkdownFeatureTests",
       dependencies: [
         "CommunityMarkdownFeature",
+        "PhotoViewerFeature",
       ]
     ),
   ]

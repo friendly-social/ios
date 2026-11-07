@@ -2,6 +2,7 @@ import CommunityMarkdownService
 import CoreText
 import Foundation
 import NukeUI
+import PhotoViewerFeature
 import SwiftUI
 
 public struct MarkdownPreview: View {
@@ -237,7 +238,11 @@ private extension MarkdownImageView {
     .background(.quaternary, in: .rect(cornerRadius: Constants.cornerRadius))
     .clipShape(.rect(cornerRadius: Constants.cornerRadius))
     .fullScreenCover(item: $selectedImage) { selected in
-      MarkdownPhotoViewer(image: selected.image, alt: alt, sourceFrame: selected.sourceFrame)
+      PhotoViewer(
+        image: selected.image,
+        imageLabel: alt.isEmpty ? Text(.markdownImage) : Text(alt),
+        sourceFrame: selected.sourceFrame
+      )
     }
   }
 
