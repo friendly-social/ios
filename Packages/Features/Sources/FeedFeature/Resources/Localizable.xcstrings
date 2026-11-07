@@ -1,125 +1,142 @@
 {
-  "sourceLanguage": "en",
-  "version": "1.1",
-  "strings": {
-    "feed_empty": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You're all caught up!"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "feed_common_friends" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Common friends"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Больше тут никого нет"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Общие друзья"
           }
         }
       }
     },
-    "feed_empty_advice": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Now you can talk to the people you've met"
+    "feed_empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're all caught up!"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Теперь время общаться с новыми знакомыми!"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Больше тут никого нет"
           }
         }
       }
     },
-    "feed_expand": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Expand"
+    "feed_empty_advice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now you can talk to the people you've met"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Раскрыть"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теперь время общаться с новыми знакомыми!"
           }
         }
       }
     },
-    "feed_extended_network": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EXTENDED NETWORK"
+    "feed_expand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ДАЛЬНЕЕ РУКОПОЖАТИЕ"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раскрыть"
           }
         }
       }
     },
-    "feed_liked_you": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "FRIEND REQUEST"
+    "feed_extended_network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EXTENDED NETWORK"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ЗАПРОС В ДРУЗЬЯ"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ДАЛЬНЕЕ РУКОПОЖАТИЕ"
           }
         }
       }
     },
-    "io_error_subtitle": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Looks like we can't reach our servers..."
+    "feed_liked_you" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FRIEND REQUEST"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Мы не можем достучаться до наших серверов…"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ЗАПРОС В ДРУЗЬЯ"
           }
         }
       }
     },
-    "io_error_title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connection problem"
+    "io_error_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looks like we can't reach our servers..."
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Проблема соединения"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мы не можем достучаться до наших серверов…"
+          }
+        }
+      }
+    },
+    "io_error_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection problem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проблема соединения"
           }
         }
       }
     }
-  }
+  },
+  "version" : "1.1"
 }

@@ -9,20 +9,20 @@ public struct DiscoveryFeedService: Sendable {
   public var declineFriend: @Sendable (UserId, UserAccessHash) async throws -> Void
 }
 
-public struct DiscoveryCandidate {
+public struct DiscoveryCandidate: Sendable {
   public let id: UserId
   public let accessHash: UserAccessHash
   public let avatarURL: URL?
   public let nickname: Nickname
   public let description: UserDescription
   public let interests: [Interest]
-  public let commonFriends: [DiscoveryCommonFriend]
+  public let commonFriends: [FriendSummary]
   public let isRequest: Bool
   public let isExtendedNetwork: Bool
 
   public init(
     id: UserId, accessHash: UserAccessHash, avatarURL: URL?, nickname: Nickname,
-    description: UserDescription, interests: [Interest], commonFriends: [DiscoveryCommonFriend],
+    description: UserDescription, interests: [Interest], commonFriends: [FriendSummary],
     isRequest: Bool, isExtendedNetwork: Bool
   ) {
     self.id = id
@@ -34,17 +34,5 @@ public struct DiscoveryCandidate {
     self.commonFriends = commonFriends
     self.isRequest = isRequest
     self.isExtendedNetwork = isExtendedNetwork
-  }
-}
-
-public struct DiscoveryCommonFriend {
-  public let id: UserId
-  public let accessHash: UserAccessHash
-  public let avatarURL: URL
-
-  public init(id: UserId, accessHash: UserAccessHash, avatarURL: URL) {
-    self.id = id
-    self.accessHash = accessHash
-    self.avatarURL = avatarURL
   }
 }

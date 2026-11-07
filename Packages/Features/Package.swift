@@ -315,12 +315,12 @@ let package = Package(
       name: "FeedFeature",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "Flow", package: "SwiftUI-Flow"),
         .product(name: "Models", package: "Domain"),
         .product(name: "NukeUI", package: "Nuke"),
         "DiscoveryFeedService",
         "FriendlyUIKit",
         "ProfileFeature",
+        "ProfileService",
       ],
       resources: [
         .process("Resources"),
@@ -753,6 +753,8 @@ let package = Package(
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
         "CommunityMarkdownService",
+        "DiscoveryFeedService",
+        "FeedFeature",
         "FilesApi",
         "FriendsApi",
         "FriendlyUIKit",

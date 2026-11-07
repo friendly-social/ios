@@ -31,8 +31,8 @@ struct MainView: View {
         systemImage: Constants.feed,
         value: .feed,
       ) {
-        RouterView { router in
-          FeedView(router: router)
+        NavigationStack {
+          FeedView()
         }
       }
 

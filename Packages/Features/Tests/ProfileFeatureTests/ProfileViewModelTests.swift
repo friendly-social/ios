@@ -1,6 +1,8 @@
 import CommunityMarkdownService
 import CustomDump
 import Dependencies
+import DiscoveryFeedService
+@testable import FeedFeature
 import FriendlyUIKit
 import Models
 @testable import ProfileFeature
@@ -12,6 +14,59 @@ import Testing
 
 @MainActor
 struct ProfileViewModelTests {
+  @Test func feedOpensCommonFriendsIncludingThoseWithoutAvatars() async throws {
+    let hash = try UserAccessHash(String(repeating: "b", count: 256))
+    let friend = FriendSummary(id: UserId(2), accessHash: hash,
+      nickname: try Nickname("Maria"), avatarURL: nil)
+    let candidate = DiscoveryCandidate(id: UserId(1), accessHash: hash, avatarURL: nil,
+      nickname: try Nickname("Anna"), description: try UserDescription("Hello"),
+      interests: [], commonFriends: [friend], isRequest: false, isExtendedNetwork: true)
+    var service = DiscoveryFeedService()
+    service.loadCandidates = { [candidate] }
+    let model = withDependencies {
+      $0[DiscoveryFeedService.self] = service
+    } operation: { FeedViewModel() }
+    await model.reload()
+    guard case let .success(entries) = model.state, let entry = entries.first else {
+      Issue.record("Expected a candidate")
+      return
+    }
+    expectNoDifference(entry.friendsPreview.names, "Maria")
+    #expect(entry.friendsPreview.avatars.first?.url == nil)
+    entry.onOpenFriends()
+    guard case let .friends(route) = model.destination else {
+      Issue.record("Expected the common friends screen")
+      return
+    }
+    expectNoDifference(route.friends.map(\.id), [friend.id])
+    expectNoDifference(route.friends.first?.accessHash, hash)
+  }
+
+  @Test(arguments: [false, true])
+  func cancelledFeedRequestsDoNotChangeState(fails: Bool) async {
+    let (started, start) = AsyncStream<Void>.makeStream()
+    let (resumed, resume) = AsyncStream<Void>.makeStream()
+    let response = Task { for await _ in resumed { break } }
+    var service = DiscoveryFeedService()
+    service.loadCandidates = {
+      start.yield()
+      await response.value
+      if fails { throw Failure.unavailable }
+      return []
+    }
+    let model = withDependencies {
+      $0[DiscoveryFeedService.self] = service
+    } operation: { FeedViewModel() }
+    let load = Task { await model.reload() }
+    var iterator = started.makeAsyncIterator()
+    _ = await iterator.next()
+    load.cancel()
+    resume.yield()
+    resume.finish()
+    await load.value
+    if case .loading = model.state {} else { Issue.record("A cancelled load changed the state") }
+  }
+
   @Test func requestReloadsServerFriendship() async throws {
     let calls = Mutex(0)
     var service = ProfileService()

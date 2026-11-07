@@ -104,6 +104,8 @@ let project = Project(
                 .package(product: "CustomDump"),
                 .package(product: "Dependencies"),
                 .package(product: "DependenciesTestSupport"),
+                .package(product: "DiscoveryFeedService"),
+                .package(product: "FeedFeature"),
                 .package(product: "FilesApi"),
                 .package(product: "FilesApiLive"),
                 .package(product: "FriendsApi"),

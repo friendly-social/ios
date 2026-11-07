@@ -1,264 +1,272 @@
-import Flow
 import FriendlyUIKit
 import Models
 import NukeUI
 import SwiftUI
 
 struct FeedSwipeCardView: View {
-    @State private var translation: CGSize = .zero
-    @State private var dragDirection: DragDirection? = nil
-    @State private var swipeStatus: LikeDislike = .none {
-        didSet {
-            if swipeStatus == .like {
-                entry.onLike()
-            }
-            if swipeStatus == .dislike {
-                entry.onDislike()
-            }
-        }
+  @State private var translation: CGSize = .zero
+  @State private var dragDirection: DragDirection?
+  @State private var swipeStatus: SwipeAction = .none {
+    didSet {
+      if swipeStatus == .like { entry.onLike() }
+      if swipeStatus == .dislike { entry.onDislike() }
     }
+  }
+  private let entry: FeedViewModel.Entry
 
-    let entry: FeedViewModel.Entry
+  init(entry: FeedViewModel.Entry) {
+    self.entry = entry
+  }
 
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            ZStack {
-                VStack {
-                    Avatar(url: entry.avatarUrl).overlay {
-                        VStack {
-                            if entry.isRequest {
-                                TopChip(string: .feedLikedYou)
-                            } else if entry.isExtendedNetwork {
-                                TopChip(string: .feedExtendedNetwork)
-                            }
-                            Spacer()
-                            Interests(
-                                dragDirection: $dragDirection,
-                                interests: entry.interests,
-                            )
-                            .padding(.bottom)
-                        }
-                    }
-                    VStack(alignment: .leading) {
-                        Text(entry.nickname.string)
-                            .font(.title2)
-                            .bold()
-                            .padding(.bottom, 3)
-                        CollapsibleText(text: entry.description.string)
-                            .font(.subheadline)
-                            .truncationMode(.tail)
-                            .lineLimit(9)
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom)
-                    .padding(.top, 5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Button(role: .destructive) {
-                    runActionWithAnimation(for: .dislike)
-                } label: {
-                    Image(systemName: "xmark")
-                        .bold()
-                        .padding()
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .glassEffect(
-                    .regular.tint(.gray.opacity(0.2)).interactive(),
-                    in: Circle(),
-                )
-                Spacer()
-                if !entry.commonFriends.isEmpty {
-                    ZStack {
-                        ForEach(
-                            entry.commonFriends.enumerated(),
-                            id: \.element.id,
-                        ) { i, friend in
-                            Button(action: friend.onClick) {
-                                AvatarView(
-                                    url: friend.avatarUrl,
-                                    size: 40,
-                                )
-                                .padding(3)
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffect(.regular.tint(.gray.opacity(0.2)))
-                            .offset(x: CGFloat(i) * 25)
-                        }
-                    }
-                    .frame(
-                        width: CGFloat(
-                            40 + 6 + 25 * (entry.commonFriends.count - 1),
-                        ),
-                        alignment: .leading
-                    )
-                    .padding(2)
-                    .glassEffect(.regular.tint(.gray.opacity(0.2)))
-                }
-                Spacer()
-                Button(role: .confirm) {
-                    runActionWithAnimation(for: .like)
-                } label: {
-                    Image(systemName: "checkmark")
-                        .foregroundColor(.white)
-                        .bold()
-                        .padding()
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .glassEffect(
-                    .regular.tint(.accentColor).interactive(),
-                    in: Circle(),
-                )
-                .contentShape(.rect)
-            }
-            .padding(.bottom)
-            .padding(.horizontal)
-            .background {
-                BlurView()
-            }
-        }
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .overlay {
-            ColoredOverlay(translation: translation.width)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(
-            color: .black.opacity(0.05),
-            radius: 10,
-        )
-        .offset(x: translation.width, y: translation.height)
-        .rotationEffect(.degrees(Double(translation.width / 40)))
-        .scrollDisabled(dragDirection == .horizontal)
-        .scrollBounceBehavior(.basedOnSize)
-        .simultaneousGesture(
-            DragGesture()
-                .onChanged { gesture in
-                    if dragDirection == nil {
-                        let horizontalAmount = abs(gesture.translation.width)
-                        let verticalAmount = abs(gesture.translation.height)
-                        if horizontalAmount > 5 || verticalAmount > 5 {
-                            dragDirection = horizontalAmount > verticalAmount
-                                ? .horizontal
-                                : .vertical
-                        }
-                    }
-                    if dragDirection == .horizontal {
-                        translation = gesture.translation
-                    }
-                }.onEnded { _ in
-                    withAnimation {
-                        swipeCard(width: translation.width)
-                    }
-                    dragDirection = nil
-                }
-        )
+  var body: some View {
+    ScrollView(showsIndicators: false) {
+      VStack {
+        avatarView()
+        descriptionView()
+      }
     }
-
-    private func swipeCard(width: CGFloat) {
-        switch width {
-        case -500...(-150):
-            swipeStatus = .dislike
-            translation = CGSize(width: -500, height: 0)
-        case 150...500:
-            swipeStatus = .like
-            translation = CGSize(width: 500, height: 0)
-        default:
-            translation = .zero
-            swipeStatus = .none
-        }
-    }
-
-    private func runActionWithAnimation(for actionType: LikeDislike) {
-
-        let width: CGFloat = switch actionType {
-        case .like: 500
-        case .dislike: -500
-        case .none: 0
-        }
-
-        withAnimation {
-            swipeCard(width: width)
-        }
-    }
+    .safeAreaInset(edge: .bottom) { actionsView() }
+    .background(Constants.background)
+    .overlay { SwipeFeedbackView(translation: translation.width) }
+    .clipShape(.rect(cornerRadius: Constants.cornerRadius))
+    .shadow(color: Constants.shadowColor, radius: Constants.shadowRadius)
+    .offset(x: translation.width, y: translation.height)
+    .rotationEffect(.degrees(Double(translation.width / Constants.rotationSensitivity)))
+    .scrollDisabled(dragDirection == .horizontal)
+    .scrollBounceBehavior(.basedOnSize)
+    .simultaneousGesture(cardGesture())
+  }
 }
 
-private struct ColoredOverlay: View {
-    let translation: CGFloat
-
-    var body: some View {
-        if translation < -100 {
-            let progress = -(max(-300, translation) + 100) / 200
-            ZStack {
-                Color.red.opacity(0.3 * progress)
-                Rectangle().fill(.ultraThinMaterial.opacity(0.9 * progress))
-            }
+private extension FeedSwipeCardView {
+  private func avatarView() -> some View {
+    CandidateAvatarView(url: entry.avatarUrl).overlay {
+      VStack {
+        if entry.isRequest {
+          CandidateBadgeView(title: .feedLikedYou)
+        } else if entry.isExtendedNetwork {
+          CandidateBadgeView(title: .feedExtendedNetwork)
         }
-        if translation > 100 {
-            let progress = (min(300, translation) - 100) / 200
-            ZStack {
-                Color.accentColor.opacity(0.3 * progress)
-                Rectangle().fill(.ultraThinMaterial.opacity(0.9 * progress))
-            }
-        }
+        Spacer()
+        CandidateInterestsView(
+          dragDirection: $dragDirection,
+          interests: entry.interests,
+        )
+        .padding(.bottom)
+      }
     }
+  }
+
+  private func descriptionView() -> some View {
+    VStack(alignment: .leading) {
+      Text(entry.nickname.string)
+        .font(.title2)
+        .bold()
+        .padding(.bottom, Constants.nameBottomPadding)
+      ExpandableDescriptionView(text: entry.description.string)
+        .font(.subheadline)
+        .truncationMode(.tail)
+        .lineLimit(Constants.cardDescriptionLineLimit)
+    }
+    .padding(.horizontal)
+    .padding(.bottom)
+    .padding(.top, Constants.descriptionTopPadding)
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private func dislikeButton() -> some View {
+    Button(role: .destructive) {
+      runActionWithAnimation(for: .dislike)
+    } label: {
+      Image(systemName: Constants.dislikeSymbol)
+        .bold()
+        .padding()
+        .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .glassEffect(
+      .regular.tint(.gray.opacity(Constants.glassTintOpacity)).interactive(),
+      in: Circle(),
+    )
+  }
+
+  private func likeButton() -> some View {
+    Button(role: .confirm) {
+      runActionWithAnimation(for: .like)
+    } label: {
+      Image(systemName: Constants.likeSymbol)
+        .foregroundStyle(Constants.confirmForeground)
+        .bold()
+        .padding()
+        .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .glassEffect(
+      .regular.tint(.accentColor).interactive(),
+      in: Circle(),
+    )
+    .contentShape(.rect)
+  }
+
+  private func actionsView() -> some View {
+    HStack {
+      dislikeButton()
+      Spacer()
+      commonFriendsButton()
+      Spacer()
+      likeButton()
+    }
+    .padding(.bottom)
+    .padding(.horizontal)
+    .background { CardActionsBackgroundView() }
+  }
+
+  @ViewBuilder
+  private func commonFriendsButton() -> some View {
+    if !entry.friendsPreview.avatars.isEmpty {
+      Button(action: entry.onOpenFriends) {
+        FriendsAvatarsView(preview: entry.friendsPreview)
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(.feedCommonFriends)
+    }
+  }
+
+  private func cardGesture() -> some Gesture {
+    DragGesture()
+      .onChanged(handleDragChanged)
+      .onEnded { _ in handleDragEnded() }
+  }
+
+  private func handleDragChanged(_ gesture: DragGesture.Value) {
+    if dragDirection == nil {
+      let horizontalAmount = abs(gesture.translation.width)
+      let verticalAmount = abs(gesture.translation.height)
+      if horizontalAmount > Constants.dragThreshold || verticalAmount > Constants.dragThreshold {
+        dragDirection = horizontalAmount > verticalAmount ? .horizontal : .vertical
+      }
+    }
+    if dragDirection == .horizontal { translation = gesture.translation }
+  }
+
+  private func handleDragEnded() {
+    withAnimation { swipeCard(width: translation.width) }
+    dragDirection = nil
+  }
+
+  private func swipeCard(width: CGFloat) {
+    switch width {
+    case (-Constants.swipeExitDistance)...(-Constants.swipeThreshold):
+      swipeStatus = .dislike
+      translation = CGSize(width: -Constants.swipeExitDistance, height: Constants.zero)
+    case Constants.swipeThreshold...Constants.swipeExitDistance:
+      swipeStatus = .like
+      translation = CGSize(width: Constants.swipeExitDistance, height: Constants.zero)
+    default:
+      translation = .zero
+      swipeStatus = .none
+    }
+  }
+
+  private func runActionWithAnimation(for actionType: SwipeAction) {
+    let width: CGFloat = switch actionType {
+    case .like: Constants.swipeExitDistance
+    case .dislike: -Constants.swipeExitDistance
+    case .none: Constants.zero
+    }
+    withAnimation {
+      swipeCard(width: width)
+    }
+  }
 }
 
-private struct CollapsibleText: View {
-    let text: String
+private struct SwipeFeedbackView: View {
+  private let translation: CGFloat
 
-    @State private var isExpanded = false
-    @State private var isTruncated = false
+  init(translation: CGFloat) {
+    self.translation = translation
+  }
 
-    var body: some View {
-        VStack(alignment: .trailing) {
-            Text(text)
-                .lineLimit(isExpanded ? nil : 8)
-                .background {
-                    ViewThatFits(in: .vertical) {
-                        Text(text)
-                            .lineLimit(nil)
-                            .hidden()
-                        Color.clear.onAppear {
-                            isTruncated = true
-                        }
-                    }
-                }
-            Spacer()
-                .frame(height: 7)
-            if isTruncated && !isExpanded {
-                Button(.feedExpand) {
-                    withAnimation {
-                        isExpanded = true
-                    }
-                }
-                .fontWeight(.bold)
-            }
-        }
+  var body: some View {
+    if translation < -Constants.overlayStartDistance {
+      feedbackView(color: Constants.dislikeColor)
     }
+    if translation > Constants.overlayStartDistance {
+      feedbackView(color: Constants.likeColor)
+    }
+  }
+}
+
+private extension SwipeFeedbackView {
+  private var progress: Double {
+    Double((min(Constants.overlayFullDistance, abs(translation)) - Constants.overlayStartDistance) / Constants.overlayRange)
+  }
+
+  private func feedbackView(color: Color) -> some View {
+    ZStack {
+      color.opacity(Constants.overlayColorOpacity * progress)
+      Rectangle().fill(.ultraThinMaterial.opacity(Constants.overlayMaterialOpacity * progress))
+    }
+  }
+}
+
+private struct ExpandableDescriptionView: View {
+  @State private var isExpanded = false
+  @State private var isTruncated = false
+  private let text: String
+
+  init(text: String) {
+    self.text = text
+  }
+
+  var body: some View {
+    VStack(alignment: .trailing) {
+      Text(text)
+        .lineLimit(isExpanded ? nil : Constants.collapsedDescriptionLineLimit)
+        .background { truncationProbeView() }
+      Spacer().frame(height: Constants.expandButtonSpacing)
+      if isTruncated && !isExpanded { expandButton() }
+    }
+  }
+}
+
+private extension ExpandableDescriptionView {
+  private func truncationProbeView() -> some View {
+    ViewThatFits(in: .vertical) {
+      Text(text).lineLimit(nil).hidden()
+      Color.clear.onAppear { isTruncated = true }
+    }
+  }
+
+  private func expandButton() -> some View {
+    Button(.feedExpand) {
+      withAnimation { isExpanded = true }
+    }
+    .fontWeight(.bold)
+  }
 }
 
 private enum DragDirection {
-    case horizontal
-    case horizontalBlocked
-    case vertical
+  case horizontal
+  case horizontalBlocked
+  case vertical
 }
 
-private enum LikeDislike: Int {
-    case like, dislike, none
+private enum SwipeAction {
+  case like, dislike, none
 }
 
-private struct Avatar: View {
-  let url: URL?
+private struct CandidateAvatarView: View {
+  private let url: URL?
+
+  init(url: URL?) {
+    self.url = url
+  }
 
   var body: some View { imageView().overlay { bottomGradientView() } }
 }
 
-private extension Avatar {
+private extension CandidateAvatarView {
   @ViewBuilder
   private func imageView() -> some View {
     if let url {
@@ -296,87 +304,104 @@ private extension Avatar {
   }
 }
 
-private struct Interests: View {
-    @Binding var dragDirection: DragDirection?
-    let interests: [Interest]
+private struct CandidateInterestsView: View {
+  @Binding private var dragDirection: DragDirection?
+  private let interests: [Interest]
 
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 5) {
-                Spacer()
-                    .frame(width: 10)
-                ForEach(interests, id: \.string) { interest in
-                    ChipView(text: interest.string)
-                }
-                Spacer()
-                    .frame(width: 10)
-            }
+  init(dragDirection: Binding<DragDirection?>, interests: [Interest]) {
+    _dragDirection = dragDirection
+    self.interests = interests
+  }
+
+  var body: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: Constants.interestSpacing) {
+        Spacer().frame(width: Constants.interestsEdgeWidth)
+        ForEach(interests, id: \.string) { interest in
+          ChipView(text: interest.string)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    dragDirection = .horizontalBlocked
-                }
-                .onEnded { _ in
-                    dragDirection = nil
-                }
-        )
-        .mask(
-            HStack(spacing: 0) {
-                LinearGradient(
-                    gradient: Gradient(
-                        colors: [.clear, .black],
-                    ),
-                    startPoint: .leading,
-                    endPoint: .trailing,
-                )
-                .frame(width: 10)
-                Rectangle().fill(.black)
-                LinearGradient(
-                    gradient: Gradient(
-                        colors: [.clear, .black],
-                    ),
-                    startPoint: .trailing,
-                    endPoint: .leading,
-                )
-                .frame(width: 10)
-            }
-        )
+        Spacer().frame(width: Constants.interestsEdgeWidth)
+      }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .simultaneousGesture(interestsGesture())
+    .mask { edgeMaskView() }
+  }
 }
 
-private struct TopChip: View {
-    let string: LocalizedStringResource
+private extension CandidateInterestsView {
+  private func interestsGesture() -> some Gesture {
+    DragGesture(minimumDistance: Constants.zero)
+      .onChanged { _ in dragDirection = .horizontalBlocked }
+      .onEnded { _ in dragDirection = nil }
+  }
 
-    var body: some View {
-        Text(string)
-            .font(.caption)
-            .bold()
-            .foregroundColor(.secondary)
-            .padding()
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
+  private func edgeMaskView() -> some View {
+    HStack(spacing: Constants.zero) {
+      LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+        .frame(width: Constants.interestsEdgeWidth)
+      Rectangle().fill(.black)
+      LinearGradient(colors: [.clear, .black], startPoint: .trailing, endPoint: .leading)
+        .frame(width: Constants.interestsEdgeWidth)
     }
+  }
 }
 
+private struct CandidateBadgeView: View {
+  private let title: LocalizedStringResource
 
-private struct BlurView: View {
-    var body: some View {
-        ZStack {
-            let gradient = LinearGradient(
-                gradient: Gradient(colors: [.clear, .black]),
-                startPoint: .top,
-                endPoint: .bottom,
-            )
-            Color(.secondarySystemGroupedBackground)
-                .mask(gradient)
-        }
+  init(title: LocalizedStringResource) {
+    self.title = title
+  }
+
+  var body: some View {
+    Text(title)
+      .font(.caption)
+      .bold()
+      .foregroundStyle(.secondary)
+      .padding()
+      .glassEffect(.regular, in: .rect(cornerRadius: Constants.cornerRadius))
+      .padding()
+      .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+private struct CardActionsBackgroundView: View {
+  var body: some View {
+    Constants.background.mask {
+      LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
     }
+  }
 }
 
 private enum Constants {
+  static let background = Color(uiColor: .secondarySystemGroupedBackground)
+  static let confirmForeground = Color.white
+  static let shadowColor = Color.black.opacity(0.05)
+  static let dislikeColor = Color.red
+  static let likeColor = Color.accentColor
+  static let dislikeSymbol = "xmark"
+  static let likeSymbol = "checkmark"
+  static let nameBottomPadding: CGFloat = 3
+  static let descriptionTopPadding: CGFloat = 5
+  static let cornerRadius: CGFloat = 20
+  static let shadowRadius: CGFloat = 10
+  static let rotationSensitivity: CGFloat = 40
+  static let dragThreshold: CGFloat = 5
+  static let swipeExitDistance: CGFloat = 500
+  static let swipeThreshold: CGFloat = 150
+  static let overlayStartDistance: CGFloat = 100
+  static let overlayFullDistance: CGFloat = 300
+  static let overlayRange = overlayFullDistance - overlayStartDistance
+  static let overlayColorOpacity = 0.3
+  static let overlayMaterialOpacity = 0.9
+  static let glassTintOpacity = 0.2
+  static let cardDescriptionLineLimit = 9
+  static let collapsedDescriptionLineLimit = 8
+  static let expandButtonSpacing: CGFloat = 7
+  static let interestSpacing: CGFloat = 5
+  static let interestsEdgeWidth: CGFloat = 10
+  static let zero: CGFloat = 0
   static let avatarSymbol = "person.fill"
   static let avatarRatio: CGFloat = 1
   static let avatarBackground = Color.gray

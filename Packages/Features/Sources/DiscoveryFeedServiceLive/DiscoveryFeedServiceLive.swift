@@ -3,7 +3,6 @@ import Dependencies
 import DiscoveryFeedService
 import FeedApi
 import FilesApi
-import Foundation
 import FriendsApi
 import Models
 
@@ -43,13 +42,13 @@ struct DiscoveryFeedServiceLive: Sendable {
 }
 
 private extension DiscoveryFeedServiceLive {
-  private func commonFriends(for entry: FeedQueue.Entry) -> [DiscoveryCommonFriend] {
-    entry.commonFriends.compactMap { friend in
-      guard let avatar = friend.avatar else { return nil }
-      return DiscoveryCommonFriend(
+  private func commonFriends(for entry: FeedQueue.Entry) -> [FriendSummary] {
+    entry.commonFriends.map { friend in
+      .init(
         id: friend.id,
         accessHash: friend.accessHash,
-        avatarURL: filesApi.downloadURL(for: avatar)
+        nickname: friend.nickname,
+        avatarURL: friend.avatar.map { filesApi.downloadURL(for: $0) }
       )
     }
   }

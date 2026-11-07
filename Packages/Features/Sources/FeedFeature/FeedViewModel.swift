@@ -1,150 +1,123 @@
 import Dependencies
 import DiscoveryFeedService
+import Foundation
 import FriendlyUIKit
 import Models
-import SwiftUI
+import Observation
 
 @MainActor
 @Observable
-class FeedViewModel {
-    @ObservationIgnored @Dependency(DiscoveryFeedService.self) private var service
+final class FeedViewModel {
+  @ObservationIgnored @Dependency(DiscoveryFeedService.self) private var service
 
-    var state: State = .loading
+  var state: State = .loading
+  var destination: Destination?
 
-    let router: Router
-
-    init(router: Router) {
-        self.router = router
+  func reload() async {
+    do {
+      try Task.checkCancellation()
+      let candidates = try await service.loadCandidates()
+      try Task.checkCancellation()
+      state = .success(candidates.map(makeEntry))
+    } catch is CancellationError {
+      return
+    } catch {
+      guard !Task.isCancelled else { return }
+      state = .ioError
     }
+  }
 
-    func appear() {
-        Task {
-            await reload()
-        }
+  enum State {
+    case loading
+    case ioError
+    case success([Entry])
+
+    enum Phase: Equatable { case loading, ioError, success }
+
+    var phase: Phase {
+      switch self {
+      case .loading: .loading
+      case .ioError: .ioError
+      case .success: .success
+      }
     }
+  }
 
-    private func reload() async {
-        do {
-            let candidates = try await service.loadCandidates()
-            let entries = candidates.map { entry in
-                let commonFriends: [CommonFriend] = entry.commonFriends
-                    .map { friend in
-                        return CommonFriend(
-                            id: friend.id,
-                            avatarUrl: friend.avatarURL,
-                            onClick: { [weak self] in
-                                guard let self = self else { return }
-                                self.router.path.append(
-                                    ProfileDestination(
-                                        id: friend.id,
-                                        accessHash: friend.accessHash,
-                                    )
-                                )
-                            },
-                        )
-                    }
-                return Entry(
-                    id: entry.id,
-                    avatarUrl: entry.avatarURL,
-                    nickname: entry.nickname,
-                    description: entry.description,
-                    interests: entry.interests,
-                    commonFriends: commonFriends,
-                    isRequest: entry.isRequest,
-                    isExtendedNetwork: entry.isExtendedNetwork,
-                    onLike: { [weak self] in
-                        guard let self = self else { return }
-                        self.onLike(
-                            id: entry.id,
-                            accessHash: entry.accessHash,
-                        )
-                    },
-                    onDislike: { [weak self] in
-                        guard let self = self else { return }
-                        self.onDislike(
-                            id: entry.id,
-                            accessHash: entry.accessHash,
-                        )
-                    },
-                )
-            }
-            state = .success(entries)
-        } catch {
-            state = .ioError
-        }
+  enum Destination: Hashable, Identifiable {
+    case friends(FriendsRoute)
+    var id: Self { self }
+  }
+
+  struct FriendsRoute: Hashable {
+    let id: UserId
+    let accessHash: UserAccessHash
+    let friends: [FriendSummary]
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+  }
+
+  struct Entry {
+    let id: UserId
+    let avatarUrl: URL?
+    let nickname: Nickname
+    let description: UserDescription
+    let interests: [Interest]
+    let friendsPreview: FriendsPreview
+    let onOpenFriends: () -> Void
+    let isRequest: Bool
+    let isExtendedNetwork: Bool
+    let onLike: () -> Void
+    let onDislike: () -> Void
+  }
+}
+
+private extension FeedViewModel {
+  private func makeEntry(_ candidate: DiscoveryCandidate) -> Entry {
+    .init(
+      id: candidate.id,
+      avatarUrl: candidate.avatarURL,
+      nickname: candidate.nickname,
+      description: candidate.description,
+      interests: candidate.interests,
+      friendsPreview: FriendsPreview(friends: candidate.commonFriends),
+      onOpenFriends: { [weak self] in
+        self?.destination = .friends(.init(id: candidate.id, accessHash: candidate.accessHash,
+                                          friends: candidate.commonFriends))
+      },
+      isRequest: candidate.isRequest,
+      isExtendedNetwork: candidate.isExtendedNetwork,
+      onLike: { [weak self] in self?.onLike(id: candidate.id, accessHash: candidate.accessHash) },
+      onDislike: { [weak self] in self?.onDislike(id: candidate.id, accessHash: candidate.accessHash) }
+    )
+  }
+
+  private func onLike(
+    id: UserId,
+    accessHash: UserAccessHash,
+  ) {
+    removeCandidate(id: id)
+    Task {
+      try? await service.requestFriend(id, accessHash)
     }
+  }
 
-    private func onLike(
-        id: UserId,
-        accessHash: UserAccessHash,
-    ) {
-        guard case .success(var entries) = state else {
-            fatalError("Can't call onLike when state is not success")
-        }
-        entries.removeAll { entry in entry.id == id }
-        state = .success(entries)
-        Task {
-            // Ignore all failures as they are not really important.
-            // Worst case scenario is that user will see again some of the
-            // people they already have seen.
-            // UI for the error might be worse than this side-effect.
-            try? await service.requestFriend(id, accessHash)
-        }
+  private func onDislike(
+    id: UserId,
+    accessHash: UserAccessHash,
+  ) {
+    removeCandidate(id: id)
+    Task {
+      try? await service.declineFriend(id, accessHash)
     }
+  }
 
-    private func onDislike(
-        id: UserId,
-        accessHash: UserAccessHash,
-    ) {
-        guard case .success(var entries) = state else {
-            fatalError("Can't call onLike when state is not success")
-        }
-        entries.removeAll { entry in entry.id == id }
-        state = .success(entries)
-        Task {
-            // Ignore all failures as they are not really important.
-            // Worst case scenario is that user will see again some of the
-            // people they already have seen.
-            // UI for the error might be worse than this side-effect.
-            try? await service.declineFriend(id, accessHash)
-        }
+  // Failed actions stay dismissed until the next reload reconciles the queue.
+  private func removeCandidate(id: UserId) {
+    guard case .success(var entries) = state else {
+      fatalError("Candidate actions require a loaded feed")
     }
-
-    enum State {
-        case loading
-        case ioError
-        case success([Entry])
-
-        var rawValue: Int {
-            return switch self {
-            case .loading: 0
-            case .ioError: 1
-            case .success: 2
-            }
-        }
-    }
-
-    struct Entry {
-        let id: UserId
-        let avatarUrl: URL?
-        let nickname: Nickname
-        let description: UserDescription
-        let interests: [Interest]
-        let commonFriends: [CommonFriend]
-        let isRequest: Bool
-        let isExtendedNetwork: Bool
-        let onLike: () -> Void
-        let onDislike: () -> Void
-    }
-
-    struct CommonFriend {
-        let id: UserId
-        let avatarUrl: URL
-        let onClick: () -> Void
-    }
-
-    struct ProfileDestination: Hashable {
-        let id: UserId
-        let accessHash: UserAccessHash
-    }
+    entries.removeAll { $0.id == id }
+    state = .success(entries)
+  }
 }

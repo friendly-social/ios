@@ -246,13 +246,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feed"
+            "value": "People"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Лента"
+            "value": "Люди"
           }
         }
       }
