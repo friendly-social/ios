@@ -1,6 +1,5 @@
 import CommunityRootFeature
 import FeedFeature
-import FriendlyUIKit
 import ProfileFeature
 import SwiftUI
 
@@ -41,7 +40,7 @@ struct MainView: View {
         systemImage: Constants.profile,
         value: .profile,
       ) {
-        RouterView { router in
+        NavigationStack {
           let selfProfile = ProfileView.SelfProfile(
             routeToSignUp: viewModel.routeToSignUp,
           )

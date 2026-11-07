@@ -46,7 +46,6 @@ let project = Project(
                 .package(product: "Dependencies"),
                 .package(product: "FeedFeature"),
                 .package(product: "FriendAccessService"),
-                .package(product: "FriendlyUIKit"),
                 .package(product: "ImageService"),
                 .package(product: "LiveDependencies"),
                 .package(product: "Models"),
