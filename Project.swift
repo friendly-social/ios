@@ -107,6 +107,7 @@ let project = Project(
                 .package(product: "DependenciesTestSupport"),
                 .package(product: "FilesApi"),
                 .package(product: "FilesApiLive"),
+                .package(product: "FriendlyUIKit"),
                 .package(product: "ImageService"),
                 .package(product: "ImageServiceLive"),
                 .package(product: "Models"),

@@ -256,6 +256,7 @@ let package = Package(
     .target(
       name: "FriendlyUIKit",
       dependencies: [
+        .product(name: "Models", package: "Domain"),
         .product(name: "NukeUI", package: "Nuke"),
       ]
     ),
@@ -779,6 +780,8 @@ let package = Package(
       name: "ProfileFeatureTests",
       dependencies: [
         .product(name: "CustomDump", package: "swift-custom-dump"),
+        .product(name: "Models", package: "Domain"),
+        "FriendlyUIKit",
         "ProfileApi",
         "ProfileApiLive",
       ]
