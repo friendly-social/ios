@@ -50,7 +50,6 @@ let project = Project(
                 .package(product: "ImageService"),
                 .package(product: "LiveDependencies"),
                 .package(product: "Models"),
-                .package(product: "NetworkFeature"),
                 .package(product: "ProfileFeature"),
                 .package(product: "ProfileFormService"),
                 .package(product: "ScannerFeature"),

@@ -257,23 +257,6 @@
         }
       }
     },
-    "main_network": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Network"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сообщество"
-          }
-        }
-      }
-    },
     "main_profile": {
       "extractionState": "manual",
       "localizations": {

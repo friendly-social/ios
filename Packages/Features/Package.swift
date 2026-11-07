@@ -42,8 +42,6 @@ let package = Package(
     .library(name: "FriendsApiLive", targets: ["FriendsApiLive"]),
     .library(name: "FriendlyUIKit", targets: ["FriendlyUIKit"]),
     .library(name: "LiveDependencies", targets: ["LiveDependencies"]),
-    .library(name: "NetworkFeature", targets: ["NetworkFeature"]),
-    .library(name: "NetworkService", targets: ["NetworkService"]),
     .library(name: "PhotoViewerFeature", targets: ["PhotoViewerFeature"]),
     .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
     .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
@@ -415,23 +413,6 @@ let package = Package(
       ]
     ),
     .target(
-      name: "NetworkFeature",
-      dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "Models", package: "Domain"),
-        "FriendlyUIKit",
-        "NetworkQRCodeFeature",
-        "NetworkService",
-        "ProfileFeature",
-      ],
-      resources: [
-        .process("Resources"),
-      ],
-      swiftSettings: [
-        .swiftLanguageMode(.v5),
-      ]
-    ),
-    .target(
       name: "PhotoViewerFeature",
       resources: [.process("Resources")]
     ),
@@ -612,14 +593,6 @@ let package = Package(
       ]
     ),
     .target(
-      name: "NetworkService",
-      dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "DependenciesMacros", package: "swift-dependencies"),
-        .product(name: "Models", package: "Domain"),
-      ]
-    ),
-    .target(
       name: "PostTranslationService",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
@@ -713,16 +686,6 @@ let package = Package(
       resources: [.copy("Resources/InvitationIcon.png")]
     ),
     .target(
-      name: "NetworkServiceLive",
-      dependencies: [
-        .product(name: "AccountStorageService", package: "Infrastructure"),
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        "FilesApi",
-        "FriendsApi",
-        "NetworkService",
-      ]
-    ),
-    .target(
       name: "ProfileFormServiceLive",
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),
@@ -773,7 +736,6 @@ let package = Package(
         "FriendAccessServiceLive",
         "FriendsApiLive",
         "InvitationServiceLive",
-        "NetworkServiceLive",
         "PostTranslationServiceLive",
         "ProfileApiLive",
         "ProfileFormServiceLive",
