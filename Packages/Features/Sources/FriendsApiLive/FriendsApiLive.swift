@@ -13,14 +13,17 @@ struct FriendsApiLive: Sendable {
     return NetworkDetails(friends: try response.friends.map { try $0.domain() })
   }
 
-  func generate(_ authorization: Authorization) async throws -> FriendToken {
+  func generate(_ authorization: Authorization, force: Bool) async throws -> FriendInvitation {
     let response: GenerateResponse = try await send(
-      path: "friends/generate", method: .post, authorization: authorization)
-    return try FriendToken(response.token)
+      path: force ? "friends/generate/force" : "friends/generate", method: .post, authorization: authorization)
+    guard let expiration = try? Date(response.expiration, strategy: .iso8601) else {
+      throw FriendsApi.Error.ioError(URLError(.cannotParseResponse))
+    }
+    return FriendInvitation(token: FriendToken(response.token), expiration: expiration)
   }
 
-  func add(_ authorization: Authorization, token: FriendToken, id: UserId) async throws {
-    let body = AddRequest(token: token.string, userId: id.int64)
+  func add(_ authorization: Authorization, token: FriendToken) async throws {
+    let body = AddRequest(token: token.string)
     let response: AddResponse = try await send(
       path: "friends/add", method: .post, body: body, authorization: authorization)
     if response.type == "FriendTokenExpired" { throw FriendsApi.Error.expiredToken }
@@ -116,8 +119,8 @@ private struct FileDescriptorResponse: Decodable {
   }
 }
 
-private struct GenerateResponse: Decodable { let token: String }
-private struct AddRequest: Encodable { let token: String; let userId: Int64 }
+private struct GenerateResponse: Decodable { let token: String; let expiration: String }
+private struct AddRequest: Encodable { let token: String }
 private struct AddResponse: Decodable { let type: String }
 private struct FriendRequest: Encodable { let userId: Int64; let userAccessHash: String }
 private struct EmptyResponse: Decodable {}

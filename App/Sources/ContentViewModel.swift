@@ -52,8 +52,8 @@ class ContentViewModel {
             return
         }
         switch deeplink {
-        case let .addFriend(id, token):
-            onAddFriend(id: id, token: token)
+        case let .addFriend(token):
+            onAddFriend(token: token)
         }
     }
 
@@ -78,7 +78,7 @@ class ContentViewModel {
         appear()
     }
 
-    func onAddFriend(id: UserId, token: FriendToken) {
+    func onAddFriend(token: FriendToken) {
         guard !isProcessingFriendAccess else {
             friendLinkAlert = .alreadyProcessing
             return
@@ -88,7 +88,7 @@ class ContentViewModel {
             return
         }
 
-        let command = AddFriendCommand(id: id, token: token)
+        let command = AddFriendCommand(token: token)
 
         do {
             guard try friendAccessService.hasAuthorization() else {

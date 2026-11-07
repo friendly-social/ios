@@ -1,13 +1,10 @@
 import DependenciesMacros
 import Foundation
 import Models
-import UIKit
 
 @DependencyClient
 public struct NetworkService: Sendable {
   public var loadFriends: @Sendable () async throws -> [NetworkFriend]
-  public var generateInvitationURL: @Sendable () async throws -> URL
-  public var generateQRCode: @Sendable (URL) -> UIImage?
 }
 
 public struct NetworkFriend {

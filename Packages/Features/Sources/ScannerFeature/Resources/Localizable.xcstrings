@@ -1,6 +1,57 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "scanner_qrcode_paste_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read the link from the clipboard."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать ссылку из буфера обмена."
+          }
+        }
+      }
+    },
+    "scanner_qrcode_choose_photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From Photos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Из Фото"
+          }
+        }
+      }
+    },
+    "scanner_qrcode_flashlight": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flashlight"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фонарик"
+          }
+        }
+      }
+    },
     "button_base_close" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -48,23 +99,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Попробовать снова"
-          }
-        }
-      }
-    },
-    "error_base_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Error"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ошибка"
           }
         }
       }
@@ -239,23 +273,6 @@
         }
       }
     },
-    "scan_enter_open_photo_scanner" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan from Photos"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сканировать из фото"
-          }
-        }
-      }
-    },
     "scan_enter_open_scanner" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -371,23 +388,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сканирование начнётся автоматически"
-          }
-        }
-      }
-    },
-    "scanner_qrcode_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place the QR code inside the scanning area"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поместите QR-код в область сканирования"
           }
         }
       }

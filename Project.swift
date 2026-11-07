@@ -19,6 +19,7 @@ let project = Project(
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "ITSAppUsesNonExemptEncryption": false,
                 "NSCameraUsageDescription": "Friendly needs access to your camera to scan QR codes and add friends.",
+                "NSPhotoLibraryAddUsageDescription": "Friendly saves invitation QR codes to your photo library when you ask.",
                 "NSPhotoLibraryUsageDescription": "Friendly needs access to your photo library to let you pick QR codes from your photos or upload a profile picture.",
                 "UTExportedTypeDeclarations": [[
                     "UTTypeIdentifier": "ly.getfriend.editor.fragment.v1",
