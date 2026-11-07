@@ -4,6 +4,7 @@ import CommunityProfileService
 import CommunityService
 import Dependencies
 import Foundation
+import Models
 import Observation
 
 @MainActor @Observable
@@ -63,6 +64,11 @@ public final class CommunityViewModel {
       callback()
     }
     return true
+  }
+
+  func openAuthor(_ owner: CommunityPost.Owner) {
+    guard let accessHash = try? UserAccessHash(owner.accessHash) else { return }
+    destination = .author(id: UserId(owner.id), accessHash: accessHash)
   }
 
   func openActivity() {
@@ -324,6 +330,7 @@ extension CommunityViewModel {
   enum Destination {
     case post(PostDetailRoute)
     case activity
+    case author(id: UserId, accessHash: UserAccessHash)
     case compose(CommunityComposerViewModel)
     case edit(CommunityEditViewModel)
   }
@@ -357,7 +364,7 @@ extension CommunityViewModel {
   var navigationDestination: Destination? {
     get {
       switch destination {
-      case .post, .activity: destination
+      case .post, .activity, .author: destination
       default: nil
       }
     }

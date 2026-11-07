@@ -4,6 +4,7 @@ import Foundation
 import Observation
 import Synchronization
 import Testing
+import UIKit
 
 @MainActor struct EditorDocumentStateTests {
   @Test(arguments: [false, true])
@@ -23,6 +24,31 @@ import Testing
     model.loadSource(source)
     expectNoDifference(model.markdown, source)
     expectNoDifference(model.sourceOnly, sourceOnly)
+  }
+
+  @Test(arguments: [UIUserInterfaceStyle.light, .dark])
+  func typingBeforePhotoKeepsBodyFontAndAdaptiveColor(style: UIUserInterfaceStyle) throws {
+    let editor = makeEditor("")
+    editor.view.overrideUserInterfaceStyle = style
+    let coordinator = PhotoTextView.Coordinator(editor.model)
+    editor.view.delegate = coordinator
+    let photo = PhotoAttachment(id: UUID(), sourceURL: URL(string: "https://example.com/photo.jpg"),
+                                preview: PhotoImagePreview.placeholder())
+    photo.ready = true
+    editor.model.insertPhoto(photo)
+    editor.view.selectedRange = NSRange(location: 0, length: 0)
+    editor.model.selectionChanged()
+    editor.view.insertText("\n")
+    editor.view.selectedRange = NSRange(location: 0, length: 0)
+    editor.model.selectionChanged()
+    editor.view.insertText("привет")
+    let attributes = editor.view.textStorage.attributes(at: 0, effectiveRange: nil)
+    let font = try #require(attributes[.font] as? UIFont)
+    let color = try #require(attributes[.foregroundColor] as? UIColor)
+    expectNoDifference(font.pointSize, UIFont.preferredFont(forTextStyle: .body).pointSize)
+    #expect(color.resolvedColor(with: editor.view.traitCollection)
+      == UIColor.label.resolvedColor(with: editor.view.traitCollection))
+    withExtendedLifetime(coordinator) {}
   }
 
   @Test func loadingSourceUpdatesEditingModeInBothDirections() {

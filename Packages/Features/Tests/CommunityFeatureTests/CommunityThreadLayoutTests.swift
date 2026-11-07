@@ -43,8 +43,7 @@ private extension CommunityThreadLayoutTests {
     _ model: CommunityPostDetailViewModel, appearance: UIUserInterfaceStyle
   ) async throws -> UIImage {
     let view = CommunityPostDetailView(
-      model: model, currentUser: nil, avatarURL: { _ in URL(fileURLWithPath: "/unused") },
-      openAuthor: nil)
+      model: model, currentUser: nil, avatarURL: { _ in URL(fileURLWithPath: "/unused") })
       .font(.body)
       .environment(\.dynamicTypeSize, .large)
       .environment(\.locale, Locale(identifier: "en_US"))

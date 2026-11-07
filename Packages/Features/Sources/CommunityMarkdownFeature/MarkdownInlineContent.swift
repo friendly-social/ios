@@ -20,12 +20,21 @@ private extension MarkdownInlineContent {
     _ text: AttributedString, at index: Int, in content: [MarkdownDocument.Inline]
   ) -> AttributedString {
     var text = text
-    if index > 0, case .image = content[index - 1].kind, text.characters.first == "\n" {
+    if index > 0, content[index - 1].kind.isImage, text.characters.first == "\n" {
       text = AttributedString(text[text.characters.index(after: text.startIndex)...])
     }
-    if index + 1 < content.count, case .image = content[index + 1].kind, text.characters.last == "\n" {
+    if index + 1 < content.count, content[index + 1].kind.isImage, text.characters.last == "\n" {
       text = AttributedString(text[..<text.characters.index(before: text.endIndex)])
     }
     return text
+  }
+}
+
+extension MarkdownDocument.Inline.Kind {
+  var isImage: Bool {
+    switch self {
+    case .image: true
+    case .text: false
+    }
   }
 }

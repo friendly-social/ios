@@ -14,7 +14,7 @@ struct MarkdownCodecTests {
     #expect(first.runs.map(\.link) == second.runs.map(\.link))
   }
 
-  @Test(arguments: ["# Заголовок", "![alt](https://example.com/a.png)", "| a | b |\n|---|---|", "<audio src='x'>", "42. list", "---"])
+  @Test(arguments: ["# Заголовок", "![alt](https://example.com/a.png)", "| a | b |\n|---|---|", "<audio src='x'>", "<img src='https://example.com/a.png'>", "42. list", "---"])
   func complexSourceIsProtected(source: String) {
     #expect(codec.requiresSourceEditing(source))
   }
@@ -23,6 +23,84 @@ struct MarkdownCodecTests {
     #expect(!MarkdownCodec.isAllowedLink(URL(string: "javascript:alert(1)")!))
     #expect(!MarkdownCodec.isAllowedLink(URL(string: "file:///tmp/a")!))
     #expect(MarkdownCodec.isAllowedLink(URL(string: "https://example.com")!))
+  }
+
+  @Test func markdownAndHtmlImagesUseTheSameModel() throws {
+    for source in ["![A](https://example.com/a.png)", "<img src=\"https://example.com/a.png\" alt=\"A\">"] {
+      let document = try MarkdownDocument(source: source)
+      guard case let .paragraph(content) = document.blocks.first?.kind,
+            case let .image(url, alt, width, height) = content.first?.kind else {
+        Issue.record("Expected the shared image model")
+        continue
+      }
+      #expect(url?.absoluteString == "https://example.com/a.png")
+      #expect(alt == "A")
+      #expect(width == nil && height == nil)
+    }
+  }
+
+  @Test func htmlImageRendersWithItsDimensions() throws {
+    let source = "<img src=\"https://example.com/hello.gif\" height=\"23px\" width=\"23px\">"
+    let document = try MarkdownDocument(source: source)
+    guard case let .paragraph(content) = document.blocks.first?.kind,
+          case let .image(url, _, width, height) = content.first?.kind else {
+      Issue.record("Expected an HTML image")
+      return
+    }
+    #expect(url?.absoluteString == "https://example.com/hello.gif")
+    #expect(width == 23)
+    #expect(height == 23)
+  }
+
+  @Test func htmlDimensionsArePreservedForTheSharedLayout() throws {
+    let document = try MarkdownDocument(source: "<img src=\"https://example.com/a.png\" width=\"1000\" height=\"100\">")
+    guard case let .paragraph(content) = document.blocks.first?.kind,
+          case let .image(_, _, width, height) = content.first?.kind else {
+      Issue.record("Expected an image")
+      return
+    }
+    #expect(width == 1000 && height == 100)
+  }
+
+  @Test func inlineHtmlImageKeepsSurroundingText() throws {
+    let source = "Before <img src=\"https://example.com/a.png\" alt=\"A\" width=\"23\"> after"
+    let document = try MarkdownDocument(source: source)
+    guard case let .paragraph(content) = document.blocks.first?.kind else {
+      Issue.record("Expected a paragraph")
+      return
+    }
+    #expect(content.count == 3)
+    guard case let .image(_, alt, width, _) = content[1].kind else {
+      Issue.record("Expected an inline image")
+      return
+    }
+    #expect(alt == "A")
+    #expect(width == 23)
+  }
+
+  @Test func htmlInsideCodeRemainsCode() throws {
+    let document = try MarkdownDocument(source: "```html\n<img src=\"https://example.com/a.png\">\n```")
+    guard case let .code(_, text) = document.blocks.first?.kind else {
+      Issue.record("Expected code")
+      return
+    }
+    #expect(text.contains("<img"))
+  }
+
+  @Test func unsafeHtmlImagesAreNotLoaded() throws {
+    for source in ["<img src=\"file:///tmp/private\">", "<img src=\"javascript:alert(1)\">"] {
+      let document = try MarkdownDocument(source: source)
+      guard case .unsupported = document.blocks.first?.kind else {
+        Issue.record("Unsafe HTML must not become an image")
+        continue
+      }
+    }
+  }
+
+  @Test func htmlImageDoesNotBypassPreviewImageBudget() throws {
+    let source = "<img src=\"https://example.com/one.png\">\n\n<img src=\"https://example.com/two.png\">"
+    let excerpt = MarkdownExcerpt(document: try MarkdownDocument(source: source))
+    #expect(excerpt.isTruncated)
   }
 
   @Test func blockParserKeepsDistinctParagraphs() throws {
@@ -76,7 +154,7 @@ struct MarkdownCodecTests {
     let document = try MarkdownDocument(source: "Before ![cat](https://example.com/cat.png) after")
     guard case let .paragraph(content) = document.blocks.first?.kind else { Issue.record("Missing paragraph"); return }
     #expect(content.count == 3)
-    guard case let .image(url, alt) = content[1].kind else { Issue.record("Missing image"); return }
+    guard case let .image(url, alt, _, _) = content[1].kind else { Issue.record("Missing image"); return }
     #expect(url?.host == "example.com")
     #expect(alt == "cat")
   }

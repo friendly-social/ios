@@ -133,6 +133,7 @@ public final class CommunityEditorViewModel {
 
   func selectionChanged() {
     guard !isEditing, let view = textView else { return }
+    normalizeTypingAttributes(in: view)
     selectionVersion += 1
     selection = view.selectedRange
     selectedPhotoID = nil
@@ -352,6 +353,15 @@ public final class CommunityEditorViewModel {
 }
 
 private extension CommunityEditorViewModel {
+  private func normalizeTypingAttributes(in view: PhotoTextArea) {
+    var attributes = view.typingAttributes
+    let bits = EditorTextAttributes.formatBits(in: attributes)
+    attributes.removeValue(forKey: .attachment)
+    attributes.merge(EditorTextAttributes.make(formatBits: bits)) { _, normalized in normalized }
+    typingAttributes = attributes
+    view.typingAttributes = attributes
+  }
+
   private func decodeSource(_ source: String) -> NSAttributedString {
     var previews = loadedPhotoPreviews()
     let service = photoService

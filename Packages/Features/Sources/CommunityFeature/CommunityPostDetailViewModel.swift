@@ -2,6 +2,7 @@ import CommunityProfileService
 import CommunityService
 import Dependencies
 import Foundation
+import Models
 import Observation
 
 @MainActor @Observable
@@ -86,6 +87,11 @@ final class CommunityPostDetailViewModel {
     async let replies: Void = load()
     async let draft: Void = restore()
     _ = await (replies, draft)
+  }
+
+  func openAuthor(_ owner: CommunityPost.Owner) {
+    guard let accessHash = try? UserAccessHash(owner.accessHash) else { return }
+    destination = .author(id: UserId(owner.id), accessHash: accessHash)
   }
 
   func avatarURL(_ avatar: CommunityPost.Owner.Avatar) -> URL {
@@ -238,24 +244,43 @@ final class CommunityPostDetailViewModel {
 
   func stop() {
     generation += 1
+    isLoading = false
+    isLoadingMore = false
     replyUpdateTask?.cancel()
-    replyComposer?.stop()
-    if let composer = destination?.composer, composer !== replyComposer { composer.stop() }
+    if replyComposer?.isPublishing != true { replyComposer?.stop() }
+    if let composer = destination?.composer, composer !== replyComposer, !composer.isPublishing { composer.stop() }
     Task { await saveDraft() }
   }
 
 }
 
 extension CommunityPostDetailViewModel {
-  enum Destination: Identifiable {
+  enum Destination: Hashable, Identifiable {
     case compose(CommunityComposerViewModel)
     case edit(CommunityEditViewModel)
+    case author(id: UserId, accessHash: UserAccessHash)
 
-    var id: ObjectIdentifier {
-      switch self {
-      case let .compose(model): ObjectIdentifier(model)
-      case let .edit(model): ObjectIdentifier(model)
+    var id: Self { self }
+  }
+
+  var sheetDestination: Destination? {
+    get {
+      switch destination {
+      case .compose, .edit: destination
+      default: nil
       }
+    }
+    set {
+      if let newValue { destination = newValue }
+      else if sheetDestination != nil { destination = nil }
+    }
+  }
+
+  var navigationDestination: Destination? {
+    get { if case .author = destination { destination } else { nil } }
+    set {
+      if let newValue { destination = newValue }
+      else if navigationDestination != nil { destination = nil }
     }
   }
 }

@@ -140,9 +140,53 @@ import Testing
     await request.value
     model.stop()
   }
+
+  @Test(arguments: [false, true])
+  func sendingReplyContinuesAfterLeavingPost(openAuthor: Bool) async throws {
+    let submission = SuspendedReply()
+    let model = makeDetailModel(post: post(1), service: publishingService(submission))
+    let composer = try #require(model.replyComposer)
+    await composer.restore()
+    composer.setPlainText("Keep sending this reply")
+    let (completed, completion) = AsyncStream<Void>.makeStream()
+    composer.perform {
+      await composer.publish()
+      completion.yield()
+      completion.finish()
+    }
+    await submission.waitUntilStarted()
+    if openAuthor {
+      model.openAuthor(.init(id: 42, accessHash: String(repeating: "a", count: 256), nickname: "Anna"))
+    }
+    model.stop()
+    #expect(composer.isPublishing)
+    await submission.finish()
+    var iterator = completed.makeAsyncIterator()
+    _ = await iterator.next()
+    expectNoDifference(composer.published, PostDescriptor(id: 99, accessHash: "reply"))
+    #expect(!composer.requiresRetryConfirmation && composer.publicationError == nil)
+    if openAuthor { #expect(model.navigationDestination != nil) }
+    model.stop()
+  }
+
 }
 
 private extension CommunityReplyComposerTests {
+  private func publishingService(_ submission: SuspendedReply) -> CommunityService {
+    let reply = post(99)
+    var service = CommunityService()
+    service.markRead = { _ in }
+    service.reply = { _, _ in
+      let descriptor = await submission.send()
+      try Task.checkCancellation()
+      return descriptor
+    }
+    service.details = { _ in
+      .init(post: reply, upstream: [], replies: .init(data: [], nextId: nil))
+    }
+    return service
+  }
+
   private func post(_ id: Int64) -> CommunityPost {
     .awaitingDetails(.init(descriptor: .init(id: id, accessHash: "fixture"), text: "Post"))
   }

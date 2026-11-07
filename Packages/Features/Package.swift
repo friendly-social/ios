@@ -42,8 +42,7 @@ let package = Package(
     .library(name: "FriendsApiLive", targets: ["FriendsApiLive"]),
     .library(name: "FriendlyUIKit", targets: ["FriendlyUIKit"]),
     .library(name: "LiveDependencies", targets: ["LiveDependencies"]),
-    .library(name: "NetworkFeature", targets: ["NetworkFeature"]),
-    .library(name: "NetworkService", targets: ["NetworkService"]),
+    .library(name: "PhotoViewerFeature", targets: ["PhotoViewerFeature"]),
     .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
     .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
     .library(name: "ProfileFormService", targets: ["ProfileFormService"]),
@@ -51,6 +50,7 @@ let package = Package(
     .library(name: "ProfileApiLive", targets: ["ProfileApiLive"]),
     .library(name: "ProfileFeature", targets: ["ProfileFeature"]),
     .library(name: "ProfileService", targets: ["ProfileService"]),
+    .library(name: "ProfileServiceLive", targets: ["ProfileServiceLive"]),
     .library(name: "ScannerFeature", targets: ["ScannerFeature"]),
     .library(name: "CameraPermissionService", targets: ["CameraPermissionService"]),
     .library(name: "QRPhotoImportService", targets: ["QRPhotoImportService"]),
@@ -138,7 +138,8 @@ let package = Package(
         .product(name: "Models", package: "Domain"),
         "ActivityDiscussionFeature",
         "ActivityFeature",
-        "FriendlyUIKit",
+        "ActivityService",
+        "CommunityProfileService",
         "ProfileFeature",
       ]
     ),
@@ -255,6 +256,7 @@ let package = Package(
     .target(
       name: "FriendlyUIKit",
       dependencies: [
+        .product(name: "Models", package: "Domain"),
         .product(name: "NukeUI", package: "Nuke"),
       ]
     ),
@@ -295,9 +297,13 @@ let package = Package(
         .product(name: "Flow", package: "SwiftUI-Flow"),
         .product(name: "Models", package: "Domain"),
         "AuthFeature",
+        "CommunityMarkdownFeature",
+        "CommunityMarkdownService",
+        "FriendlyUIKit",
+        "NetworkQRCodeFeature",
+        "PhotoViewerFeature",
         "ProfileFormService",
         "ProfileService",
-        "FriendlyUIKit",
       ],
       resources: [
         .process("Resources"),
@@ -310,12 +316,12 @@ let package = Package(
       name: "FeedFeature",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "Flow", package: "SwiftUI-Flow"),
         .product(name: "Models", package: "Domain"),
         .product(name: "NukeUI", package: "Nuke"),
         "DiscoveryFeedService",
         "FriendlyUIKit",
         "ProfileFeature",
+        "ProfileService",
       ],
       resources: [
         .process("Resources"),
@@ -408,27 +414,16 @@ let package = Package(
       ]
     ),
     .target(
-      name: "NetworkFeature",
-      dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "Models", package: "Domain"),
-        "FriendlyUIKit",
-        "NetworkQRCodeFeature",
-        "NetworkService",
-        "ProfileFeature",
-      ],
-      resources: [
-        .process("Resources"),
-      ],
-      swiftSettings: [
-        .swiftLanguageMode(.v5),
-      ]
+      name: "PhotoViewerFeature",
+      resources: [.process("Resources")]
     ),
     .target(
       name: "CommunityMarkdownFeature",
       dependencies: [
+        .product(name: "ImageService", package: "Infrastructure"),
         .product(name: "NukeUI", package: "Nuke"),
         "CommunityMarkdownService",
+        "PhotoViewerFeature",
       ],
       resources: [
         .process("Resources"),
@@ -536,6 +531,7 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
         .product(name: "NukeUI", package: "Nuke"),
         .product(name: "SwiftNavigation", package: "swift-navigation"),
         "ActivityService",
@@ -547,6 +543,7 @@ let package = Package(
         "CommunityService",
         "FriendlyUIKit",
         "PostTranslationService",
+        "ProfileFeature",
       ],
       resources: [
         .process("Resources"),
@@ -563,13 +560,8 @@ let package = Package(
     .target(
       name: "CommunityRootFeature",
       dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "Models", package: "Domain"),
         "ActivityRootFeature",
         "CommunityFeature",
-        "CommunityService",
-        "FriendlyUIKit",
-        "ProfileFeature",
       ],
       resources: [
         .process("Resources"),
@@ -592,14 +584,6 @@ let package = Package(
     ),
     .target(
       name: "FriendAccessService",
-      dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "DependenciesMacros", package: "swift-dependencies"),
-        .product(name: "Models", package: "Domain"),
-      ]
-    ),
-    .target(
-      name: "NetworkService",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
@@ -634,6 +618,7 @@ let package = Package(
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+        "CommunityMarkdownService",
       ]
     ),
     .target(
@@ -699,16 +684,6 @@ let package = Package(
       resources: [.copy("Resources/InvitationIcon.png")]
     ),
     .target(
-      name: "NetworkServiceLive",
-      dependencies: [
-        .product(name: "AccountStorageService", package: "Infrastructure"),
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        "FilesApi",
-        "FriendsApi",
-        "NetworkService",
-      ]
-    ),
-    .target(
       name: "ProfileFormServiceLive",
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),
@@ -724,9 +699,10 @@ let package = Package(
       name: "ProfileServiceLive",
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),
-        "AccountSessionService",
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "Models", package: "Domain"),
+        "AccountSessionService",
+        "CommunityMarkdownService",
         "FilesApi",
         "FriendsApi",
         "ProfileApi",
@@ -758,7 +734,6 @@ let package = Package(
         "FriendAccessServiceLive",
         "FriendsApiLive",
         "InvitationServiceLive",
-        "NetworkServiceLive",
         "PostTranslationServiceLive",
         "ProfileApiLive",
         "ProfileFormServiceLive",
@@ -766,6 +741,26 @@ let package = Package(
         "CameraPermissionServiceLive",
         "QRPhotoImportServiceLive",
         "QRSessionServiceLive",
+      ]
+    ),
+    .testTarget(
+      name: "ProfileFeatureTests",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "CustomDump", package: "swift-custom-dump"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "CommunityMarkdownService",
+        "DiscoveryFeedService",
+        "FeedFeature",
+        "FilesApi",
+        "FriendsApi",
+        "FriendlyUIKit",
+        "ProfileApi",
+        "ProfileApiLive",
+        "ProfileFeature",
+        "ProfileService",
+        "ProfileServiceLive",
       ]
     ),
     .testTarget(
@@ -855,6 +850,7 @@ let package = Package(
       name: "CommunityMarkdownFeatureTests",
       dependencies: [
         "CommunityMarkdownFeature",
+        "PhotoViewerFeature",
       ]
     ),
   ]

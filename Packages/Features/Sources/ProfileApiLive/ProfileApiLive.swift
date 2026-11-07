@@ -26,6 +26,23 @@ struct ProfileApiLive: Sendable {
       catch { throw ProfileApi.UserDetailsError.ioError(error) }
   }
 
+  func detailsWithFriends(
+    _ authorization: Authorization, _ id: UserId, _ accessHash: UserAccessHash
+  ) async throws -> ProfileDetails {
+    let options = HTTPClient.Request.Options(
+      urlPath: "users/details2/\(id.int64)/\(accessHash.string)",
+      headers: authorizationHeaders(authorization))
+    do {
+      let response: ProfileDetailsDTO = try await client.push(request: .get(options: options))
+      do { return try response.details() }
+      catch { throw ProfileApi.UserDetailsError.serverError }
+    } catch let error as HTTPStatusError {
+      throw error.response.statusCode == 401
+        ? ProfileApi.UserDetailsError.unauthorized : .serverError
+    } catch let error as ProfileApi.UserDetailsError { throw error }
+      catch { throw ProfileApi.UserDetailsError.ioError(error) }
+  }
+
   func edit(
     _ authorization: Authorization,
     _ nickname: Nickname,

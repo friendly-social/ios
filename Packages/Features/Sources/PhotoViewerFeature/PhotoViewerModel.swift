@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 @MainActor @Observable
-final class MarkdownPhotoViewModel {
+final class PhotoViewerModel {
   private(set) var scale = Constants.minimumScale
   private(set) var offset = CGSize.zero
   private(set) var dismissalOffset = CGSize.zero
@@ -113,7 +113,7 @@ final class MarkdownPhotoViewModel {
   func singleTapped() { showsControls.toggle() }
 }
 
-private extension MarkdownPhotoViewModel {
+private extension PhotoViewerModel {
   private func centered(_ point: CGPoint) -> CGPoint {
     CGPoint(x: point.x - viewport.width / Constants.halfDivisor, y: point.y - viewport.height / Constants.halfDivisor)
   }

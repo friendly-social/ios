@@ -1,6 +1,7 @@
 import CommunityMarkdownFeature
 import CommunityService
 import Foundation
+import ProfileFeature
 import SwiftUI
 
 public struct CommunityView<ActivityDestination: View>: View {
@@ -9,19 +10,16 @@ public struct CommunityView<ActivityDestination: View>: View {
   @State private var imageLayoutCache = MarkdownImageLayoutCache()
   @Binding private var hidesTabBar: Bool
   private let avatarURL: (CommunityPost.Owner.Avatar) -> URL
-  private let openAuthor: ((CommunityPost.Owner) -> Void)?
   private let activityDestination: () -> ActivityDestination
 
   public init(
     model: CommunityViewModel, avatarURL: @escaping (CommunityPost.Owner.Avatar) -> URL,
     hidesTabBar: Binding<Bool>,
-    openAuthor: ((CommunityPost.Owner) -> Void)? = nil,
     @ViewBuilder activityDestination: @escaping () -> ActivityDestination
   ) {
     self.model = model
     self.avatarURL = avatarURL
     self._hidesTabBar = hidesTabBar
-    self.openAuthor = openAuthor
     self.activityDestination = activityDestination
   }
 
@@ -33,25 +31,23 @@ public struct CommunityView<ActivityDestination: View>: View {
 private extension CommunityView {
 
   private func contentView() -> some View {
-    NavigationStack {
-      feedNavigationContent()
-        .sheet(item: $model.sheetDestination) { destination in
-          sheetView(destination).presentationDetents([.large])
-        }
-        .alert(
-          .postMutationUnconfirmed,
-          isPresented: Binding(
-            get: { model.mutationError != nil }, set: { if !$0 { model.mutationError = nil } })
-        ) {
-          Button(.commonOk, role: .cancel) { model.mutationError = nil }
-        } message: {
-          if let error = model.mutationError { Text(error) }
-        }
-    }
-    .onChange(of: model.navigationDestination == nil, initial: true) {
-      hidesTabBar = model.navigationDestination != nil
-    }
-    .markdownImageLayoutCache(imageLayoutCache)
+    feedNavigationContent()
+      .sheet(item: $model.sheetDestination) { destination in
+        sheetView(destination).presentationDetents([.large])
+      }
+      .alert(
+        .postMutationUnconfirmed,
+        isPresented: Binding(
+          get: { model.mutationError != nil }, set: { if !$0 { model.mutationError = nil } })
+      ) {
+        Button(.commonOk, role: .cancel) { model.mutationError = nil }
+      } message: {
+        if let error = model.mutationError { Text(error) }
+      }
+      .onChange(of: model.navigationDestination == nil, initial: true) {
+        hidesTabBar = model.navigationDestination != nil
+      }
+      .markdownImageLayoutCache(imageLayoutCache)
   }
 
   private func feedNavigationContent() -> some View {
@@ -64,6 +60,8 @@ private extension CommunityView {
         switch destination {
         case let .post(route): postDetails(for: route)
         case .activity: activityDestination()
+        case let .author(id, accessHash):
+          ProfileView(mode: .otherProfile(.init(id: id, accessHash: accessHash)))
         case .compose, .edit: EmptyView()
         }
       }
@@ -88,14 +86,14 @@ private extension CommunityView {
     switch destination {
     case let .compose(model): CommunityComposerView(model: model)
     case let .edit(model): CommunityEditView(model: model)
-    case .post, .activity: EmptyView()
+    case .post, .activity, .author: EmptyView()
     }
   }
 
   private func postDetails(for route: CommunityViewModel.PostDetailRoute) -> some View {
     CommunityPostDetailView(
       model: route.model,
-      currentUser: model.currentUser, avatarURL: avatarURL, openAuthor: openAuthor,
+      currentUser: model.currentUser, avatarURL: avatarURL,
       focusReplyOnAppear: route.focusReplyOnAppear)
   }
 
@@ -120,7 +118,7 @@ private extension CommunityView {
       let post = item.post
       VStack(spacing: Constants.zero) {
         CommunityPostCard(
-          post: post, content: item.content, avatarURL: avatarURL, openAuthor: openAuthor,
+          post: post, content: item.content, avatarURL: avatarURL, openAuthor: model.openAuthor,
           canManage: model.showsPostActions(for: post), canTranslate: model.canTranslate(post),
           isDeleting: model.deletingID == post.id,
           actionsDisabled: model.deletingID != nil,

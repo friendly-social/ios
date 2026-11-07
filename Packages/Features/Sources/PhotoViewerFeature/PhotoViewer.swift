@@ -1,21 +1,45 @@
 import SwiftUI
 
-struct MarkdownPhotoViewer: View {
-  let image: Image
-  let alt: String
-  let sourceFrame: CGRect
+public struct PhotoViewer: View {
+  private let image: Image
+  private let imageLabel: Text
+  private let sourceFrame: CGRect
+  private let imageSize: CGSize?
+  private let sourceCornerRadius: CGFloat
+
+  public init(
+    image: Image,
+    imageLabel: Text,
+    sourceFrame: CGRect,
+    imageSize: CGSize? = nil,
+    sourceCornerRadius: CGFloat = 0
+  ) {
+    self.image = image
+    self.imageLabel = imageLabel
+    self.sourceFrame = sourceFrame
+    self.imageSize = imageSize
+    self.sourceCornerRadius = sourceCornerRadius
+  }
   @Environment(\.dismiss) private var dismiss
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  @State private var viewModel = MarkdownPhotoViewModel()
+  @State private var viewModel = PhotoViewerModel()
   @State private var isExpanded = false
   @State private var isClosing = false
 
-  var body: some View { contentView() }
+  public var body: some View { contentView() }
 }
 
-private extension MarkdownPhotoViewer {
+private extension PhotoViewer {
   private var settleAnimation: Animation? {
     reduceMotion ? nil : .spring(response: Constants.springResponse, dampingFraction: Constants.springDamping)
+  }
+
+  private var presentationAnimation: Animation? {
+    guard !reduceMotion else { return nil }
+    if sourceCornerRadius > Constants.zero {
+      return .easeInOut(duration: Constants.avatarTransitionDuration)
+    }
+    return settleAnimation
   }
 
   private func contentView() -> some View {
@@ -43,9 +67,11 @@ private extension MarkdownPhotoViewer {
       ? CGPoint(x: viewport.width / Constants.halfDivisor + viewModel.displayOffset.width,
                 y: viewport.height / Constants.halfDivisor + viewModel.displayOffset.height)
       : CGPoint(x: sourceFrame.midX - origin.x, y: sourceFrame.midY - origin.y)
-    return image.resizable().scaledToFit()
-      .frame(width: isExpanded ? size.width : sourceFrame.width,
-             height: isExpanded ? size.height : sourceFrame.height)
+    return PhotoTransitionImage(
+      image: image,
+      size: isExpanded ? size : sourceFrame.size,
+      cornerRadius: isExpanded ? Constants.zero : sourceCornerRadius,
+      fillsSource: sourceCornerRadius > Constants.zero)
       .scaleEffect(isExpanded ? viewModel.displayScale : Constants.unitScale)
       .position(position)
       .frame(width: viewport.width, height: viewport.height)
@@ -56,9 +82,9 @@ private extension MarkdownPhotoViewer {
       .gesture(tapGesture())
       .allowsHitTesting(!isClosing)
       .accessibilityElement(children: .ignore)
-      .accessibilityLabel(alt.isEmpty ? Text(.markdownImage) : Text(alt))
+      .accessibilityLabel(imageLabel)
       .accessibilityAddTraits(.isImage)
-      .accessibilityAction(named: .markdownToggleZoom) {
+      .accessibilityAction(named: .photoViewerToggleZoom) {
         withAnimation(settleAnimation) {
           viewModel.doubleTapped(at: CGPoint(x: viewport.width / Constants.halfDivisor, y: viewport.height / Constants.halfDivisor))
         }
@@ -67,7 +93,7 @@ private extension MarkdownPhotoViewer {
   }
 
   private func closeButton() -> some View {
-    Button(.markdownCloseImage, systemImage: Constants.close) { closePhoto() }
+    Button(.photoViewerClose, systemImage: Constants.close) { closePhoto() }
       .labelStyle(.iconOnly)
       .frame(width: Constants.touchTarget, height: Constants.touchTarget)
       .buttonStyle(.glass)
@@ -119,16 +145,17 @@ private extension MarkdownPhotoViewer {
   }
 
   private func fittedSize(in viewport: CGSize) -> CGSize {
-    guard sourceFrame.width > Constants.zero, sourceFrame.height > Constants.zero else { return viewport }
-    let factor = min(viewport.width / sourceFrame.width, viewport.height / sourceFrame.height)
-    return CGSize(width: sourceFrame.width * factor, height: sourceFrame.height * factor)
+    let size = imageSize ?? sourceFrame.size
+    guard size.width > Constants.zero, size.height > Constants.zero else { return viewport }
+    let factor = min(viewport.width / size.width, viewport.height / size.height)
+    return CGSize(width: size.width * factor, height: size.height * factor)
   }
 
   private func openPhoto() async {
     // Commit the source frame before starting the only transition in this presentation.
     try? await Task.sleep(for: Constants.presentationDelay)
     guard !Task.isCancelled, !isClosing else { return }
-    withAnimation(settleAnimation) {
+    withAnimation(presentationAnimation) {
       isExpanded = true
     }
   }
@@ -136,7 +163,7 @@ private extension MarkdownPhotoViewer {
   private func closePhoto() {
     guard !isClosing else { return }
     isClosing = true
-    withAnimation(settleAnimation, completionCriteria: .removed) {
+    withAnimation(presentationAnimation, completionCriteria: .removed) {
       isExpanded = false
     } completion: {
       var transaction = Transaction(animation: nil)
@@ -156,6 +183,7 @@ private enum Constants {
   static let padding: CGFloat = 16
   static let springResponse: Double = 0.32
   static let springDamping: Double = 0.82
+  static let avatarTransitionDuration: Double = 0.28
   static let visible: Double = 1
   static let hidden: Double = 0
   static let background = Color.black

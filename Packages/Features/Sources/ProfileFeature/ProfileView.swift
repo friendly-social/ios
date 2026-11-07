@@ -1,252 +1,177 @@
-import FriendlyUIKit
-import Flow
 import Models
+import NetworkQRCodeFeature
+import PhotoViewerFeature
 import SwiftUI
 
 public struct ProfileView: View {
-    @State private var showSignUpConfirmation = false
-    @State private var showFriendDeclineConfirmation = false
-    @State private var viewModel: ProfileViewModel
+  @State private var showSignUpConfirmation = false
+  @State private var showFriendDeclineConfirmation = false
+  @State private var viewModel: ProfileViewModel
 
-    @Environment(\.openURL) private var openUrl
+  public init(mode: Mode) {
+    viewModel = ProfileViewModel(mode: mode)
+  }
 
-    public init(
-        router: Router,
-        mode: Mode,
-    ) {
-        viewModel = ProfileViewModel(router: router, mode: mode)
-    }
+  @Environment(\.dismiss) private var dismiss
 
-    public var body: some View {
-        ZStack {
-            switch viewModel.state {
-            case .loading: LoadingView()
-            case .ioError: IOErrorView()
-            case let .success(user): UserView(user: user)
-            }
+  public var body: some View {
+    contentView()
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background(Constants.background)
+      .sheet(item: $viewModel.sheetDestination, onDismiss: viewModel.editProfileDismissed) { destination in
+        switch destination {
+        case .edit:
+          if case let .success(profile) = viewModel.state {
+            ProfileEditView(profileInfo: profile.info, onComplete: { viewModel.destination = nil },
+                          service: viewModel.profileFormService)
+          }
+        case .invitation: NetworkQRCodeView(onDismiss: { viewModel.destination = nil })
+        case .commonFriends, .photo: EmptyView()
         }
-        .animation(
-            .easeInOut(duration: 0.3),
-            value: viewModel.state.rawValue,
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(uiColor: .systemGroupedBackground))
-        .sheet(
-            isPresented: $viewModel.shouldEditProfile,
-            onDismiss: {
-                viewModel.editProfileDismissed()
-            },
-        ) {
-            let profileInfo: ProfileInfo? = switch viewModel.state {
-            case let .success(success): success
-            default: nil
-            }
-            if let profileInfo {
-                ProfileEditView(
-                    profileInfo: profileInfo,
-                    onComplete: {
-                        viewModel.shouldEditProfile = false
-                    },
-                    service: viewModel.profileFormService
-                )
-            }
+      }
+      .fullScreenCover(item: $viewModel.photoDestination) { destination in
+        if case let .photo(photo) = destination {
+          PhotoViewer(
+            image: photo.image,
+            imageLabel: Text(.profileAvatar),
+            sourceFrame: photo.sourceFrame,
+            imageSize: photo.imageSize,
+            sourceCornerRadius: min(photo.sourceFrame.width, photo.sourceFrame.height) / 2
+          )
         }
-        .toolbar(content: {
-            let showLink = viewModel.socialLinkDestination != nil
-            let showEdit: Bool = switch viewModel.state {
-            case .success: viewModel.enableSignOut
-            default: false
-            }
-            ToolbarItemGroup(placement: .primaryAction) {
-                if showEdit {
-                    Button {
-                        viewModel.showEditProfile()
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.headline)
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .trailing)))
-                }
-                if showLink {
-                    Button {
-                        if let destination = viewModel.socialLinkDestination {
-                            openUrl(destination)
-                        }
-                    } label: {
-                        Image(systemName: "paperplane")
-                            .font(.headline)
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .trailing)))
-                }
-                if viewModel.enableSignOut {
-                    Button(action: { showSignUpConfirmation = true }) {
-                        let systemName =
-                            "rectangle.portrait.and.arrow.right"
-                        Image(systemName: systemName)
-                            .font(.headline)
-                    }
-                    .confirmationDialog(
-                        .profileSignOutConfirmation,
-                        isPresented: $showSignUpConfirmation,
-                        titleVisibility: .visible,
-                    ) {
-                        Button(
-                            .profileSignOutConfirm,
-                            role: .destructive,
-                        ) {
-                            viewModel.signOut()
-                        }
-                    }
-                }
-                if viewModel.enableRemoveFromFriends {
-                    Menu {
-                        Button(action: {
-                            showFriendDeclineConfirmation = true
-                        }) {
-                            Label(
-                                .profileFriendsDecline,
-                                systemImage: "person.fill.badge.minus",
-                            )
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.headline)
-                    }
-                    .confirmationDialog(
-                        .profileFriendsDeclineConfirmation,
-                        isPresented: $showFriendDeclineConfirmation,
-                        titleVisibility: .visible,
-                    ) {
-                        Button(
-                            .profileFriendsDeclineConfirm,
-                            role: .destructive,
-                        ) {
-                            viewModel.friendsDecline()
-                        }
-                    }
-                }
-            }
-        })
-        .onAppear { viewModel.appear() }
-        .alert(
-            .profileError,
-            isPresented: .constant(viewModel.alertError != nil),
-        ) {
-            Button(.profileErrorOk) {
-                viewModel.clearAlertError()
-            }
-            .keyboardShortcut(.defaultAction)
-        } message: {
-            if let error = viewModel.alertError {
-                let string: LocalizedStringResource = switch error {
-                case .decline: .profileErrorDecline
-                }
-                Text(string)
-            }
+      }
+      .navigationDestination(item: $viewModel.navigationDestination) { destination in
+        switch destination {
+        case .commonFriends:
+          if let friends = viewModel.displayedFriends {
+            ProfileFriendsView(friends: friends, selection: viewModel.profileSelection)
+          }
+        case .edit, .invitation, .photo: EmptyView()
         }
-        .refreshable { await viewModel.reload() }
+      }
+      .toolbar { toolbarContent() }
+      .toolbarVisibility(viewModel.enableSignOut ? .automatic : .hidden, for: .tabBar)
+      .onAppear { viewModel.appear() }
+      .onChange(of: viewModel.shouldDismiss) { _, dismissRequested in
+        if dismissRequested { dismiss() }
+      }
+      .alert(.profileError, isPresented: .constant(viewModel.alertError != nil)) {
+        Button(.profileErrorOk) { viewModel.clearAlertError() }
+      } message: {
+        Text(.profileErrorDecline)
+      }
+      .refreshable { await viewModel.reload() }
+  }
+
+  public enum Mode {
+    case selfProfile(SelfProfile)
+    case otherProfile(OtherProfile)
+  }
+
+  public struct SelfProfile {
+    let routeToSignUp: () -> Void
+
+    public init(routeToSignUp: @escaping () -> Void) {
+      self.routeToSignUp = routeToSignUp
     }
+  }
 
-    public enum Mode {
-        case selfProfile(SelfProfile)
-        case otherProfile(OtherProfile)
+  public struct OtherProfile {
+    let id: UserId
+    let accessHash: UserAccessHash
+
+    public init(id: UserId, accessHash: UserAccessHash) {
+      self.id = id
+      self.accessHash = accessHash
     }
+  }
+}
 
-    public struct SelfProfile {
-        let routeToSignUp: () -> Void
+private extension ProfileView {
+  @ViewBuilder
+  private func contentView() -> some View {
+    switch viewModel.state {
+    case .loading: LoadingView()
+    case .ioError: IOErrorView()
+    case let .success(user):
+      ProfileContentView(model: viewModel, profile: user)
+    }
+  }
 
-        public init(routeToSignUp: @escaping () -> Void) {
-            self.routeToSignUp = routeToSignUp
+  @ToolbarContentBuilder
+  private func toolbarContent() -> some ToolbarContent {
+    ToolbarItem(placement: .topBarLeading) {
+      if viewModel.enableSignOut {
+        Button { viewModel.showInvitation() } label: {
+          Label(.profileAddPeople, systemImage: Constants.addPeopleSymbol).labelStyle(.iconOnly)
         }
+      }
     }
-
-    public struct OtherProfile {
-        let id: UserId
-        let accessHash: UserAccessHash
-
-        public init(id: UserId, accessHash: UserAccessHash) {
-            self.id = id
-            self.accessHash = accessHash
+    ToolbarItemGroup(placement: .primaryAction) {
+      if viewModel.enableEdit {
+        Button { viewModel.showEditProfile() } label: {
+          Image(systemName: Constants.settingsSymbol)
         }
+      }
+      if viewModel.enableSignOut {
+        Button { showSignUpConfirmation = true } label: {
+          Image(systemName: Constants.signOutSymbol)
+        }
+        .confirmationDialog(.profileSignOutConfirmation, isPresented: $showSignUpConfirmation) {
+          Button(.profileSignOutConfirm, role: .destructive) { viewModel.signOut() }
+        }
+      }
+      if viewModel.enableRemoveFromFriends {
+        Menu {
+          Button(role: .destructive) { showFriendDeclineConfirmation = true } label: {
+            Label(.profileFriendsDecline, systemImage: Constants.removeFriendSymbol)
+          }
+        } label: { Image(systemName: Constants.moreSymbol) }
+        .confirmationDialog(.profileFriendsDeclineConfirmation, isPresented: $showFriendDeclineConfirmation) {
+          Button(.profileFriendsDeclineConfirm, role: .destructive) {
+            Task { await viewModel.friendsDecline() }
+          }
+        }
+        .disabled(viewModel.isUpdatingFriendship)
+      }
     }
+  }
 }
 
 private struct LoadingView: View {
-    var body: some View {
-        ProgressView()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+  var body: some View {
+    ProgressView()
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
 }
 
 private struct IOErrorView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "wifi.slash")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 50, height: 50)
-                .foregroundStyle(.secondary)
-            Text(.ioErrorTitle)
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.top)
-            Text(.ioErrorSubtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+  var body: some View {
+    VStack {
+      Image(systemName: Constants.connectionErrorSymbol)
+        .resizable()
+        .aspectRatio(contentMode: .fill)
+        .frame(width: Constants.stateIconSize, height: Constants.stateIconSize)
+        .foregroundStyle(.secondary)
+      Text(.ioErrorTitle)
+        .font(.title2)
+        .fontWeight(.bold)
+        .padding(.top)
+      Text(.ioErrorSubtitle)
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
 }
 
-private struct UserView: View {
-    let user: ProfileInfo
-
-    var body: some View {
-        ScrollView {
-            VStack {
-                AvatarView(url: user.avatarUrl, size: 150)
-                    .padding(.horizontal)
-                Details(user: user)
-                    .padding(.horizontal)
-            }
-        }
-    }
-}
-
-private struct Details: View {
-    let user: ProfileInfo
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Text(user.nickname.string)
-                .font(.title2)
-                .fontWeight(.bold)
-                .padding(.top, 5)
-                .padding(.bottom, 10)
-            if !user.interests.isEmpty {
-                Interests(interests: user.interests)
-                    .padding(.bottom, 10)
-            }
-            if !user.description.string.isEmpty {
-                let color = Color(uiColor: .secondarySystemGroupedBackground)
-                Text(user.description.string)
-                    .font(.subheadline)
-                    .padding()
-                    .background(color)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-            }
-        }
-    }
-}
-
-private struct Interests: View {
-    let interests: [Interest]
-
-    var body: some View {
-        HFlow(horizontalAlignment: .center, verticalAlignment: .top) {
-            ForEach(interests, id: \.string) { interest in
-                ChipView(text: interest.string)
-            }
-        }
-    }
+private enum Constants {
+  static let background = Color(uiColor: .systemBackground)
+  static let settingsSymbol = "gearshape"
+  static let addPeopleSymbol = "person.badge.plus"
+  static let signOutSymbol = "rectangle.portrait.and.arrow.right"
+  static let removeFriendSymbol = "person.fill.badge.minus"
+  static let moreSymbol = "ellipsis"
+  static let connectionErrorSymbol = "wifi.slash"
+  static let stateIconSize: CGFloat = 50
 }

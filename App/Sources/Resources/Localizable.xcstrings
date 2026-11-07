@@ -246,30 +246,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feed"
+            "value": "People"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Лента"
-          }
-        }
-      }
-    },
-    "main_network": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Network"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сообщество"
+            "value": "Люди"
           }
         }
       }

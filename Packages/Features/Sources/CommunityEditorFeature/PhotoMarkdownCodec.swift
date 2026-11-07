@@ -80,7 +80,7 @@ private extension PhotoMarkdownCodec {
     for inline in inlines {
       switch inline.kind {
       case let .text(text): result.append(editable(text))
-      case let .image(url, alt):
+      case let .image(url, alt, _, _):
         let original = images.next()
         guard let url = url ?? original else { continue }
         let id = PhotoAttachment.localID(url) ?? UUID()

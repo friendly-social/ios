@@ -23,7 +23,7 @@ struct MarkdownDocumentTextTests {
           case let .quote(quote) = result.blocks[1].kind,
           case let .list(items) = result.blocks[2].kind,
           case let .paragraph(images) = result.blocks[3].kind,
-          case let .image(url, alt) = images[0].kind,
+          case let .image(url, alt, _, _) = images[0].kind,
           case let .code(language, code) = result.blocks[4].kind else {
       Issue.record("Replacing text changed the document structure")
       return
