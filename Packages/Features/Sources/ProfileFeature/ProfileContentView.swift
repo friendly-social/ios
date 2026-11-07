@@ -43,16 +43,22 @@ private extension ProfileContentView {
       }
       VStack(alignment: .leading, spacing: Constants.smallSpacing) {
         Text(profile.info.nickname.string).font(.title2.bold())
-        if let friends = profile.commonFriends, !friends.isEmpty {
-          HStack(spacing: Constants.smallSpacing) {
-            Text(.profileCommonFriends)
-            Text(friends.count, format: .number)
-          }
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-        }
+        socialLinkView()
       }
       Spacer(minLength: Constants.minimumSpacing)
+    }
+  }
+
+  @ViewBuilder
+  private func socialLinkView() -> some View {
+    if let url = model.socialLinkDestination {
+      Button { openURL(url) } label: {
+        HStack(spacing: Constants.smallSpacing) {
+          Text(url.absoluteString).lineLimit(Constants.socialLinkLineLimit)
+          Image(systemName: Constants.linkSymbol)
+        }
+        .font(.subheadline)
+      }
     }
   }
 
@@ -85,12 +91,6 @@ private extension ProfileContentView {
       HFlow(horizontalAlignment: .leading, verticalAlignment: .top) {
         ForEach(profile.info.interests, id: \.string) { interest in
           ChipView(text: interest.string)
-        }
-      }
-      if let url = model.socialLinkDestination {
-        Button { openURL(url) } label: {
-          Label(url.absoluteString, systemImage: Constants.linkSymbol)
-            .lineLimit(Constants.socialLinkLineLimit)
         }
       }
     }
