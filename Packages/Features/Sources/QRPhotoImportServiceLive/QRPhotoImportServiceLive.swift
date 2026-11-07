@@ -6,8 +6,11 @@ import UIKit
 
 struct QRPhotoImportServiceLive {
   func code(from item: PhotosPickerItem) async throws -> String {
-    guard let data = try await item.loadTransferable(type: Data.self),
-          let image = UIImage(data: data), let cgImage = image.cgImage else {
+    guard let data = try await item.loadTransferable(type: Data.self) else {
+      throw QRPhotoImportService.ImportError.invalidImage
+    }
+    try Task.checkCancellation()
+    guard let image = UIImage(data: data), let cgImage = image.cgImage else {
       throw QRPhotoImportService.ImportError.invalidImage
     }
     guard let code = cgImage.detectQRCodeStrings().first(where: { !$0.isEmpty }) else {

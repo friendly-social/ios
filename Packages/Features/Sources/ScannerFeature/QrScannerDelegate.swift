@@ -5,7 +5,7 @@ final class QrScannerDelegate: NSObject, AVCaptureMetadataOutputObjectsDelegate 
   private let continuation: AsyncStream<String>.Continuation
 
   override init() {
-    let stream = AsyncStream<String>.makeStream()
+    let stream = AsyncStream<String>.makeStream(bufferingPolicy: .bufferingNewest(1))
     codes = stream.stream
     continuation = stream.continuation
     super.init()

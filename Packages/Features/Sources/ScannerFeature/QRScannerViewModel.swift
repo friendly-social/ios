@@ -19,14 +19,19 @@ final class QRScannerViewModel {
   private(set) var session: AVCaptureSession?
   @ObservationIgnored @Dependency(QRSessionService.self) private var service
   @ObservationIgnored @Dependency(CameraPermissionService.self) private var permissionService
+  private(set) var isTorchOn = false
+  private(set) var hasTorch = false
   @ObservationIgnored private var scanTask: Task<Void, Never>?
   private var preparationGeneration = 0
-  private let onDismiss: (String?) -> Void
+  private var isChangingTorch = false
+  private let acceptsInput: () -> Bool
+  private let onCode: (String) -> Void
 
   var settingsURL: URL? { permissionService.settingsURL() }
 
-  init(onDismiss: @escaping (String?) -> Void) {
-    self.onDismiss = onDismiss
+  init(acceptsInput: @escaping () -> Bool, onCode: @escaping (String) -> Void) {
+    self.acceptsInput = acceptsInput
+    self.onCode = onCode
   }
 
   func prepare() async {
@@ -36,8 +41,9 @@ final class QRScannerViewModel {
     state = .loading
     let qrDelegate = QrScannerDelegate()
     do {
-      let configuredSession = try await service.makeSession(qrDelegate)
+      let configuration = try await service.makeSession(qrDelegate)
       guard generation == preparationGeneration, !Task.isCancelled else { return }
+      let configuredSession = configuration.session
       startListening(qrDelegate)
       session = configuredSession
       await service.startRunning(configuredSession)
@@ -45,6 +51,7 @@ final class QRScannerViewModel {
         await service.stopRunning(configuredSession)
         return
       }
+      hasTorch = configuration.hasTorch
       state = .running
     } catch {
       guard generation == preparationGeneration, !Task.isCancelled else { return }
@@ -57,14 +64,23 @@ final class QRScannerViewModel {
     scanTask?.cancel()
     scanTask = nil
     state = .idle
+    hasTorch = false
+    isTorchOn = false
     guard let session else { return }
     self.session = nil
     Task { await service.stopRunning(session) }
   }
 
-  func onDismiss(code: String?) {
-    stop()
-    onDismiss(code)
+  func toggleTorch() async {
+    guard let session, !isChangingTorch else { return }
+    isChangingTorch = true
+    defer { isChangingTorch = false }
+    do {
+      let enabled = try await service.setTorch(session, !isTorchOn)
+      if self.session === session { isTorchOn = enabled }
+    } catch {
+      return
+    }
   }
 }
 
@@ -72,11 +88,22 @@ private extension QRScannerViewModel {
   private func startListening(_ qrDelegate: QrScannerDelegate) {
     guard scanTask == nil else { return }
     scanTask = Task { [weak self, qrDelegate] in
+      let clock = ContinuousClock()
+      var previous: (code: String, time: ContinuousClock.Instant)?
       for await code in qrDelegate.codes {
-        guard !Task.isCancelled else { return }
-        self?.onDismiss(code: code)
-        return
+        guard let self, !Task.isCancelled else { return }
+        let now = clock.now
+        let isStillVisible = previous.map {
+          $0.code == code && now - $0.time < Constants.detectionGap
+        } ?? false
+        guard isStillVisible || acceptsInput() else { continue }
+        previous = (code, now)
+        if !isStillVisible { onCode(code) }
       }
     }
   }
+}
+
+private enum Constants {
+  static let detectionGap: Duration = .seconds(1)
 }
