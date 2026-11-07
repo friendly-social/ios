@@ -36,12 +36,21 @@ extension ActivityViewModel.Destination {
     }
   }
 
-  public struct Profile: Identifiable {
+  public struct Profile: Identifiable, Hashable {
     public var id: Int64 { event.id }
     public let event: ActivityEvent
     public let session: CommunitySession
     public let userID: UserId
     public let accessHash: UserAccessHash
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+      lhs.event.id == rhs.event.id && lhs.session == rhs.session
+    }
+
+    public func hash(into hasher: inout Hasher) {
+      hasher.combine(event.id)
+      hasher.combine(session.sessionID)
+    }
   }
 }
 

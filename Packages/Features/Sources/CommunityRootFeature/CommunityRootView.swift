@@ -1,13 +1,11 @@
 import ActivityRootFeature
 import CommunityFeature
-import FriendlyUIKit
-import ProfileFeature
 import SwiftUI
 
 @MainActor
 public struct CommunityRootView: View {
-  @Bindable var model: CommunityRootViewModel
-  @Binding var hidesTabBar: Bool
+  @Bindable private var model: CommunityRootViewModel
+  @Binding private var hidesTabBar: Bool
 
   public init(model: CommunityRootViewModel, hidesTabBar: Binding<Bool>) {
     self.model = model
@@ -22,17 +20,17 @@ public struct CommunityRootView: View {
 
 private extension CommunityRootView {
   private func contentView() -> some View {
-    feedContent()
-      .toolbar(hidesTabBar ? .hidden : .automatic, for: .tabBar)
-      .sheet(item: $model.author) { author in authorView(author) }
+    NavigationStack {
+      feedContent()
+    }
+    .toolbarVisibility(hidesTabBar ? .hidden : .automatic, for: .tabBar)
   }
 
   @ViewBuilder
   private func feedContent() -> some View {
     if let feed = model.feed {
       CommunityView(
-        model: feed, avatarURL: feed.avatarURL, hidesTabBar: $hidesTabBar,
-        openAuthor: model.openAuthor
+        model: feed, avatarURL: feed.avatarURL, hidesTabBar: $hidesTabBar
       ) {
         ActivityRootView(onUnauthorized: model.onSessionExpired)
       }
@@ -41,19 +39,8 @@ private extension CommunityRootView {
     }
   }
 
-  private func authorView(_ author: CommunityRootViewModel.AuthorDestination) -> some View {
-    RouterView { router in
-      ProfileView(mode: .otherProfile(author.profile))
-        .toolbar {
-          ToolbarItem(placement: .cancellationAction) {
-            Button(.communityClose, systemImage: Constants.close) { model.closeAuthor() }
-          }
-        }
-    }
-  }
 }
 
 private enum Constants {
   static let signIn = "person.crop.circle.badge.exclamationmark"
-  static let close = "xmark"
 }

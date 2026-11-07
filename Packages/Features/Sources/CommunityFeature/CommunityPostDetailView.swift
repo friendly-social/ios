@@ -1,6 +1,7 @@
 import CommunityMarkdownFeature
 import CommunityService
 import Foundation
+import ProfileFeature
 import SwiftUI
 
 struct CommunityPostDetailView: View {
@@ -10,7 +11,6 @@ struct CommunityPostDetailView: View {
   @State private var didPosition = false
   @State private var highlightedReplyID: Int64?
   private let avatarURL: (CommunityPost.Owner.Avatar) -> URL
-  private let openAuthor: ((CommunityPost.Owner) -> Void)?
   private let currentUser: CommunityPost.Owner?
   private let focusReplyOnAppear: Bool
   private let initialReplyID: Int64?
@@ -18,14 +18,12 @@ struct CommunityPostDetailView: View {
   init(
     model: CommunityPostDetailViewModel, currentUser: CommunityPost.Owner?,
     avatarURL: @escaping (CommunityPost.Owner.Avatar) -> URL,
-    openAuthor: ((CommunityPost.Owner) -> Void)?,
     focusReplyOnAppear: Bool = false,
     initialReplyID: Int64? = nil
   ) {
     self.model = model
     self.currentUser = currentUser
     self.avatarURL = avatarURL
-    self.openAuthor = openAuthor
     self.focusReplyOnAppear = focusReplyOnAppear
     self.initialReplyID = initialReplyID
   }
@@ -39,6 +37,7 @@ private extension CommunityPostDetailView {
     switch destination {
     case let .compose(model): CommunityComposerView(model: model)
     case let .edit(model): CommunityEditView(model: model)
+    case .author: EmptyView()
     }
   }
 
@@ -72,7 +71,14 @@ private extension CommunityPostDetailView {
       .navigationTitle(.postTitle)
       .navigationBarTitleDisplayMode(.inline)
       .safeAreaBar(edge: .bottom) { replyBar() }
-      .sheet(item: $model.destination) { destinationView($0) }
+      .sheet(item: $model.sheetDestination) { destinationView($0) }
+      .navigationDestination(item: $model.navigationDestination) { destination in
+        switch destination {
+        case let .author(id, accessHash):
+          ProfileView(mode: .otherProfile(.init(id: id, accessHash: accessHash)))
+        case .compose, .edit: EmptyView()
+        }
+      }
       .task { await model.activate() }
       .task(id: highlightedReplyID) { await clearHighlight() }
       .task {
@@ -284,8 +290,8 @@ private extension CommunityPostDetailView {
 
   @ViewBuilder
   private func authorAvatar(for post: CommunityPost) -> some View {
-    if let owner = post.owner, let openAuthor {
-      Button { openAuthor(owner) } label: {
+    if let owner = post.owner {
+      Button { model.openAuthor(owner) } label: {
         CommunityAvatar(owner: owner, avatarURL: avatarURL)
           .frame(width: Constants.avatarSize, height: Constants.avatarSize)
           .contentShape(.circle)
@@ -303,7 +309,7 @@ private extension CommunityPostDetailView {
     for post: CommunityPost, translation: CommunityPostTranslationViewModel?
   ) -> some View {
     CommunityPostHeader(
-      post: post, openAuthor: openAuthor, canManage: model.canManage(post),
+      post: post, openAuthor: model.openAuthor, canManage: model.canManage(post),
       isDeleting: model.deletingID == post.id, actionsDisabled: model.deletingID != nil,
       edit: { model.edit(post) }, delete: { Task { await model.delete(post) } },
       translation: translation)

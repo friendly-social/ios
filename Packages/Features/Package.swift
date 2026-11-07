@@ -138,7 +138,8 @@ let package = Package(
         .product(name: "Models", package: "Domain"),
         "ActivityDiscussionFeature",
         "ActivityFeature",
-        "FriendlyUIKit",
+        "ActivityService",
+        "CommunityProfileService",
         "ProfileFeature",
       ]
     ),
@@ -530,6 +531,7 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
         .product(name: "NukeUI", package: "Nuke"),
         .product(name: "SwiftNavigation", package: "swift-navigation"),
         "ActivityService",
@@ -541,6 +543,7 @@ let package = Package(
         "CommunityService",
         "FriendlyUIKit",
         "PostTranslationService",
+        "ProfileFeature",
       ],
       resources: [
         .process("Resources"),
@@ -557,13 +560,8 @@ let package = Package(
     .target(
       name: "CommunityRootFeature",
       dependencies: [
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "Models", package: "Domain"),
         "ActivityRootFeature",
         "CommunityFeature",
-        "CommunityService",
-        "FriendlyUIKit",
-        "ProfileFeature",
       ],
       resources: [
         .process("Resources"),

@@ -48,6 +48,27 @@ import Testing
     expectNoDifference(model.replyRows.map(\.id), [3])
     expectNoDifference(model.nextID, "new")
   }
+
+  @Test(arguments: [false, true])
+  func leavingDuringLoadAllowsRefreshAfterReturning(pagination: Bool) async {
+    let gate = DiscussionPreparationGate()
+    let model = model(details: details(replyID: 2, nextID: "next"), gate: gate)
+    defer { model.stop() }
+    if pagination { await model.load() }
+    await gate.suspendNext()
+    let loading = Task {
+      if pagination { await model.loadMore() } else { await model.load() }
+    }
+    await gate.waitUntilSuspended()
+    model.stop()
+    #expect(!model.isLoading && !model.isLoadingMore)
+    await gate.resume()
+    await loading.value
+    await model.load()
+    #expect(model.loaded && !model.isLoading && !model.isLoadingMore)
+    expectNoDifference(model.replies.map(\.id), [2])
+  }
+
 }
 
 private extension CommunityDiscussionLoadingTests {
@@ -57,6 +78,8 @@ private extension CommunityDiscussionLoadingTests {
     var service = CommunityService()
     service.markRead = { _ in }
     service.details = { _ in details }
+    let page = CommunityReplyPage(data: [.single(post(3))], nextId: nil)
+    service.replies = { _, _ in page }
     var preparation = CommunityFeedPreparationService()
     preparation.prepareDocument = { _ in await gate.prepare() }
     return makeDetailModel(post: details.post, service: service, initialDetails: initial, preparation: preparation)
@@ -76,6 +99,9 @@ private actor DiscussionPreparationGate {
   private var completion: CheckedContinuation<MarkdownDocument?, Never>?
   private var waiter: CheckedContinuation<Void, Never>?
 
+}
+
+private extension DiscussionPreparationGate {
   func suspendNext() { suspendsNext = true }
 
   func prepare() async -> MarkdownDocument? {
