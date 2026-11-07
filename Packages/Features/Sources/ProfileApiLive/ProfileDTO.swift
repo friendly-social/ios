@@ -1,5 +1,6 @@
 import Foundation
 import Models
+import ProfileApi
 
 struct UserDetailsDTO: Decodable {
   let id: Int64
@@ -57,3 +58,32 @@ struct UserEditBody: Encodable {
 }
 
 struct Field<Value: Encodable>: Encodable { let value: Value }
+
+struct ProfileDetailsDTO: Decodable {
+  private let user: ProfileUserDTO
+  let commonFriends: [UserDetailsDTO]?
+
+  func details() throws -> ProfileDetails {
+    ProfileDetails(
+      user: try user.details.userDetails(), friendship: user.friendship,
+      commonFriends: try (commonFriends ?? []).map { try $0.userDetails() })
+  }
+}
+
+private struct ProfileUserDTO: Decodable {
+  let details: UserDetailsDTO
+  let friendship: Friendship
+
+  init(from decoder: any Decoder) throws {
+    details = try UserDetailsDTO(from: decoder)
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let rawValue = try container.decode(String.self, forKey: .friendship)
+    guard let friendship = Friendship(rawValue: rawValue) else {
+      throw DecodingError.dataCorruptedError(forKey: .friendship, in: container,
+        debugDescription: "Unknown friendship status: \(rawValue)")
+    }
+    self.friendship = friendship
+  }
+
+  private enum CodingKeys: String, CodingKey { case friendship }
+}

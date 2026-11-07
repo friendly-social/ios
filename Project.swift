@@ -116,6 +116,8 @@ let project = Project(
                 .package(product: "PhotoViewerFeature"),
                 .package(product: "PostTranslationService"),
                 .package(product: "PostTranslationServiceLive"),
+                .package(product: "ProfileApi"),
+                .package(product: "ProfileApiLive"),
                 .target(name: "CommunityTestsHost"),
             ]
         ),

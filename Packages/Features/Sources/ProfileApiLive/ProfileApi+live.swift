@@ -6,6 +6,7 @@ extension ProfileApi {
     let client = ProfileApiLive()
     return .init(
       usersDetails: { try await client.details($0, $1, $2) },
+      usersDetailsWithFriends: { try await client.detailsWithFriends($0, $1, $2) },
       usersEdit: { try await client.edit($0, $1, $2, $3, $4, $5) }
     )
   }

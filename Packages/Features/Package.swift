@@ -776,6 +776,14 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "ProfileFeatureTests",
+      dependencies: [
+        .product(name: "CustomDump", package: "swift-custom-dump"),
+        "ProfileApi",
+        "ProfileApiLive",
+      ]
+    ),
+    .testTarget(
       name: "ActivityFeatureTests",
       dependencies: [
         .product(name: "CustomDump", package: "swift-custom-dump"),
