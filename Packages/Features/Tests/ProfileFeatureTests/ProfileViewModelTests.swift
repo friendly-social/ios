@@ -174,6 +174,33 @@ struct ProfileViewModelTests {
     #expect(model.navigationDestination == nil)
   }
 
+  @Test func confirmingEmailHidesThePromptWhileTheSuccessStepStaysOpen() async throws {
+    let info = ProfileInfo(
+      avatarUrl: nil,
+      nickname: try Nickname("Kinokot"),
+      description: try UserDescription("Hello"),
+      interests: [],
+      socialUrl: nil,
+      email: nil
+    )
+    var service = ProfileService()
+    service.loadProfile = { _ in LoadedProfile(info: info, relationship: .own) }
+    service.prepareDescription = { _ in nil }
+    service.loadFriends = { [] }
+    let model = makeOwnModel(service)
+    await model.reload()
+    #expect(model.canBindEmail)
+    model.showEmailBinding()
+    #expect(model.navigationDestination == .bindEmail)
+    #expect(model.sheetDestination == nil)
+    model.emailBindingConfirmed("kinokot@example.com")
+    #expect(!model.canBindEmail)
+    #expect(model.navigationDestination == .bindEmail)
+    model.closeEmailBinding()
+    model.showEmailBinding()
+    #expect(model.navigationDestination == nil)
+  }
+
   @Test func liveDescriptionPreparationUsesSharedMarkdownParser() async {
     let source = "# Title\n\n<img src=\"https://example.com/icon.gif\" width=\"23\" height=\"23\">"
     let document = await ProfileService.liveValue.prepareDescription(source)

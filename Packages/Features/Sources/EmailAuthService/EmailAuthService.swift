@@ -3,10 +3,16 @@ import DependenciesMacros
 
 @DependencyClient
 public struct EmailAuthService: Sendable {
-  public var requestBindingCode: @Sendable (String) async throws -> Void
-  public var confirmBinding: @Sendable (Int) async throws -> Void
-  public var requestLoginCode: @Sendable (String) async throws -> Void
-  public var login: @Sendable (String, Int) async throws -> Void
+  public var requestBindingCode: @Sendable (_ email: String) async throws -> Void
+  public var confirmBinding: @Sendable (
+    _ email: String,
+    _ code: Int
+  ) async throws -> Void
+  public var requestLoginCode: @Sendable (_ email: String) async throws -> Void
+  public var login: @Sendable (
+    _ email: String,
+    _ code: Int
+  ) async throws -> Void
 }
 
 public enum EmailAuthError: Error {
