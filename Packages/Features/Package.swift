@@ -647,10 +647,12 @@ let package = Package(
       name: "EmailAuthServiceLive",
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),
-        "AccountSessionService",
         .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "AccountSessionService",
         "AuthApi",
         "EmailAuthService",
+        "ProfileApi",
       ]
     ),
     .target(
