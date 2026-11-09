@@ -44,6 +44,11 @@ final class ProfileViewModel {
     return true
   }
 
+  var canBindEmail: Bool {
+    guard enableSignOut, case let .success(profile) = state else { return false }
+    return profile.info.email == nil
+  }
+
   var enableRemoveFromFriends: Bool {
     guard case let .success(profile) = state,
       case .other(friendship: .friends, commonFriends: _) = profile.relationship else { return false }
@@ -72,6 +77,29 @@ final class ProfileViewModel {
   func appear() { startReload() }
   func clearAlertError() { alertError = nil }
   func showInvitation() { destination = .invitation }
+
+  func showEmailBinding() {
+    guard canBindEmail else { return }
+    destination = .bindEmail
+  }
+
+  func emailBindingConfirmed(_ email: String) {
+    guard destination == .bindEmail, case let .success(profile) = state else { return }
+    reloadTask?.cancel()
+    let info = ProfileInfo(
+      avatarUrl: profile.info.avatarUrl,
+      nickname: profile.info.nickname,
+      description: profile.info.description,
+      interests: profile.info.interests,
+      socialUrl: profile.info.socialUrl,
+      email: email
+    )
+    state = .success(LoadedProfile(info: info, relationship: profile.relationship))
+  }
+
+  func closeEmailBinding() {
+    if destination == .bindEmail { destination = nil }
+  }
 
   func reload() async {
     let task = makeReloadTask()
@@ -132,7 +160,6 @@ final class ProfileViewModel {
       task.cancel()
     }
   }
-
 }
 
 private extension ProfileViewModel {

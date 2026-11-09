@@ -1,3 +1,4 @@
+import AuthFeature
 import Models
 import NetworkQRCodeFeature
 import PhotoViewerFeature
@@ -18,36 +19,17 @@ public struct ProfileView: View {
     contentView()
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(Constants.background)
-      .sheet(item: $viewModel.sheetDestination, onDismiss: viewModel.editProfileDismissed) { destination in
-        switch destination {
-        case .edit:
-          if case let .success(profile) = viewModel.state {
-            ProfileEditView(profileInfo: profile.info, onComplete: { viewModel.destination = nil },
-                          service: viewModel.profileFormService)
-          }
-        case .invitation: NetworkQRCodeView(onDismiss: { viewModel.destination = nil })
-        case .commonFriends, .photo: EmptyView()
-        }
+      .sheet(
+        item: $viewModel.sheetDestination,
+        onDismiss: viewModel.editProfileDismissed
+      ) { destination in
+        sheetView(destination)
       }
       .fullScreenCover(item: $viewModel.photoDestination) { destination in
-        if case let .photo(photo) = destination {
-          PhotoViewer(
-            image: photo.image,
-            imageLabel: Text(.profileAvatar),
-            sourceFrame: photo.sourceFrame,
-            imageSize: photo.imageSize,
-            sourceCornerRadius: min(photo.sourceFrame.width, photo.sourceFrame.height) / 2
-          )
-        }
+        photoView(destination)
       }
       .navigationDestination(item: $viewModel.navigationDestination) { destination in
-        switch destination {
-        case .commonFriends:
-          if let friends = viewModel.displayedFriends {
-            ProfileFriendsView(friends: friends, selection: viewModel.profileSelection)
-          }
-        case .edit, .invitation, .photo: EmptyView()
-        }
+        destinationView(destination)
       }
       .toolbar { toolbarContent() }
       .toolbarVisibility(viewModel.enableSignOut ? .automatic : .hidden, for: .tabBar)
@@ -98,6 +80,54 @@ private extension ProfileView {
     }
   }
 
+  @ViewBuilder
+  private func sheetView(_ destination: ProfileViewModel.Destination) -> some View {
+    switch destination {
+    case .edit:
+      if case let .success(profile) = viewModel.state {
+        ProfileEditView(
+          profileInfo: profile.info,
+          onComplete: { viewModel.destination = nil },
+          service: viewModel.profileFormService
+        )
+      }
+    case .invitation: NetworkQRCodeView(onDismiss: { viewModel.destination = nil })
+    case .bindEmail, .commonFriends, .photo: EmptyView()
+    }
+  }
+
+  @ViewBuilder
+  private func photoView(_ destination: ProfileViewModel.Destination) -> some View {
+    if case let .photo(photo) = destination {
+      PhotoViewer(
+        image: photo.image,
+        imageLabel: Text(.profileAvatar),
+        sourceFrame: photo.sourceFrame,
+        imageSize: photo.imageSize,
+        sourceCornerRadius: min(photo.sourceFrame.width, photo.sourceFrame.height) / 2
+      )
+    }
+  }
+
+  @ViewBuilder
+  private func destinationView(_ destination: ProfileViewModel.Destination) -> some View {
+    switch destination {
+    case .bindEmail:
+      EmailBindingView(
+        onLinked: viewModel.emailBindingConfirmed,
+        onFinish: viewModel.closeEmailBinding
+      )
+    case .commonFriends:
+      if let friends = viewModel.displayedFriends {
+        ProfileFriendsView(
+          friends: friends,
+          selection: viewModel.profileSelection
+        )
+      }
+    case .edit, .invitation, .photo: EmptyView()
+    }
+  }
+
   @ToolbarContentBuilder
   private func toolbarContent() -> some ToolbarContent {
     ToolbarItem(placement: .topBarLeading) {
@@ -114,27 +144,37 @@ private extension ProfileView {
         }
       }
       if viewModel.enableSignOut {
-        Button { showSignUpConfirmation = true } label: {
-          Image(systemName: Constants.signOutSymbol)
-        }
-        .confirmationDialog(.profileSignOutConfirmation, isPresented: $showSignUpConfirmation) {
-          Button(.profileSignOutConfirm, role: .destructive) { viewModel.signOut() }
-        }
+        signOutButton()
       }
       if viewModel.enableRemoveFromFriends {
-        Menu {
-          Button(role: .destructive) { showFriendDeclineConfirmation = true } label: {
-            Label(.profileFriendsDecline, systemImage: Constants.removeFriendSymbol)
-          }
-        } label: { Image(systemName: Constants.moreSymbol) }
-        .confirmationDialog(.profileFriendsDeclineConfirmation, isPresented: $showFriendDeclineConfirmation) {
-          Button(.profileFriendsDeclineConfirm, role: .destructive) {
-            Task { await viewModel.friendsDecline() }
-          }
-        }
-        .disabled(viewModel.isUpdatingFriendship)
+        friendshipMenu()
       }
     }
+  }
+
+  private func signOutButton() -> some View {
+    Button { showSignUpConfirmation = true } label: {
+      Image(systemName: Constants.signOutSymbol)
+    }
+    .confirmationDialog(.profileSignOutConfirmation, isPresented: $showSignUpConfirmation) {
+      Button(.profileSignOutConfirm, role: .destructive) { viewModel.signOut() }
+    }
+  }
+
+  private func friendshipMenu() -> some View {
+    Menu {
+      Button(role: .destructive) { showFriendDeclineConfirmation = true } label: {
+        Label(.profileFriendsDecline, systemImage: Constants.removeFriendSymbol)
+      }
+    } label: {
+      Image(systemName: Constants.moreSymbol)
+    }
+    .confirmationDialog(.profileFriendsDeclineConfirmation, isPresented: $showFriendDeclineConfirmation) {
+      Button(.profileFriendsDeclineConfirm, role: .destructive) {
+        Task { await viewModel.friendsDecline() }
+      }
+    }
+    .disabled(viewModel.isUpdatingFriendship)
   }
 }
 

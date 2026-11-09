@@ -631,6 +631,23 @@
         }
       }
     },
+    "profile_bind_email_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep access to your account and sign in on other devices"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраните доступ к аккаунту и входите с других устройств"
+          }
+        }
+      }
+    },
     "profile_edit" : {
       "extractionState" : "manual",
       "localizations" : {

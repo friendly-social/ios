@@ -5,6 +5,7 @@ extension ProfileViewModel {
   enum Destination: Hashable, Identifiable {
     case edit
     case invitation
+    case bindEmail
     case commonFriends
     case photo(Photo)
 
@@ -43,7 +44,12 @@ extension ProfileViewModel {
   }
 
   var navigationDestination: Destination? {
-    get { if case .commonFriends = destination { destination } else { nil } }
+    get {
+      switch destination {
+      case .bindEmail, .commonFriends: destination
+      default: nil
+      }
+    }
     set {
       if let newValue { destination = newValue }
       else if navigationDestination != nil { destination = nil }
@@ -55,8 +61,17 @@ extension ProfileViewModel {
     destination = .commonFriends
   }
 
-  func showAvatar(_ image: Image, imageSize: CGSize?, sourceFrame: CGRect) {
+  func showAvatar(
+    _ image: Image,
+    imageSize: CGSize?,
+    sourceFrame: CGRect
+  ) {
     guard case let .success(profile) = state, let url = profile.info.avatarUrl else { return }
-    destination = .photo(Photo(id: url, image: image, imageSize: imageSize, sourceFrame: sourceFrame))
+    destination = .photo(.init(
+      id: url,
+      image: image,
+      imageSize: imageSize,
+      sourceFrame: sourceFrame
+    ))
   }
 }

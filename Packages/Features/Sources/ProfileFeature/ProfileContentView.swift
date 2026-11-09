@@ -14,6 +14,7 @@ struct ProfileContentView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: Constants.spacing) {
         headerView()
+        if model.canBindEmail { emailBindingButton() }
         if case let .other(friendship, _) = profile.relationship { friendshipView(friendship) }
         Divider()
         aboutView()
@@ -34,18 +35,63 @@ private extension ProfileContentView {
   private func headerView() -> some View {
     HStack(spacing: Constants.spacing) {
       AvatarView(
-        url: profile.info.avatarUrl, size: Constants.avatarSize, openLabel: .profileOpenAvatar,
+        url: profile.info.avatarUrl,
+        size: Constants.avatarSize,
+        openLabel: .profileOpenAvatar,
         isPresented: model.photoDestination != nil
       ) { image, imageSize, sourceFrame in
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
-        withTransaction(transaction) { model.showAvatar(image, imageSize: imageSize, sourceFrame: sourceFrame) }
+        withTransaction(transaction) {
+          model.showAvatar(
+            image,
+            imageSize: imageSize,
+            sourceFrame: sourceFrame
+          )
+        }
       }
       VStack(alignment: .leading, spacing: Constants.smallSpacing) {
         Text(profile.info.nickname.string).font(.title2.bold())
         socialLinkView()
       }
       Spacer(minLength: Constants.minimumSpacing)
+    }
+  }
+
+  private func emailBindingButton() -> some View {
+    Button(action: model.showEmailBinding) {
+      HStack(spacing: Constants.smallSpacing) {
+        emailBindingLabel()
+        Spacer(minLength: Constants.minimumSpacing)
+        Image(systemName: Constants.chevronSymbol)
+          .foregroundStyle(.secondary)
+          .accessibilityHidden(true)
+      }
+      .multilineTextAlignment(.leading)
+      .padding(Constants.emailButtonPadding)
+      .background(
+        Color.accentColor.opacity(Constants.emailBackgroundOpacity),
+        in: .rect(cornerRadius: Constants.emailButtonRadius)
+      )
+      .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+  }
+
+  private func emailBindingLabel() -> some View {
+    HStack(alignment: .firstTextBaseline, spacing: Constants.smallSpacing) {
+      Image(systemName: Constants.emailSymbol)
+        .font(.headline)
+        .foregroundStyle(Color.accentColor)
+        .accessibilityHidden(true)
+      VStack(alignment: .leading, spacing: Constants.smallSpacing) {
+        Text(.profileEditBindEmailButton)
+          .font(.headline)
+          .foregroundStyle(Color.accentColor)
+        Text(.profileBindEmailHint)
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+      }
     }
   }
 
@@ -155,7 +201,11 @@ private enum Constants {
   static let spacing: CGFloat = 16
   static let smallSpacing: CGFloat = 8
   static let linkSymbol = "arrow.up.right"
+  static let emailSymbol = "envelope"
   static let chevronSymbol = "chevron.right"
+  static let emailButtonPadding: CGFloat = 12
+  static let emailButtonRadius: CGFloat = 14
+  static let emailBackgroundOpacity = 0.12
   static let minimumSpacing: CGFloat = 0
   static let socialLinkLineLimit = 1
   static let friendsNamesLineLimit = 2
