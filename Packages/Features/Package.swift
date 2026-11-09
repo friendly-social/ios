@@ -746,6 +746,14 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "AuthFeatureTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "AuthFeature",
+        "EmailAuthService",
+      ]
+    ),
+    .testTarget(
       name: "ProfileFeatureTests",
       dependencies: [
         .product(name: "AccountStorageService", package: "Infrastructure"),

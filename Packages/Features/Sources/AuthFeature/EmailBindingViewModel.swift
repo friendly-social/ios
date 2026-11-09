@@ -2,169 +2,150 @@ import Dependencies
 import EmailAuthService
 import Foundation
 
-@MainActor
-@Observable
-class EmailBindingViewModel {
+@MainActor @Observable
+final class EmailBindingViewModel {
+  enum Step: Equatable, Sendable {
+    case address
+    case code(email: String)
+    case success(email: String)
+  }
+
+  enum Failure: Equatable {
+    case addressUnavailable
+    case invalidCodeFormat
+    case invalidCode
+    case unauthorized
+    case requestFailed
+  }
+
+  private enum Status: Equatable {
+    case idle
+    case sending
+    case confirming
+    case failed(Failure)
+  }
+
   @ObservationIgnored @Dependency(EmailAuthService.self) private var service
-  private let emailCodeFlow: EmailCodeFlow
-  private var stateRevision = 0
+  private let onLinked: (String) -> Void
+  private var status: Status = .idle
+  private var operation: Task<Void, Never>?
+  private(set) var step: Step = .address
+  private(set) var email = ""
+  private(set) var code = ""
 
-  var email: String {
-    get { emailCodeState.email }
-    set {
-      emailCodeFlow.email = newValue
-      clearStatus()
+  init(onLinked: @escaping (String) -> Void) {
+    self.onLinked = onLinked
+  }
+
+  var isWorking: Bool { status == .sending || status == .confirming }
+
+  var failure: Failure? {
+    if case let .failed(failure) = status { return failure }
+    if case .code = step, code.count == 8, ConfirmationCode(code) == nil {
+      return .invalidCodeFormat
+    }
+    return nil
+  }
+
+  var canSubmit: Bool {
+    guard !isWorking, failure != .unauthorized else { return false }
+    switch step {
+    case .address:
+      return EmailCodeFlow.isValidEmail(normalizedEmail) && failure != .addressUnavailable
+    case .code: return ConfirmationCode(code) != nil
+    case .success: return false
     }
   }
 
-  var status: Status = .idle
-
-  private var sendTask: Task<Void, Never>?
-  private var confirmTask: Task<Void, Swift.Error>?
-
-  init() {
-    self.emailCodeFlow = EmailCodeFlow()
-  }
-
-  private var isObserving = false
-
-  func start() {
-    guard !isObserving else { return }
-    isObserving = true
-    emailCodeFlow.observeState { [weak self] _ in
-      self?.stateRevision &+= 1
-    }
+  func updateEmail(_ value: String) {
+    guard case .address = step, !isWorking, failure != .unauthorized else { return }
+    email = value
+    status = .idle
   }
 
   func updateCode(_ value: String) {
-    emailCodeFlow.updateCode(value)
-    clearStatus()
+    guard case .code = step, !isWorking, failure != .unauthorized else { return }
+    code = ConfirmationCode.sanitize(value)
+    status = .idle
   }
 
-  func requestCode() {
-    guard emailCodeFlow.canRequestCode else { return }
-    sendTask?.cancel()
-    let emailCodeFlow = emailCodeFlow
+  func changeEmail() {
+    guard case .code = step, !isWorking, failure != .unauthorized else { return }
+    code = ""
+    status = .idle
+    step = .address
+  }
+
+  @discardableResult
+  func submit() -> Task<Void, Never>? {
+    guard canSubmit else { return nil }
     let service = service
-    sendTask = Task { [weak self] in
-      self?.status = .idle
-      emailCodeFlow.isSendingCode = true
-      defer { emailCodeFlow.isSendingCode = false }
-
-      do {
-        let email = try emailCodeFlow.requestEmail()
-        try await service.requestBindingCode(email: email)
-        emailCodeFlow.didRequestCode(for: email)
-      } catch is CancellationError {
-        return
-      } catch EmailAuthError.alreadyUsed {
-        self?.status = .alreadyUsed
-      } catch EmailAuthError.unauthorized {
-        self?.status = .unauthorized
-      } catch EmailCodeFlow.Error.invalidEmail {
-        self?.status = .invalidEmail
-      } catch {
-        self?.status = .networkError
+    switch step {
+    case .address:
+      let address = normalizedEmail
+      email = address
+      return run(.sending) {
+        try await service.requestBindingCode(email: address)
+        return .code(email: address)
       }
-    }
-  }
-
-  func confirmCode() async throws -> String {
-    guard emailCodeFlow.canConfirm else {
-      throw EmailCodeFlow.Error.invalidCode
-    }
-    confirmTask?.cancel()
-    status = .idle
-    emailCodeFlow.isConfirmingCode = true
-    defer {
-      emailCodeFlow.isConfirmingCode = false
-      confirmTask = nil
-    }
-    do {
-      guard let email = emailCodeFlow.requestedEmail else {
-        throw EmailCodeFlow.Error.invalidEmail
+    case let .code(address):
+      guard let confirmation = ConfirmationCode(code) else { return nil }
+      let value = confirmation.int
+      return run(.confirming) {
+        try await service.confirmBinding(email: address, code: value)
+        return .success(email: address)
       }
-      let code = try emailCodeFlow.codeToConfirm()
-      try await waitForConfirmation(email: email, code: code.int)
-      status = .success
-      return email
-    } catch {
-      updateStatus(for: error)
-      throw error
+    case .success:
+      return nil
     }
   }
 
-  func resetEmailRequest() {
-    sendTask?.cancel()
-    confirmTask?.cancel()
-    emailCodeFlow.resetEmailRequest()
-    status = .idle
-  }
-
-  func cancelTasks() {
-    sendTask?.cancel()
-    confirmTask?.cancel()
-    emailCodeFlow.cancelCooldown()
-  }
-
-  enum Status {
-    case idle
-    case success
-    case invalidEmail
-    case alreadyUsed
-    case invalidCode
-    case unauthorized
-    case networkError
-  }
-}
-
-extension EmailBindingViewModel: EmailCodeFlowProviding {
-  func emailCodeFlowState() -> EmailCodeFlow.State {
-    emailCodeState
+  func cancelOperation() {
+    operation?.cancel()
+    operation = nil
+    if isWorking { status = .idle }
   }
 }
 
 private extension EmailBindingViewModel {
-  private var emailCodeState: EmailCodeFlow.State {
-    _ = stateRevision
-    return emailCodeFlow.state()
+  private var normalizedEmail: String {
+    email.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  private func waitForConfirmation(email: String, code: Int) async throws {
-    let service = service
-    let task: Task<Void, Swift.Error> = Task {
-      try await service.confirmBinding(email: email, code: code)
+  private func run(
+    _ loading: Status,
+    request: @escaping @Sendable () async throws -> Step
+  ) -> Task<Void, Never> {
+    status = loading
+    let task = Task { [weak self] in
+      do {
+        try Task.checkCancellation()
+        let nextStep = try await request()
+        try Task.checkCancellation()
+        self?.complete(nextStep)
+      } catch {
+        guard !Task.isCancelled else { return }
+        self?.status = Self.status(for: error)
+      }
+      self?.operation = nil
     }
-    confirmTask = task
-    try await withTaskCancellationHandler {
-      try await task.value
-    } onCancel: {
-      task.cancel()
-    }
-    try Task.checkCancellation()
-    guard !task.isCancelled else { throw CancellationError() }
+    operation = task
+    return task
   }
 
-  private func clearStatus() {
-    if status != .idle {
-      status = .idle
-    }
+  private func complete(_ nextStep: Step) {
+    step = nextStep
+    status = .idle
+    if case let .success(email) = nextStep { onLinked(email) }
   }
 
-  private func updateStatus(for error: Swift.Error) {
+  private static func status(for error: Error) -> Status {
     switch error {
-    case is CancellationError:
-      break
-    case EmailAuthError.invalidCode:
-      status = .invalidCode
-    case EmailAuthError.unauthorized:
-      status = .unauthorized
-    case EmailCodeFlow.Error.invalidEmail:
-      status = .invalidEmail
-    case EmailCodeFlow.Error.invalidCode:
-      status = .invalidCode
-    default:
-      status = .networkError
+    case is CancellationError: .idle
+    case EmailAuthError.alreadyUsed: .failed(.addressUnavailable)
+    case EmailAuthError.invalidCode: .failed(.invalidCode)
+    case EmailAuthError.unauthorized: .failed(.unauthorized)
+    default: .failed(.requestFailed)
     }
   }
 }
