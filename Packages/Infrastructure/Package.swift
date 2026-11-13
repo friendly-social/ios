@@ -11,6 +11,8 @@ let package = Package(
     .library(name: "ImageServiceLive", targets: ["ImageServiceLive"]),
     .library(name: "Networking", targets: ["Networking"]),
     .library(name: "NetworkingLive", targets: ["NetworkingLive"]),
+    .library(name: "NotificationAvatarService", targets: ["NotificationAvatarService"]),
+    .library(name: "NotificationAvatarServiceLive", targets: ["NotificationAvatarServiceLive"]),
     .library(name: "NotificationSessionStorage", targets: ["NotificationSessionStorage"]),
     .library(name: "NotificationSessionStorageLive", targets: ["NotificationSessionStorageLive"]),
     .library(name: "StorageService", targets: ["StorageService"]),
@@ -75,6 +77,20 @@ let package = Package(
       ]
     ),
     .target(
+      name: "NotificationAvatarService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "NotificationAvatarServiceLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "NotificationAvatarService",
+      ]
+    ),
+    .target(
       name: "NotificationSessionStorage",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
@@ -103,6 +119,14 @@ let package = Package(
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
         "StorageService",
+      ]
+    ),
+    .testTarget(
+      name: "NotificationAvatarServiceTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "NotificationAvatarService",
+        "NotificationAvatarServiceLive",
       ]
     ),
     .testTarget(

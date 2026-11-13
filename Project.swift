@@ -118,6 +118,8 @@ let project = Project(
         .package(product: "ImageServiceLive"),
         .package(product: "Models"),
         .package(product: "Networking"),
+        .package(product: "NotificationAvatarService"),
+        .package(product: "NotificationAvatarServiceLive"),
         .package(product: "NotificationDetailsApi"),
         .package(product: "NotificationDetailsApiLive"),
         .package(product: "NotificationSessionStorage"),
