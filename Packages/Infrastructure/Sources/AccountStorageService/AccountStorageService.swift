@@ -7,6 +7,9 @@ public struct AccountStorageService: Sendable {
   public var loadAuthorization: @Sendable () throws -> Authorization
   public var hasAuthorization: @Sendable () throws -> Bool
   public var clearAuthorization: @Sendable () -> Void = {}
+  public var shareNotificationSession: @Sendable (
+    _ authorization: Authorization
+  ) throws -> Void = { _ in }
   public var getHasFriend: @Sendable () throws -> Bool
   public var addFriend: @Sendable () throws -> Void
   public var saveCommunityProfile: @Sendable (CachedAccountProfile) throws -> Void

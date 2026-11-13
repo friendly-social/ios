@@ -717,6 +717,7 @@ let package = Package(
         .product(name: "AccountStorageServiceLive", package: "Infrastructure"),
         .product(name: "ImageServiceLive", package: "Infrastructure"),
         .product(name: "NetworkingLive", package: "Infrastructure"),
+        .product(name: "NotificationSessionStorageLive", package: "Infrastructure"),
         .product(name: "StorageServiceLive", package: "Infrastructure"),
         "AccountSessionServiceLive",
         "ActivityApiLive",

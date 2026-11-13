@@ -82,6 +82,7 @@ let project = Project(
       sources: ["Packages/Features/Tests/**", "Packages/Infrastructure/Tests/**"],
       dependencies: [
         .package(product: "AccountStorageService"),
+        .package(product: "AccountStorageServiceLive"),
         .package(product: "ActivityApi"),
         .package(product: "ActivityApiLive"),
         .package(product: "ActivityDiscussionFeature"),
@@ -115,6 +116,7 @@ let project = Project(
         .package(product: "ImageServiceLive"),
         .package(product: "Models"),
         .package(product: "Networking"),
+        .package(product: "NotificationSessionStorage"),
         .package(product: "Nuke"),
         .package(product: "NukeUI"),
         .package(product: "PhotoViewerFeature"),
@@ -125,6 +127,7 @@ let project = Project(
         .package(product: "ProfileFeature"),
         .package(product: "ProfileService"),
         .package(product: "ProfileServiceLive"),
+        .package(product: "StorageService"),
         .target(name: "CommunityTestsHost"),
       ]
     ),
