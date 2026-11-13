@@ -53,6 +53,10 @@ let package = Package(
     .library(name: "ProfileFeature", targets: ["ProfileFeature"]),
     .library(name: "ProfileService", targets: ["ProfileService"]),
     .library(name: "ProfileServiceLive", targets: ["ProfileServiceLive"]),
+    .library(name: "PushRegistrationService", targets: ["PushRegistrationService"]),
+    .library(name: "PushRegistrationServiceLive", targets: ["PushRegistrationServiceLive"]),
+    .library(name: "PushTokenRegistrationService", targets: ["PushTokenRegistrationService"]),
+    .library(name: "PushTokenRegistrationServiceLive", targets: ["PushTokenRegistrationServiceLive"]),
     .library(name: "ScannerFeature", targets: ["ScannerFeature"]),
     .library(name: "CameraPermissionService", targets: ["CameraPermissionService"]),
     .library(name: "QRPhotoImportService", targets: ["QRPhotoImportService"]),
@@ -63,6 +67,11 @@ let package = Package(
     .package(path: "../Domain"),
     .package(path: "../Infrastructure"),
     .package(url: "https://github.com/dagronf/QRCode", exact: "27.12.0"),
+    .package(
+      url: "https://github.com/firebase/firebase-ios-sdk.git",
+      exact: "13.1.1",
+      traits: []
+    ),
     .package(url: "https://github.com/kean/Nuke", exact: "13.2.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.12.0"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", exact: "1.7.3"),
@@ -714,6 +723,59 @@ let package = Package(
       ]
     ),
     .target(
+      name: "PushPlatformApi",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "PushPlatformApiLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "FirebaseCore", package: "firebase-ios-sdk"),
+        .product(name: "FirebaseMessaging", package: "firebase-ios-sdk"),
+        "PushPlatformApi",
+      ]
+    ),
+    .target(
+      name: "PushRegistrationService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "PushRegistrationServiceLive",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "StorageService", package: "Infrastructure"),
+        "PushPlatformApi",
+        "PushRegistrationService",
+        "PushTokenRegistrationService",
+      ]
+    ),
+    .target(
+      name: "PushTokenRegistrationService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+      ]
+    ),
+    .target(
+      name: "PushTokenRegistrationServiceLive",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "AuthApi",
+        "PushTokenRegistrationService",
+      ]
+    ),
+    .target(
       name: "NotificationDetailsApi",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
@@ -744,6 +806,7 @@ let package = Package(
         "ActivityServiceLive",
         "AddFriendServiceLive",
         "AuthApiLive",
+        "CameraPermissionServiceLive",
         "CommunityApiLive",
         "CommunityDraftServiceLive",
         "CommunityEditorFeatureLive",
@@ -762,7 +825,9 @@ let package = Package(
         "ProfileApiLive",
         "ProfileFormServiceLive",
         "ProfileServiceLive",
-        "CameraPermissionServiceLive",
+        "PushPlatformApiLive",
+        "PushRegistrationServiceLive",
+        "PushTokenRegistrationServiceLive",
         "QRPhotoImportServiceLive",
         "QRSessionServiceLive",
       ]
@@ -808,6 +873,17 @@ let package = Package(
         "ProfileFeature",
         "ProfileService",
         "ProfileServiceLive",
+      ]
+    ),
+    .testTarget(
+      name: "PushTokenRegistrationServiceTests",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "AuthApi",
+        "PushTokenRegistrationService",
+        "PushTokenRegistrationServiceLive",
       ]
     ),
     .testTarget(

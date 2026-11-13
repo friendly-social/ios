@@ -131,6 +131,8 @@ let project = Project(
         .package(product: "ProfileFeature"),
         .package(product: "ProfileService"),
         .package(product: "ProfileServiceLive"),
+        .package(product: "PushTokenRegistrationService"),
+        .package(product: "PushTokenRegistrationServiceLive"),
         .package(product: "StorageService"),
         .target(name: "CommunityTestsHost"),
       ]
