@@ -93,9 +93,33 @@ struct AuthApiLive: Sendable {
         ? AuthApi.EmailUnlinkError.unauthorized : .serverError
     } catch { throw AuthApi.EmailUnlinkError.ioError(error) }
   }
+
+  func registerFirebaseToken(_ authorization: Authorization, _ firebaseToken: String) async throws {
+    let options = HTTPClient.Request.Options(
+      urlPath: "auth/firebase",
+      headers: authorizationHeaders(authorization)
+    )
+    do {
+      let request = try HTTPClient.Request.post(
+        options: options,
+        body: FirebaseTokenBody(firebaseToken: firebaseToken)
+      )
+      try await sendVoid(request)
+    } catch let error as HTTPStatusError {
+      throw error.response.statusCode == 401
+        ? AuthApi.FirebaseRegistrationError.unauthorized : .serverError
+    } catch {
+      try Task.checkCancellation()
+      throw AuthApi.FirebaseRegistrationError.ioError
+    }
+  }
 }
 
 private extension AuthApiLive {
+  private struct FirebaseTokenBody: Encodable {
+    let firebaseToken: String
+  }
+
   private func sendVoid(_ request: HTTPClient.Request) async throws {
     let response = try await client.send(request)
     guard response.statusCode == 200 else { throw HTTPStatusError(response: response) }

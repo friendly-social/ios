@@ -89,6 +89,8 @@ let project = Project(
         .package(product: "ActivityFeature"),
         .package(product: "ActivityService"),
         .package(product: "ActivityServiceLive"),
+        .package(product: "AuthApi"),
+        .package(product: "AuthApiLive"),
         .package(product: "AuthFeature"),
         .package(product: "CommunityApi"),
         .package(product: "CommunityApiLive"),

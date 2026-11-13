@@ -10,7 +10,8 @@ extension AuthApi {
       authLogin: { try await client.login($0, $1) },
       emailLink: { try await client.linkEmail($0, $1) },
       emailConfirm: { try await client.confirmEmail($0, $1) },
-      emailUnlink: { try await client.unlinkEmail($0) }
+      emailUnlink: { try await client.unlinkEmail($0) },
+      registerFirebaseToken: { try await client.registerFirebaseToken($0, $1) }
     )
   }
 }

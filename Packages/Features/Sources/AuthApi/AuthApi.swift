@@ -9,6 +9,16 @@ public struct AuthApi: Sendable {
   public var emailLink: @Sendable (Authorization, String) async throws -> Void
   public var emailConfirm: @Sendable (Authorization, Int) async throws -> Void
   public var emailUnlink: @Sendable (Authorization) async throws -> Void
+  public var registerFirebaseToken: @Sendable (
+    _ authorization: Authorization,
+    _ firebaseToken: String
+  ) async throws -> Void
+
+  public enum FirebaseRegistrationError: Error {
+    case ioError
+    case unauthorized
+    case serverError
+  }
 
   public enum AuthGenerateError: Error {
     case ioError(Error)

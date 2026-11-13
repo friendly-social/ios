@@ -750,6 +750,10 @@ let package = Package(
       name: "AuthFeatureTests",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "AuthApi",
+        "AuthApiLive",
         "AuthFeature",
         "EmailAuthService",
       ]
