@@ -59,40 +59,14 @@ private extension ProfileContentView {
   }
 
   private func emailBindingButton() -> some View {
-    Button(action: model.showEmailBinding) {
-      HStack(spacing: Constants.smallSpacing) {
-        emailBindingLabel()
-        Spacer(minLength: Constants.minimumSpacing)
-        Image(systemName: Constants.chevronSymbol)
-          .foregroundStyle(.secondary)
-          .accessibilityHidden(true)
-      }
-      .multilineTextAlignment(.leading)
-      .padding(Constants.emailButtonPadding)
-      .background(
-        Color.accentColor.opacity(Constants.emailBackgroundOpacity),
-        in: .rect(cornerRadius: Constants.emailButtonRadius)
-      )
-      .contentShape(.rect)
-    }
-    .buttonStyle(.plain)
-  }
-
-  private func emailBindingLabel() -> some View {
-    HStack(alignment: .firstTextBaseline, spacing: Constants.smallSpacing) {
-      Image(systemName: Constants.emailSymbol)
-        .font(.headline)
-        .foregroundStyle(Color.accentColor)
-        .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: Constants.smallSpacing) {
-        Text(.profileEditBindEmailButton)
-          .font(.headline)
-          .foregroundStyle(Color.accentColor)
-        Text(.profileBindEmailHint)
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-      }
-    }
+    ActionCard(
+      title: .profileEditBindEmailButton,
+      message: .profileBindEmailHint,
+      systemImage: Constants.emailSymbol,
+      backgroundColor: Color(.emailCardBackground),
+      foregroundColor: .accentColor,
+      action: model.showEmailBinding
+    )
   }
 
   @ViewBuilder
@@ -203,9 +177,6 @@ private enum Constants {
   static let linkSymbol = "arrow.up.right"
   static let emailSymbol = "envelope"
   static let chevronSymbol = "chevron.right"
-  static let emailButtonPadding: CGFloat = 12
-  static let emailButtonRadius: CGFloat = 14
-  static let emailBackgroundOpacity = 0.12
   static let minimumSpacing: CGFloat = 0
   static let socialLinkLineLimit = 1
   static let friendsNamesLineLimit = 2
