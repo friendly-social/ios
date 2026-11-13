@@ -42,6 +42,8 @@ let package = Package(
     .library(name: "FriendsApiLive", targets: ["FriendsApiLive"]),
     .library(name: "FriendlyUIKit", targets: ["FriendlyUIKit"]),
     .library(name: "LiveDependencies", targets: ["LiveDependencies"]),
+    .library(name: "NotificationDetailsApi", targets: ["NotificationDetailsApi"]),
+    .library(name: "NotificationDetailsApiLive", targets: ["NotificationDetailsApiLive"]),
     .library(name: "PhotoViewerFeature", targets: ["PhotoViewerFeature"]),
     .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
     .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
@@ -712,6 +714,24 @@ let package = Package(
       ]
     ),
     .target(
+      name: "NotificationDetailsApi",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+      ]
+    ),
+    .target(
+      name: "NotificationDetailsApiLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "FilesApi",
+        "NotificationDetailsApi",
+      ]
+    ),
+    .target(
       name: "LiveDependencies",
       dependencies: [
         .product(name: "AccountStorageServiceLive", package: "Infrastructure"),
@@ -737,6 +757,7 @@ let package = Package(
         "FriendAccessServiceLive",
         "FriendsApiLive",
         "InvitationServiceLive",
+        "NotificationDetailsApiLive",
         "PostTranslationServiceLive",
         "ProfileApiLive",
         "ProfileFormServiceLive",
@@ -756,6 +777,17 @@ let package = Package(
         "AuthApiLive",
         "AuthFeature",
         "EmailAuthService",
+      ]
+    ),
+    .testTarget(
+      name: "NotificationDetailsApiTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "FilesApi",
+        "NotificationDetailsApi",
+        "NotificationDetailsApiLive",
       ]
     ),
     .testTarget(
