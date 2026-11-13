@@ -12,12 +12,13 @@ public struct FriendsAvatarsView: View {
       ForEach(preview.avatars) { avatar in
         AvatarView(url: avatar.url, size: Constants.avatarSize)
           .padding(Constants.avatarPadding)
-          .glassEffect(.regular.tint(.gray.opacity(Constants.glassTint)))
+          .background(.ultraThinMaterial, in: .circle)
       }
       if preview.remainingCount > 0 { remainingView() }
     }
     .padding(Constants.stackPadding)
-    .glassEffect(.regular.tint(.gray.opacity(Constants.glassTint)))
+    .background { Color.clear.glassEffect(.regular.tint(.gray.opacity(Constants.glassTint))) }
+    .clipShape(.capsule)
     .accessibilityHidden(true)
   }
 }
@@ -28,7 +29,7 @@ private extension FriendsAvatarsView {
       .minimumScaleFactor(Constants.minimumTextScale).foregroundStyle(.primary)
       .frame(width: Constants.avatarSize, height: Constants.avatarSize)
       .padding(Constants.avatarPadding)
-      .glassEffect(.regular.tint(.gray.opacity(Constants.glassTint)))
+      .background(.ultraThinMaterial, in: .circle)
   }
 }
 
