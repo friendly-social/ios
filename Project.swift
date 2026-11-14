@@ -1,5 +1,8 @@
 import ProjectDescription
 
+private let notificationKeychainAccessGroup = "$(AppIdentifierPrefix)me.y9san9.Friendly.notifications"
+private let marketingVersion = "1.0"
+
 let project = Project(
   name: "Friendly",
   packages: [
@@ -17,7 +20,12 @@ let project = Project(
       infoPlist: .extendingDefault(with: [
         "CFBundleShortVersionString": "$(MARKETING_VERSION)",
         "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+        "FirebaseAppDelegateProxyEnabled": false,
+        "FirebaseMessagingAutoInitEnabled": false,
+        "FirebaseMessagingInstallationIdEnabled": false,
         "ITSAppUsesNonExemptEncryption": false,
+        "NotificationKeychainAccessGroup": .string(notificationKeychainAccessGroup),
+        "NSUserActivityTypes": ["INSendMessageIntent"],
         "NSCameraUsageDescription": "Friendly needs access to your camera to scan QR codes and add friends.",
         "NSPhotoLibraryAddUsageDescription": "Friendly saves invitation QR codes to your photo library when you ask.",
         "NSPhotoLibraryUsageDescription": "Friendly needs access to your photo library to let you pick QR codes from your photos or upload a profile picture.",
@@ -37,11 +45,12 @@ let project = Project(
           ],
         ],
       ]),
-      buildableFolders: [
-        "App/Sources",
-        "App/Resources",
-      ],
+      sources: ["App/NotificationSupport/**", "App/Sources/**/*.swift"],
+      resources: ["App/Sources/Resources/**"],
+      buildableFolders: ["App/Resources"],
       dependencies: [
+        .package(product: "CommunityFeature"),
+        .package(product: "CommunityProfileService"),
         .package(product: "CommunityRootFeature"),
         .package(product: "Dependencies"),
         .package(product: "FeedFeature"),
@@ -49,19 +58,59 @@ let project = Project(
         .package(product: "ImageService"),
         .package(product: "LiveDependencies"),
         .package(product: "Models"),
+        .package(product: "NotificationDetailsApi"),
+        .package(product: "NotificationOpeningService"),
         .package(product: "ProfileFeature"),
         .package(product: "ProfileFormService"),
+        .package(product: "PushRegistrationService"),
         .package(product: "ScannerFeature"),
         .package(product: "SignUpFeature"),
+        .target(name: "NotificationService"),
       ],
       settings: .settings(
         base: [
+          "CODE_SIGN_ENTITLEMENTS": "App/Signing/Friendly.entitlements",
           "OTHER_LDFLAGS": "-ObjC",
-          "MARKETING_VERSION": "1.0",
+          "MARKETING_VERSION": .string(marketingVersion),
           "CURRENT_PROJECT_VERSION": "1",
           "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
         ],
+        configurations: [
+          .debug(name: "Debug", settings: ["APS_ENVIRONMENT": "development"]),
+          .release(name: "Release", settings: ["APS_ENVIRONMENT": "production"]),
+        ],
       )
+    ),
+    .target(
+      name: "NotificationService",
+      destinations: .iOS,
+      product: .appExtension,
+      bundleId: "me.y9san9.Friendly.NotificationService",
+      deploymentTargets: .iOS("26.0"),
+      infoPlist: .extendingDefault(with: [
+        "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+        "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+        "NotificationKeychainAccessGroup": .string(notificationKeychainAccessGroup),
+        "NSExtension": [
+          "NSExtensionAttributes": ["IntentsSupported": ["INSendMessageIntent"]],
+          "NSExtensionPointIdentifier": "com.apple.usernotifications.service",
+          "NSExtensionPrincipalClass": "$(PRODUCT_MODULE_NAME).NotificationServiceExtension",
+        ],
+      ]),
+      buildableFolders: ["App/NotificationService/Sources"],
+      dependencies: [
+        .package(product: "Dependencies"),
+        .package(product: "NotificationEnrichmentService"),
+        .package(product: "NotificationExtensionDependencies"),
+      ],
+      settings: .settings(base: [
+        "APPLICATION_EXTENSION_API_ONLY": "YES",
+        "CODE_SIGN_ENTITLEMENTS": "App/Signing/NotificationService.entitlements",
+        "CURRENT_PROJECT_VERSION": "1",
+        "MARKETING_VERSION": .string(marketingVersion),
+        "SKIP_INSTALL": "YES",
+        "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+      ])
     ),
     .target(
       name: "CommunityTestsHost",
@@ -79,15 +128,25 @@ let project = Project(
       bundleId: "me.y9san9.Friendly.CommunityTests",
       deploymentTargets: .iOS("26.0"),
       infoPlist: .default,
-      sources: ["Packages/Features/Tests/**", "Packages/Infrastructure/Tests/**"],
+      sources: [
+        "App/NotificationSupport/**",
+        "App/Sources/AppViewModel*.swift",
+        "Packages/Features/Tests/**",
+        "Packages/Infrastructure/Tests/**",
+        "Tests/NotificationTests/**",
+      ],
+      resources: ["App/Sources/Resources/Localizable.xcstrings"],
       dependencies: [
         .package(product: "AccountStorageService"),
+        .package(product: "AccountStorageServiceLive"),
         .package(product: "ActivityApi"),
         .package(product: "ActivityApiLive"),
         .package(product: "ActivityDiscussionFeature"),
         .package(product: "ActivityFeature"),
         .package(product: "ActivityService"),
         .package(product: "ActivityServiceLive"),
+        .package(product: "AuthApi"),
+        .package(product: "AuthApiLive"),
         .package(product: "AuthFeature"),
         .package(product: "CommunityApi"),
         .package(product: "CommunityApiLive"),
@@ -109,12 +168,22 @@ let project = Project(
         .package(product: "FeedFeature"),
         .package(product: "FilesApi"),
         .package(product: "FilesApiLive"),
+        .package(product: "FriendAccessService"),
         .package(product: "FriendsApi"),
         .package(product: "FriendlyUIKit"),
         .package(product: "ImageService"),
         .package(product: "ImageServiceLive"),
         .package(product: "Models"),
         .package(product: "Networking"),
+        .package(product: "NotificationAvatarService"),
+        .package(product: "NotificationAvatarServiceLive"),
+        .package(product: "NotificationDetailsApi"),
+        .package(product: "NotificationDetailsApiLive"),
+        .package(product: "NotificationEnrichmentService"),
+        .package(product: "NotificationEnrichmentServiceLive"),
+        .package(product: "NotificationOpeningService"),
+        .package(product: "NotificationOpeningServiceLive"),
+        .package(product: "NotificationSessionStorage"),
         .package(product: "Nuke"),
         .package(product: "NukeUI"),
         .package(product: "PhotoViewerFeature"),
@@ -123,10 +192,16 @@ let project = Project(
         .package(product: "ProfileApi"),
         .package(product: "ProfileApiLive"),
         .package(product: "ProfileFeature"),
+        .package(product: "ProfileFormService"),
         .package(product: "ProfileService"),
         .package(product: "ProfileServiceLive"),
+        .package(product: "PushRegistrationService"),
+        .package(product: "PushTokenRegistrationService"),
+        .package(product: "PushTokenRegistrationServiceLive"),
+        .package(product: "StorageService"),
         .target(name: "CommunityTestsHost"),
-      ]
+      ],
+      settings: .settings(base: ["STRING_CATALOG_GENERATE_SYMBOLS": "YES"])
     ),
   ],
 )

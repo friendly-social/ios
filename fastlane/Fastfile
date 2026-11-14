@@ -26,22 +26,28 @@ platform :ios do
     new_build_number = current_build_number + 1
     puts "Building version: #{new_build_number}"
 
-    # Parse provisioning profile
+    # Parse provisioning profiles
     require 'fastlane_core'
-    profile_path = File.expand_path("../profile.mobileprovision")
-    profile = FastlaneCore::ProvisioningProfile.parse(profile_path)
+    profiles = {
+      "Friendly" => "profile.mobileprovision",
+      "NotificationService" => "notification-service.mobileprovision"
+    }.transform_values do |file|
+      FastlaneCore::ProvisioningProfile.parse(File.expand_path("../#{file}"))
+    end
     
     # Configure Code Signing
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      path: "Friendly.xcodeproj",
-      targets: ["Friendly"],
-      profile_name: profile["Name"],
-      profile_uuid: profile["UUID"],
-      team_id: ENV["APPLE_TEAM_ID"],
-      code_sign_identity: "Apple Distribution",
-      build_configurations: ["Release"]
-    )
+    profiles.each do |target, profile|
+      update_code_signing_settings(
+        use_automatic_signing: false,
+        path: "Friendly.xcodeproj",
+        targets: [target],
+        profile_name: profile["Name"],
+        profile_uuid: profile["UUID"],
+        team_id: ENV["APPLE_TEAM_ID"],
+        code_sign_identity: "Apple Distribution",
+        build_configurations: ["Release"]
+      )
+    end
 
     # Build the app
     build_app(
@@ -52,7 +58,8 @@ platform :ios do
       export_options: {
         method: "app-store",
         provisioningProfiles: {
-          "me.y9san9.Friendly" => profile["Name"]
+          "me.y9san9.Friendly" => profiles.fetch("Friendly")["Name"],
+          "me.y9san9.Friendly.NotificationService" => profiles.fetch("NotificationService")["Name"]
         }
       }
     )

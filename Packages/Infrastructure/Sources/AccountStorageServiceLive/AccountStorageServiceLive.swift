@@ -1,49 +1,55 @@
+import ConcurrencyExtras
 import Dependencies
 import Foundation
 import Models
+import NotificationSessionStorage
 import StorageService
 
 struct AccountStorageServiceLive: Sendable {
+  @Dependency(NotificationSessionStorage.self) private var notificationSession
   @Dependency(SecureStorageService.self) private var secureStorage
+  private let sessionLock = LockIsolated(())
 
   func saveAuthorization(_ authorization: Authorization) throws(Error) {
     do {
-      try secureStorage.save(Data(authorization.token.string.utf8), Constants.token)
-      try secureStorage.save(
-        withUnsafeBytes(of: authorization.id.int64) { Data($0) }, Constants.id)
-      try secureStorage.save(Data(authorization.accessHash.string.utf8), Constants.accessHash)
-    } catch {
-      clearAuthorization()
-      throw .ioError
-    }
-  }
-
-  func loadAuthorization() throws(Error) -> Authorization {
-    do {
-      guard let tokenData = try secureStorage.load(Constants.token),
-            let idData = try secureStorage.load(Constants.id),
-            let hashData = try secureStorage.load(Constants.accessHash),
-            idData.count == MemoryLayout<Int64>.size else { throw Error.ioError }
-      let id = idData.withUnsafeBytes { $0.loadUnaligned(as: Int64.self) }
-      return Authorization(
-        token: try Token(String(decoding: tokenData, as: UTF8.self)),
-        id: UserId(id),
-        accessHash: try UserAccessHash(String(decoding: hashData, as: UTF8.self)))
+      try sessionLock.withValue { _ in
+        if (try? readPrivateAuthorization().token) != authorization.token {
+          try? notificationSession.remove()
+        }
+        try savePrivateAuthorization(authorization)
+      }
     } catch { throw .ioError }
   }
 
-  func hasAuthorization() throws(Error) -> Bool {
-    do { return try secureStorage.contains(Constants.accessHash) }
+  func loadAuthorization() throws(Error) -> Authorization {
+    do { return try sessionLock.withValue { _ in try readPrivateAuthorization() } }
     catch { throw .ioError }
   }
 
+  func hasAuthorization() throws(Error) -> Bool {
+    do {
+      return try sessionLock.withValue { _ in
+        try secureStorage.contains(Constants.accessHash)
+      }
+    } catch { throw .ioError }
+  }
+
   func clearAuthorization() {
-    if let authorization = try? loadAuthorization() {
-      let accountID = authorization.id.int64
-      try? clearCommunityProfile(accountID: accountID)
-    }
-    for key in [Constants.token, Constants.id, Constants.accessHash, Constants.hasFriend] {
-      try? secureStorage.remove(key)
+    sessionLock.withValue { _ in clearStoredAuthorization() }
+  }
+
+  func shareNotificationSession(_ authorization: Authorization) throws {
+    try sessionLock.withValue { _ in
+      guard let current = try? readPrivateAuthorization(),
+            current.id == authorization.id, current.token == authorization.token else {
+        throw CancellationError()
+      }
+      let session = NotificationSession(
+        userID: authorization.id,
+        token: authorization.token
+      )
+      guard (try? notificationSession.load()) != session else { return }
+      try notificationSession.save(session: session)
     }
   }
 
@@ -75,17 +81,54 @@ struct AccountStorageServiceLive: Sendable {
     } catch { throw .ioError }
   }
 
-  private func clearCommunityProfile(accountID: Int64) throws(Error) {
-    do { try secureStorage.remove(communityProfileKey(accountID)) }
-    catch { throw .ioError }
+  enum Error: Swift.Error {
+    case ioError
+  }
+}
+
+private extension AccountStorageServiceLive {
+  private func readPrivateAuthorization() throws(Error) -> Authorization {
+    do {
+      guard let tokenData = try secureStorage.load(Constants.token),
+            let idData = try secureStorage.load(Constants.id),
+            let hashData = try secureStorage.load(Constants.accessHash),
+            idData.count == MemoryLayout<Int64>.size else { throw Error.ioError }
+      let id = idData.withUnsafeBytes { $0.loadUnaligned(as: Int64.self) }
+      return Authorization(
+        token: try Token(String(decoding: tokenData, as: UTF8.self)),
+        id: UserId(id),
+        accessHash: try UserAccessHash(String(decoding: hashData, as: UTF8.self))
+      )
+    } catch { throw .ioError }
+  }
+
+  private func savePrivateAuthorization(_ authorization: Authorization) throws(Error) {
+    do {
+      try secureStorage.save(Data(authorization.token.string.utf8), Constants.token)
+      try secureStorage.save(
+        withUnsafeBytes(of: authorization.id.int64) { Data($0) },
+        Constants.id
+      )
+      try secureStorage.save(Data(authorization.accessHash.string.utf8), Constants.accessHash)
+    } catch {
+      clearStoredAuthorization()
+      throw .ioError
+    }
+  }
+
+  private func clearStoredAuthorization() {
+    try? notificationSession.remove()
+    if let authorization = try? readPrivateAuthorization() {
+      let key = communityProfileKey(authorization.id.int64)
+      try? secureStorage.remove(key)
+    }
+    for key in [Constants.token, Constants.id, Constants.accessHash, Constants.hasFriend] {
+      try? secureStorage.remove(key)
+    }
   }
 
   private func communityProfileKey(_ accountID: Int64) -> String {
     "community.profile.\(accountID)"
-  }
-
-  enum Error: Swift.Error {
-    case ioError
   }
 }
 

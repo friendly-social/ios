@@ -1,7 +1,7 @@
 import AccountStorageService
 import Dependencies
 
-extension AccountStorageService {
+private extension AccountStorageService {
   static func live() -> Self {
     let live = AccountStorageServiceLive()
     return .init(
@@ -9,6 +9,7 @@ extension AccountStorageService {
       loadAuthorization: live.loadAuthorization,
       hasAuthorization: live.hasAuthorization,
       clearAuthorization: live.clearAuthorization,
+      shareNotificationSession: live.shareNotificationSession,
       getHasFriend: live.getHasFriend,
       addFriend: live.addFriend,
       saveCommunityProfile: live.saveCommunityProfile,

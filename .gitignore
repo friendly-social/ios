@@ -64,6 +64,10 @@ Derived/
 Tuist/.build
 
 ### Local development artifacts ###
+/App/Resources/GoogleService-Info.plist
 /.local/
 *.xcresult/
 *.log
+*.mobileprovision
+*.p12
+*.p8

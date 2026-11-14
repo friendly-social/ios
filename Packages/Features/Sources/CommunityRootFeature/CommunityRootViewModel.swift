@@ -10,6 +10,11 @@ public final class CommunityRootViewModel {
     self.onSessionExpired = onSessionExpired
   }
 
+  public func dismissNavigation() {
+    start()
+    feed?.dismissNavigation()
+  }
+
   func start() {
     guard feed == nil else { return }
     let model = CommunityViewModel(onUnauthorized: onSessionExpired)

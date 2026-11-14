@@ -42,6 +42,13 @@ let package = Package(
     .library(name: "FriendsApiLive", targets: ["FriendsApiLive"]),
     .library(name: "FriendlyUIKit", targets: ["FriendlyUIKit"]),
     .library(name: "LiveDependencies", targets: ["LiveDependencies"]),
+    .library(name: "NotificationDetailsApi", targets: ["NotificationDetailsApi"]),
+    .library(name: "NotificationDetailsApiLive", targets: ["NotificationDetailsApiLive"]),
+    .library(name: "NotificationEnrichmentService", targets: ["NotificationEnrichmentService"]),
+    .library(name: "NotificationEnrichmentServiceLive", targets: ["NotificationEnrichmentServiceLive"]),
+    .library(name: "NotificationExtensionDependencies", targets: ["NotificationExtensionDependencies"]),
+    .library(name: "NotificationOpeningService", targets: ["NotificationOpeningService"]),
+    .library(name: "NotificationOpeningServiceLive", targets: ["NotificationOpeningServiceLive"]),
     .library(name: "PhotoViewerFeature", targets: ["PhotoViewerFeature"]),
     .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
     .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
@@ -51,6 +58,10 @@ let package = Package(
     .library(name: "ProfileFeature", targets: ["ProfileFeature"]),
     .library(name: "ProfileService", targets: ["ProfileService"]),
     .library(name: "ProfileServiceLive", targets: ["ProfileServiceLive"]),
+    .library(name: "PushRegistrationService", targets: ["PushRegistrationService"]),
+    .library(name: "PushRegistrationServiceLive", targets: ["PushRegistrationServiceLive"]),
+    .library(name: "PushTokenRegistrationService", targets: ["PushTokenRegistrationService"]),
+    .library(name: "PushTokenRegistrationServiceLive", targets: ["PushTokenRegistrationServiceLive"]),
     .library(name: "ScannerFeature", targets: ["ScannerFeature"]),
     .library(name: "CameraPermissionService", targets: ["CameraPermissionService"]),
     .library(name: "QRPhotoImportService", targets: ["QRPhotoImportService"]),
@@ -61,6 +72,11 @@ let package = Package(
     .package(path: "../Domain"),
     .package(path: "../Infrastructure"),
     .package(url: "https://github.com/dagronf/QRCode", exact: "27.12.0"),
+    .package(
+      url: "https://github.com/firebase/firebase-ios-sdk.git",
+      exact: "13.1.1",
+      traits: []
+    ),
     .package(url: "https://github.com/kean/Nuke", exact: "13.2.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.12.0"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", exact: "1.7.3"),
@@ -118,6 +134,7 @@ let package = Package(
         "CommunityProfileService",
         "CommunityService",
         "FriendlyUIKit",
+        "PushRegistrationService",
       ],
       resources: [.process("Resources")]
     ),
@@ -629,6 +646,7 @@ let package = Package(
         .product(name: "Models", package: "Domain"),
         "AccountSessionService",
         "CommunityDraftService",
+        "PushRegistrationService",
       ]
     ),
     .target(
@@ -653,6 +671,7 @@ let package = Package(
         "AuthApi",
         "EmailAuthService",
         "ProfileApi",
+        "PushRegistrationService",
       ]
     ),
     .target(
@@ -695,6 +714,7 @@ let package = Package(
         "FilesApi",
         "ProfileApi",
         "ProfileFormService",
+        "PushRegistrationService",
       ]
     ),
     .target(
@@ -712,17 +732,142 @@ let package = Package(
       ]
     ),
     .target(
+      name: "PushPlatformApi",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "PushPlatformApiLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "FirebaseCore", package: "firebase-ios-sdk"),
+        .product(name: "FirebaseMessaging", package: "firebase-ios-sdk"),
+        "PushPlatformApi",
+      ]
+    ),
+    .target(
+      name: "PushRegistrationService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "PushRegistrationServiceLive",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "StorageService", package: "Infrastructure"),
+        "PushPlatformApi",
+        "PushRegistrationService",
+        "PushTokenRegistrationService",
+      ]
+    ),
+    .target(
+      name: "PushTokenRegistrationService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+      ]
+    ),
+    .target(
+      name: "PushTokenRegistrationServiceLive",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "AuthApi",
+        "PushTokenRegistrationService",
+      ]
+    ),
+    .target(
+      name: "NotificationDetailsApi",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+      ]
+    ),
+    .target(
+      name: "NotificationDetailsApiLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "FilesApi",
+        "NotificationDetailsApi",
+      ]
+    ),
+    .target(
+      name: "NotificationOpeningService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "ActivityService",
+        "CommunityProfileService",
+        "NotificationDetailsApi",
+      ]
+    ),
+    .target(
+      name: "NotificationOpeningServiceLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "ActivityService",
+        "CommunityProfileService",
+        "CommunityService",
+        "NotificationDetailsApi",
+        "NotificationOpeningService",
+      ]
+    ),
+    .target(
+      name: "NotificationEnrichmentService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "NotificationEnrichmentServiceLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "NotificationAvatarService", package: "Infrastructure"),
+        .product(name: "NotificationSessionStorage", package: "Infrastructure"),
+        "NotificationDetailsApi",
+        "NotificationEnrichmentService",
+      ],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "NotificationExtensionDependencies",
+      dependencies: [
+        .product(name: "NetworkingLive", package: "Infrastructure"),
+        .product(name: "NotificationAvatarServiceLive", package: "Infrastructure"),
+        .product(name: "NotificationSessionStorageLive", package: "Infrastructure"),
+        "FilesApiLive",
+        "NotificationDetailsApiLive",
+        "NotificationEnrichmentServiceLive",
+      ]
+    ),
+    .target(
       name: "LiveDependencies",
       dependencies: [
         .product(name: "AccountStorageServiceLive", package: "Infrastructure"),
         .product(name: "ImageServiceLive", package: "Infrastructure"),
         .product(name: "NetworkingLive", package: "Infrastructure"),
+        .product(name: "NotificationSessionStorageLive", package: "Infrastructure"),
         .product(name: "StorageServiceLive", package: "Infrastructure"),
         "AccountSessionServiceLive",
         "ActivityApiLive",
         "ActivityServiceLive",
         "AddFriendServiceLive",
         "AuthApiLive",
+        "CameraPermissionServiceLive",
         "CommunityApiLive",
         "CommunityDraftServiceLive",
         "CommunityEditorFeatureLive",
@@ -736,11 +881,15 @@ let package = Package(
         "FriendAccessServiceLive",
         "FriendsApiLive",
         "InvitationServiceLive",
+        "NotificationDetailsApiLive",
+        "NotificationOpeningServiceLive",
         "PostTranslationServiceLive",
         "ProfileApiLive",
         "ProfileFormServiceLive",
         "ProfileServiceLive",
-        "CameraPermissionServiceLive",
+        "PushPlatformApiLive",
+        "PushRegistrationServiceLive",
+        "PushTokenRegistrationServiceLive",
         "QRPhotoImportServiceLive",
         "QRSessionServiceLive",
       ]
@@ -749,8 +898,47 @@ let package = Package(
       name: "AuthFeatureTests",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "AuthApi",
+        "AuthApiLive",
         "AuthFeature",
         "EmailAuthService",
+      ]
+    ),
+    .testTarget(
+      name: "NotificationDetailsApiTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "Networking", package: "Infrastructure"),
+        "FilesApi",
+        "NotificationDetailsApi",
+        "NotificationDetailsApiLive",
+      ]
+    ),
+    .testTarget(
+      name: "NotificationOpeningServiceTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "ActivityService",
+        "CommunityProfileService",
+        "CommunityService",
+        "NotificationDetailsApi",
+        "NotificationOpeningService",
+        "NotificationOpeningServiceLive",
+      ]
+    ),
+    .testTarget(
+      name: "NotificationEnrichmentServiceTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "NotificationSessionStorage", package: "Infrastructure"),
+        "NotificationDetailsApi",
+        "NotificationEnrichmentService",
+        "NotificationEnrichmentServiceLive",
       ]
     ),
     .testTarget(
@@ -774,6 +962,17 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "PushTokenRegistrationServiceTests",
+      dependencies: [
+        .product(name: "AccountStorageService", package: "Infrastructure"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "AuthApi",
+        "PushTokenRegistrationService",
+        "PushTokenRegistrationServiceLive",
+      ]
+    ),
+    .testTarget(
       name: "ActivityFeatureTests",
       dependencies: [
         .product(name: "CustomDump", package: "swift-custom-dump"),
@@ -788,6 +987,7 @@ let package = Package(
         "CommunityApi",
         "CommunityProfileService",
         "CommunityService",
+        "PushRegistrationService",
       ]
     ),
     .testTarget(

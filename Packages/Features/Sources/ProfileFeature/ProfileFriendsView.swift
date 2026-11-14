@@ -28,6 +28,7 @@ public struct ProfileFriendsView: View {
           onSelect: model.showProfile)
       }
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Constants.background)
     .navigationTitle(model.isOwn ? .profileFriends : .profileCommonFriends)
     .task { await model.reload() }

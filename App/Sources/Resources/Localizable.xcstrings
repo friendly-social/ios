@@ -2,6 +2,57 @@
   "sourceLanguage": "en",
   "version": "1.1",
   "strings": {
+    "notification.openError": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open this notification. Check your connection and try again. The content may no longer be available."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось открыть уведомление. Проверьте подключение и попробуйте снова. Возможно, содержимое больше недоступно."
+          }
+        }
+      }
+    },
+    "notification.openRetry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
+          }
+        }
+      }
+    },
+    "notification.openTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уведомление"
+          }
+        }
+      }
+    },
     "community.tab": {
       "extractionState": "manual",
       "localizations": {
@@ -270,6 +321,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Профиль"
+          }
+        }
+      }
+    },
+    "PUSH_FALLBACK": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New notification"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новое уведомление"
           }
         }
       }

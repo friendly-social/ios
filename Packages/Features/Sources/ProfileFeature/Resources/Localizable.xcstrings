@@ -25,13 +25,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Description can't be longer than 1024 symbols"
+            "value" : "Description can't be longer than 10240 symbols"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Описание не может быть длиннее 1024 символов"
+            "value" : "Описание не может быть длиннее 10240 символов"
           }
         }
       }

@@ -1,9 +1,10 @@
 import CommunityRootFeature
+import NotificationDetailsApi
 import SwiftUI
 
 @MainActor
 @Observable
-class MainViewModel {
+final class MainViewModel {
   var selectedItem: Tab = .community
   let routeToSignUp: () -> Void
   let communityModel: CommunityRootViewModel
@@ -13,10 +14,17 @@ class MainViewModel {
     self.communityModel = CommunityRootViewModel(onSessionExpired: routeToSignUp)
   }
 
-  func open(_ route: ContentViewModel.MainRoute) {
+  func open(
+    _ route: AppViewModel.MainRoute,
+    onOpenNotification: (NotificationSelection) -> Void
+  ) {
     switch route {
     case .community: selectedItem = .community
     case .feed: selectedItem = .feed
+    case let .notification(selection):
+      selectedItem = .community
+      communityModel.dismissNavigation()
+      onOpenNotification(selection)
     }
   }
 

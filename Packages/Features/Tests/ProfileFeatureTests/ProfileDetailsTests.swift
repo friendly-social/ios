@@ -1,5 +1,6 @@
 import CustomDump
 import Foundation
+import Models
 import ProfileApi
 @testable import ProfileApiLive
 import Testing
@@ -16,13 +17,27 @@ struct ProfileDetailsTests {
   @Test func rejectsUnknownFriendshipAtApiBoundary() throws {
     #expect(throws: DecodingError.self) { try decode("unknown") }
   }
+
+  @Test(arguments: [1025, 1063, 10_240])
+  func acceptsServerDescriptionsBeyondThePreviousLimit(_ length: Int) throws {
+    let description = String(repeating: "a", count: length)
+    let result = try decode("friends", description: description)
+    #expect(result.user.description.string == description)
+    #expect(result.commonFriends[0].description.string == description)
+  }
+
+  @Test func rejectsDescriptionsBeyondTheServerLimit() {
+    #expect(throws: UserDescription.Error.self) {
+      try UserDescription(String(repeating: "a", count: 10_241))
+    }
+  }
 }
 
 private extension ProfileDetailsTests {
-  private func decode(_ friendship: String) throws -> ProfileDetails {
+  private func decode(_ friendship: String, description: String = "Hello") throws -> ProfileDetails {
     let hash = String(repeating: "a", count: 256)
     let user: [String: Any] = [
-      "id": 1, "accessHash": hash, "nickname": "Anna", "description": "Hello",
+      "id": 1, "accessHash": hash, "nickname": "Anna", "description": description,
       "interests": ["Coffee"], "avatar": NSNull(), "socialLink": NSNull(),
       "email": NSNull(), "friendship": friendship,
     ]
