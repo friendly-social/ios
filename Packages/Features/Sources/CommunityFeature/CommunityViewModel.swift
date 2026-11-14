@@ -48,6 +48,11 @@ public final class CommunityViewModel {
     self.onUnauthorized = onUnauthorized
   }
 
+  public func dismissNavigation() {
+    guard sheetDestination == nil else { return }
+    destination = nil
+  }
+
   @discardableResult
   public func start() -> Bool {
     guard let session = profileService.currentSession() else { return false }

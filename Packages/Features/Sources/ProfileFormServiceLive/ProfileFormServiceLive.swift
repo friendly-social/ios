@@ -6,6 +6,7 @@ import Foundation
 import Models
 import PhotosUI
 import ProfileApi
+import PushRegistrationService
 import SwiftUI
 import UIKit
 
@@ -14,6 +15,7 @@ struct ProfileFormServiceLive: Sendable {
   @Dependency(FilesApi.self) private var filesApi
   @Dependency(ProfileApi.self) private var profileApi
   @Dependency(AccountStorageService.self) private var storage
+  @Dependency(PushRegistrationService.self) private var pushRegistration
 
   func loadAvatar(_ item: PhotosPickerItem) async throws -> Data {
     guard let data = try await item.loadTransferable(type: Data.self) else {
@@ -53,6 +55,7 @@ struct ProfileFormServiceLive: Sendable {
       avatar,
       socialLink)
     try storage.saveAuthorization(authorization)
+    pushRegistration.refresh()
   }
 
   func updateProfile(

@@ -5,12 +5,14 @@ import Dependencies
 import EmailAuthService
 import Models
 import ProfileApi
+import PushRegistrationService
 
 struct EmailAuthServiceLive: Sendable {
   @Dependency(AuthApi.self) private var authApi
   @Dependency(ProfileApi.self) private var profileApi
   @Dependency(AccountStorageService.self) private var storage
   @Dependency(AccountSessionService.self) private var accountSession
+  @Dependency(PushRegistrationService.self) private var pushRegistration
 
   func requestBindingCode(email: String) async throws {
     let authorization = try storage.loadAuthorization()
@@ -59,6 +61,7 @@ struct EmailAuthServiceLive: Sendable {
       try Task.checkCancellation()
       accountSession.clearAuthorization()
       try storage.saveAuthorization(authorization)
+      pushRegistration.refresh()
     } catch AuthApi.AuthLoginError.invalidOrExpiredCode {
       throw EmailAuthError.invalidCode
     } catch {

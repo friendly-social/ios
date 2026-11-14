@@ -47,6 +47,8 @@ let package = Package(
     .library(name: "NotificationEnrichmentService", targets: ["NotificationEnrichmentService"]),
     .library(name: "NotificationEnrichmentServiceLive", targets: ["NotificationEnrichmentServiceLive"]),
     .library(name: "NotificationExtensionDependencies", targets: ["NotificationExtensionDependencies"]),
+    .library(name: "NotificationOpeningService", targets: ["NotificationOpeningService"]),
+    .library(name: "NotificationOpeningServiceLive", targets: ["NotificationOpeningServiceLive"]),
     .library(name: "PhotoViewerFeature", targets: ["PhotoViewerFeature"]),
     .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
     .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
@@ -643,6 +645,7 @@ let package = Package(
         .product(name: "Models", package: "Domain"),
         "AccountSessionService",
         "CommunityDraftService",
+        "PushRegistrationService",
       ]
     ),
     .target(
@@ -667,6 +670,7 @@ let package = Package(
         "AuthApi",
         "EmailAuthService",
         "ProfileApi",
+        "PushRegistrationService",
       ]
     ),
     .target(
@@ -709,6 +713,7 @@ let package = Package(
         "FilesApi",
         "ProfileApi",
         "ProfileFormService",
+        "PushRegistrationService",
       ]
     ),
     .target(
@@ -797,6 +802,29 @@ let package = Package(
       ]
     ),
     .target(
+      name: "NotificationOpeningService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "ActivityService",
+        "CommunityProfileService",
+        "NotificationDetailsApi",
+      ]
+    ),
+    .target(
+      name: "NotificationOpeningServiceLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "ActivityService",
+        "CommunityProfileService",
+        "CommunityService",
+        "NotificationDetailsApi",
+        "NotificationOpeningService",
+      ]
+    ),
+    .target(
       name: "NotificationEnrichmentService",
       dependencies: [
         .product(name: "Dependencies", package: "swift-dependencies"),
@@ -853,6 +881,7 @@ let package = Package(
         "FriendsApiLive",
         "InvitationServiceLive",
         "NotificationDetailsApiLive",
+        "NotificationOpeningServiceLive",
         "PostTranslationServiceLive",
         "ProfileApiLive",
         "ProfileFormServiceLive",
@@ -885,6 +914,19 @@ let package = Package(
         "FilesApi",
         "NotificationDetailsApi",
         "NotificationDetailsApiLive",
+      ]
+    ),
+    .testTarget(
+      name: "NotificationOpeningServiceTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        "ActivityService",
+        "CommunityProfileService",
+        "CommunityService",
+        "NotificationDetailsApi",
+        "NotificationOpeningService",
+        "NotificationOpeningServiceLive",
       ]
     ),
     .testTarget(

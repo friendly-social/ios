@@ -18,9 +18,15 @@ import FriendsApiLive
 import ImageServiceLive
 import InvitationServiceLive
 import NetworkingLive
+import NotificationDetailsApiLive
+import NotificationOpeningServiceLive
+import NotificationSessionStorageLive
 import ProfileApiLive
 import ProfileFormServiceLive
 import ProfileServiceLive
+import PushPlatformApiLive
+import PushRegistrationServiceLive
+import PushTokenRegistrationServiceLive
 import QRPhotoImportServiceLive
 import QRSessionServiceLive
 import StorageServiceLive
