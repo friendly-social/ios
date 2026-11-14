@@ -273,6 +273,23 @@
           }
         }
       }
+    },
+    "PUSH_FALLBACK": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New notification"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новое уведомление"
+          }
+        }
+      }
     }
   }
 }

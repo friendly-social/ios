@@ -1,5 +1,8 @@
 import ProjectDescription
 
+private let notificationKeychainAccessGroup = "$(AppIdentifierPrefix)me.y9san9.Friendly.notifications"
+private let marketingVersion = "1.0"
+
 let project = Project(
   name: "Friendly",
   packages: [
@@ -18,6 +21,8 @@ let project = Project(
         "CFBundleShortVersionString": "$(MARKETING_VERSION)",
         "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
         "ITSAppUsesNonExemptEncryption": false,
+        "NotificationKeychainAccessGroup": .string(notificationKeychainAccessGroup),
+        "NSUserActivityTypes": ["INSendMessageIntent"],
         "NSCameraUsageDescription": "Friendly needs access to your camera to scan QR codes and add friends.",
         "NSPhotoLibraryAddUsageDescription": "Friendly saves invitation QR codes to your photo library when you ask.",
         "NSPhotoLibraryUsageDescription": "Friendly needs access to your photo library to let you pick QR codes from your photos or upload a profile picture.",
@@ -53,15 +58,52 @@ let project = Project(
         .package(product: "ProfileFormService"),
         .package(product: "ScannerFeature"),
         .package(product: "SignUpFeature"),
+        .target(name: "NotificationService"),
       ],
       settings: .settings(
         base: [
+          "CODE_SIGN_ENTITLEMENTS": "App/Signing/Friendly.entitlements",
           "OTHER_LDFLAGS": "-ObjC",
-          "MARKETING_VERSION": "1.0",
+          "MARKETING_VERSION": .string(marketingVersion),
           "CURRENT_PROJECT_VERSION": "1",
           "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
         ],
+        configurations: [
+          .debug(name: "Debug", settings: ["APS_ENVIRONMENT": "development"]),
+          .release(name: "Release", settings: ["APS_ENVIRONMENT": "production"]),
+        ],
       )
+    ),
+    .target(
+      name: "NotificationService",
+      destinations: .iOS,
+      product: .appExtension,
+      bundleId: "me.y9san9.Friendly.NotificationService",
+      deploymentTargets: .iOS("26.0"),
+      infoPlist: .extendingDefault(with: [
+        "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+        "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+        "NotificationKeychainAccessGroup": .string(notificationKeychainAccessGroup),
+        "NSExtension": [
+          "NSExtensionAttributes": ["IntentsSupported": ["INSendMessageIntent"]],
+          "NSExtensionPointIdentifier": "com.apple.usernotifications.service",
+          "NSExtensionPrincipalClass": "$(PRODUCT_MODULE_NAME).NotificationServiceExtension",
+        ],
+      ]),
+      buildableFolders: ["App/NotificationService/Sources"],
+      dependencies: [
+        .package(product: "Dependencies"),
+        .package(product: "NotificationEnrichmentService"),
+        .package(product: "NotificationExtensionDependencies"),
+      ],
+      settings: .settings(base: [
+        "APPLICATION_EXTENSION_API_ONLY": "YES",
+        "CODE_SIGN_ENTITLEMENTS": "App/Signing/NotificationService.entitlements",
+        "CURRENT_PROJECT_VERSION": "1",
+        "MARKETING_VERSION": .string(marketingVersion),
+        "SKIP_INSTALL": "YES",
+        "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+      ])
     ),
     .target(
       name: "CommunityTestsHost",
@@ -122,6 +164,8 @@ let project = Project(
         .package(product: "NotificationAvatarServiceLive"),
         .package(product: "NotificationDetailsApi"),
         .package(product: "NotificationDetailsApiLive"),
+        .package(product: "NotificationEnrichmentService"),
+        .package(product: "NotificationEnrichmentServiceLive"),
         .package(product: "NotificationSessionStorage"),
         .package(product: "Nuke"),
         .package(product: "NukeUI"),

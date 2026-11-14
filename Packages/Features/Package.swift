@@ -44,6 +44,9 @@ let package = Package(
     .library(name: "LiveDependencies", targets: ["LiveDependencies"]),
     .library(name: "NotificationDetailsApi", targets: ["NotificationDetailsApi"]),
     .library(name: "NotificationDetailsApiLive", targets: ["NotificationDetailsApiLive"]),
+    .library(name: "NotificationEnrichmentService", targets: ["NotificationEnrichmentService"]),
+    .library(name: "NotificationEnrichmentServiceLive", targets: ["NotificationEnrichmentServiceLive"]),
+    .library(name: "NotificationExtensionDependencies", targets: ["NotificationExtensionDependencies"]),
     .library(name: "PhotoViewerFeature", targets: ["PhotoViewerFeature"]),
     .library(name: "PostTranslationService", targets: ["PostTranslationService"]),
     .library(name: "PostTranslationServiceLive", targets: ["PostTranslationServiceLive"]),
@@ -794,6 +797,35 @@ let package = Package(
       ]
     ),
     .target(
+      name: "NotificationEnrichmentService",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "DependenciesMacros", package: "swift-dependencies"),
+      ]
+    ),
+    .target(
+      name: "NotificationEnrichmentServiceLive",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "NotificationAvatarService", package: "Infrastructure"),
+        .product(name: "NotificationSessionStorage", package: "Infrastructure"),
+        "NotificationDetailsApi",
+        "NotificationEnrichmentService",
+      ],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "NotificationExtensionDependencies",
+      dependencies: [
+        .product(name: "NetworkingLive", package: "Infrastructure"),
+        .product(name: "NotificationAvatarServiceLive", package: "Infrastructure"),
+        .product(name: "NotificationSessionStorageLive", package: "Infrastructure"),
+        "FilesApiLive",
+        "NotificationDetailsApiLive",
+        "NotificationEnrichmentServiceLive",
+      ]
+    ),
+    .target(
       name: "LiveDependencies",
       dependencies: [
         .product(name: "AccountStorageServiceLive", package: "Infrastructure"),
@@ -853,6 +885,17 @@ let package = Package(
         "FilesApi",
         "NotificationDetailsApi",
         "NotificationDetailsApiLive",
+      ]
+    ),
+    .testTarget(
+      name: "NotificationEnrichmentServiceTests",
+      dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        .product(name: "Models", package: "Domain"),
+        .product(name: "NotificationSessionStorage", package: "Infrastructure"),
+        "NotificationDetailsApi",
+        "NotificationEnrichmentService",
+        "NotificationEnrichmentServiceLive",
       ]
     ),
     .testTarget(
