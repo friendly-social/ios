@@ -88,6 +88,7 @@ let project = Project(
       bundleId: "me.y9san9.Friendly.NotificationService",
       deploymentTargets: .iOS("26.0"),
       infoPlist: .extendingDefault(with: [
+        "CFBundleDisplayName": "Friendly Notifications",
         "CFBundleShortVersionString": "$(MARKETING_VERSION)",
         "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
         "NotificationKeychainAccessGroup": .string(notificationKeychainAccessGroup),
