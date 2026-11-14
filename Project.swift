@@ -195,6 +195,7 @@ let project = Project(
         .package(product: "ProfileFormService"),
         .package(product: "ProfileService"),
         .package(product: "ProfileServiceLive"),
+        .package(product: "PushRegistrationService"),
         .package(product: "PushTokenRegistrationService"),
         .package(product: "PushTokenRegistrationServiceLive"),
         .package(product: "StorageService"),

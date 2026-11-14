@@ -2,6 +2,74 @@
   "sourceLanguage": "en",
   "version": "1.1",
   "strings": {
+    "activity.notificationsDisabledMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable them in Settings so you don't miss replies and friend requests."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включите их в настройках, чтобы не пропускать ответы и запросы в друзья."
+          }
+        }
+      }
+    },
+    "activity.notificationsDisabledTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications are off"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уведомления выключены"
+          }
+        }
+      }
+    },
+    "activity.notificationsEnableMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't miss replies and friend requests."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Узнавайте об ответах и запросах в друзья."
+          }
+        }
+      }
+    },
+    "activity.notificationsEnableTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable notifications"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включить уведомления"
+          }
+        }
+      }
+    },
     "activity.title": {
       "extractionState": "manual",
       "localizations": {

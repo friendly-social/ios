@@ -134,6 +134,7 @@ let package = Package(
         "CommunityProfileService",
         "CommunityService",
         "FriendlyUIKit",
+        "PushRegistrationService",
       ],
       resources: [.process("Resources")]
     ),
@@ -986,6 +987,7 @@ let package = Package(
         "CommunityApi",
         "CommunityProfileService",
         "CommunityService",
+        "PushRegistrationService",
       ]
     ),
     .testTarget(

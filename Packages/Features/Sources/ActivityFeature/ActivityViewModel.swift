@@ -5,6 +5,7 @@ import Dependencies
 import Foundation
 import Models
 import Observation
+import PushRegistrationService
 
 @MainActor @Observable
 public final class ActivityViewModel {
@@ -15,8 +16,11 @@ public final class ActivityViewModel {
   public private(set) var error: LocalizedStringResource?
   public private(set) var pageError: LocalizedStringResource?
   public var destination: Destination?
+  private(set) var notificationAuthorization: PushAuthorizationStatus?
+  private(set) var isUpdatingNotifications = false
   @ObservationIgnored @Dependency(ActivityService.self) private var service
   @ObservationIgnored @Dependency(CommunityProfileService.self) private var profile
+  @ObservationIgnored @Dependency(PushRegistrationService.self) private var pushRegistration
   @ObservationIgnored @Dependency(\.date.now) private var now
   private var session: CommunitySession?
   private var generation = 0
@@ -109,6 +113,44 @@ public final class ActivityViewModel {
 
   func events(in group: ActivityTimeGroup) -> [ActivityEvent] {
     events.filter { timeGroup(for: $0.date) == group }
+  }
+
+  var showsNotificationBanner: Bool {
+    guard let notificationAuthorization else { return false }
+    return notificationAuthorization != .authorized
+  }
+
+  var notificationBannerTitle: LocalizedStringResource {
+    notificationAuthorization == .denied
+      ? .activityNotificationsDisabledTitle
+      : .activityNotificationsEnableTitle
+  }
+
+  var notificationBannerMessage: LocalizedStringResource {
+    notificationAuthorization == .denied
+      ? .activityNotificationsDisabledMessage
+      : .activityNotificationsEnableMessage
+  }
+
+  func refreshNotificationAuthorization() async {
+    let status = await pushRegistration.authorizationStatus()
+    guard !Task.isCancelled else { return }
+    notificationAuthorization = status
+    if status == .authorized { pushRegistration.refresh() }
+  }
+
+  func notificationBannerTapped() async {
+    guard !isUpdatingNotifications else { return }
+    isUpdatingNotifications = true
+    defer { isUpdatingNotifications = false }
+    let status = await pushRegistration.authorizationStatus()
+    guard !Task.isCancelled else { return }
+    switch status {
+    case .notDetermined: await pushRegistration.requestAuthorizationIfNeeded()
+    case .denied: await pushRegistration.openNotificationSettings()
+    case .authorized: break
+    }
+    await refreshNotificationAuthorization()
   }
 }
 
