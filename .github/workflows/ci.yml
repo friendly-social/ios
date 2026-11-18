@@ -151,6 +151,7 @@ jobs:
     - name: Build and upload to TestFlight
       if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
       env:
+        FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: 60
         APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
         APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
         APP_STORE_CONNECT_API_KEY_KEY_CONTENT_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_CONTENT_BASE64 }}

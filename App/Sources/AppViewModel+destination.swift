@@ -22,7 +22,10 @@ extension AppViewModel {
     var isLoading = false
     var failed = false
 
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    static func == (lhs: Self, rhs: Self) -> Bool {
+      lhs.id == rhs.id && lhs.isLoading == rhs.isLoading && lhs.failed == rhs.failed
+        && (lhs.content == nil) == (rhs.content == nil)
+    }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
   }
