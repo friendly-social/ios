@@ -3,11 +3,48 @@ import Dependencies
 import Models
 import NotificationDetailsApi
 import NotificationOpeningService
+import Observation
 import Synchronization
 import Testing
 
 @MainActor
 struct AppNotificationNavigationTests {
+  @Test func resolvingNotificationNotifiesTheView() async throws {
+    let changes = Mutex(0)
+    let result = try profile()
+    let model = makeModel { _, _ in result }
+    withObservationTracking {
+      _ = model.destination
+    } onChange: {
+      changes.withLock { $0 += 1 }
+    }
+    await model.loadNotification(id: try #require(model.destination?.id))
+    #expect(model.notification?.content != nil)
+    #expect(changes.withLock { $0 } > 0)
+  }
+
+  @Test func completedRequestNotifiesTheLoadingView() async throws {
+    let gate = OpeningGate()
+    let changes = Mutex(0)
+    let result = try profile()
+    let model = makeModel { _, _ in
+      await gate.wait()
+      return result
+    }
+    let id = try #require(model.destination?.id)
+    let load = Task { await model.loadNotification(id: id) }
+    await gate.waitForRequest()
+    withObservationTracking {
+      _ = model.destination
+    } onChange: {
+      changes.withLock { $0 += 1 }
+    }
+    await gate.resume()
+    await load.value
+    #expect(model.notification?.content != nil)
+    #expect(changes.withLock { $0 } > 0)
+  }
+
   @Test func failureCanBeRetriedWithoutLosingTheNotificationID() async throws {
     let calls = Mutex(0)
     let result = try profile()
